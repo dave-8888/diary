@@ -1,7 +1,10 @@
+import 'package:diary_mvp/app/localization/app_locale.dart';
+import 'package:diary_mvp/app/localization/app_strings.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
-class DiaryShell extends StatelessWidget {
+class DiaryShell extends ConsumerWidget {
   const DiaryShell({
     super.key,
     required this.title,
@@ -14,7 +17,9 @@ class DiaryShell extends StatelessWidget {
   final Widget? floatingActionButton;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final strings = context.strings;
+    final selectedLanguage = ref.watch(appLanguageProvider);
     final location = GoRouterState.of(context).uri.toString();
     final selectedIndex = _indexForLocation(location);
 
@@ -26,6 +31,26 @@ class DiaryShell extends StatelessWidget {
               title: Text(title),
               centerTitle: false,
               backgroundColor: Colors.transparent,
+              actions: [
+                PopupMenuButton<AppLanguage>(
+                  tooltip: strings.language,
+                  initialValue: selectedLanguage,
+                  icon: const Icon(Icons.language),
+                  onSelected: (language) {
+                    ref
+                        .read(appLanguageProvider.notifier)
+                        .setLanguage(language);
+                  },
+                  itemBuilder: (context) => AppLanguage.values
+                      .map(
+                        (language) => PopupMenuItem<AppLanguage>(
+                          value: language,
+                          child: Text(strings.titleForLanguage(language)),
+                        ),
+                      )
+                      .toList(),
+                ),
+              ],
             ),
             floatingActionButton: floatingActionButton,
             body: SafeArea(
@@ -37,13 +62,19 @@ class DiaryShell extends StatelessWidget {
             bottomNavigationBar: NavigationBar(
               selectedIndex: selectedIndex,
               onDestinationSelected: (index) => _goToIndex(context, index),
-              destinations: const [
+              destinations: [
                 NavigationDestination(
-                    icon: Icon(Icons.home_outlined), label: 'Home'),
+                  icon: const Icon(Icons.home_outlined),
+                  label: strings.homeNav,
+                ),
                 NavigationDestination(
-                    icon: Icon(Icons.edit_note_outlined), label: 'Write'),
+                  icon: const Icon(Icons.edit_note_outlined),
+                  label: strings.writeNav,
+                ),
                 NavigationDestination(
-                    icon: Icon(Icons.timeline_outlined), label: 'Timeline'),
+                  icon: const Icon(Icons.timeline_outlined),
+                  label: strings.timelineNav,
+                ),
               ],
             ),
           );
@@ -54,6 +85,24 @@ class DiaryShell extends StatelessWidget {
             title: Text(title),
             centerTitle: false,
             backgroundColor: Colors.transparent,
+            actions: [
+              PopupMenuButton<AppLanguage>(
+                tooltip: strings.language,
+                initialValue: selectedLanguage,
+                icon: const Icon(Icons.language),
+                onSelected: (language) {
+                  ref.read(appLanguageProvider.notifier).setLanguage(language);
+                },
+                itemBuilder: (context) => AppLanguage.values
+                    .map(
+                      (language) => PopupMenuItem<AppLanguage>(
+                        value: language,
+                        child: Text(strings.titleForLanguage(language)),
+                      ),
+                    )
+                    .toList(),
+              ),
+            ],
           ),
           floatingActionButton: floatingActionButton,
           body: Row(
@@ -62,21 +111,21 @@ class DiaryShell extends StatelessWidget {
                 selectedIndex: selectedIndex,
                 onDestinationSelected: (index) => _goToIndex(context, index),
                 labelType: NavigationRailLabelType.all,
-                destinations: const [
+                destinations: [
                   NavigationRailDestination(
-                    icon: Icon(Icons.home_outlined),
-                    selectedIcon: Icon(Icons.home),
-                    label: Text('Home'),
+                    icon: const Icon(Icons.home_outlined),
+                    selectedIcon: const Icon(Icons.home),
+                    label: Text(strings.homeNav),
                   ),
                   NavigationRailDestination(
-                    icon: Icon(Icons.edit_note_outlined),
-                    selectedIcon: Icon(Icons.edit_note),
-                    label: Text('Write'),
+                    icon: const Icon(Icons.edit_note_outlined),
+                    selectedIcon: const Icon(Icons.edit_note),
+                    label: Text(strings.writeNav),
                   ),
                   NavigationRailDestination(
-                    icon: Icon(Icons.timeline_outlined),
-                    selectedIcon: Icon(Icons.timeline),
-                    label: Text('Timeline'),
+                    icon: const Icon(Icons.timeline_outlined),
+                    selectedIcon: const Icon(Icons.timeline),
+                    label: Text(strings.timelineNav),
                   ),
                 ],
               ),

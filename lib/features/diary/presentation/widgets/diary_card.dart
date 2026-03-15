@@ -1,6 +1,6 @@
+import 'package:diary_mvp/app/localization/app_strings.dart';
 import 'package:diary_mvp/features/diary/domain/diary_entry.dart';
 import 'package:flutter/material.dart';
-import 'package:intl/intl.dart';
 import 'package:path/path.dart' as p;
 
 class DiaryCard extends StatelessWidget {
@@ -13,7 +13,8 @@ class DiaryCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final dateText = DateFormat('yyyy-MM-dd HH:mm').format(entry.createdAt);
+    final strings = context.strings;
+    final dateText = strings.formatDateTime(entry.createdAt);
 
     return Card(
       child: Padding(
@@ -62,7 +63,7 @@ class DiaryCard extends StatelessWidget {
                 ...entry.media.map(
                   (media) => Chip(
                     avatar: Icon(_iconForMedia(media.type), size: 18),
-                    label: Text(_labelForMedia(media)),
+                    label: Text(_labelForMedia(context, media)),
                   ),
                 ),
               ],
@@ -84,17 +85,9 @@ class DiaryCard extends StatelessWidget {
     }
   }
 
-  String _labelForMedia(DiaryMedia media) {
+  String _labelForMedia(BuildContext context, DiaryMedia media) {
+    final strings = context.strings;
     final baseName = p.basename(media.path);
-    switch (media.type) {
-      case MediaType.image:
-        return 'Image: $baseName';
-      case MediaType.audio:
-        return media.durationLabel == null
-            ? 'Audio: $baseName'
-            : 'Audio ${media.durationLabel}: $baseName';
-      case MediaType.video:
-        return 'Video: $baseName';
-    }
+    return strings.mediaLabel(media, baseName: baseName);
   }
 }

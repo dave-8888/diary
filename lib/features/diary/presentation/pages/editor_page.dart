@@ -1,3 +1,4 @@
+import 'package:diary_mvp/app/localization/app_strings.dart';
 import 'dart:math';
 
 import 'package:diary_mvp/core/storage/local_storage_service.dart';
@@ -47,51 +48,55 @@ class _EditorPageState extends ConsumerState<EditorPage> {
 
   @override
   Widget build(BuildContext context) {
+    final strings = context.strings;
+
     return DiaryShell(
-      title: 'New Entry',
+      title: strings.newEntry,
       child: Center(
         child: ConstrainedBox(
           constraints: const BoxConstraints(maxWidth: 920),
           child: ListView(
             children: [
-              Text('What happened today?',
+              Text(strings.whatHappenedToday,
                   style: Theme.of(context).textTheme.headlineMedium),
               const SizedBox(height: 20),
               TextField(
                 controller: _titleController,
-                decoration: const InputDecoration(
-                  labelText: 'Title',
-                  hintText: 'For example: Afternoon in the park',
+                decoration: InputDecoration(
+                  labelText: strings.titleLabel,
+                  hintText: strings.titleHint,
                 ),
               ),
               const SizedBox(height: 16),
               TextField(
                 controller: _contentController,
                 maxLines: 10,
-                decoration: const InputDecoration(
-                  labelText: 'Content',
-                  hintText:
-                      'Write down what happened, how you felt, and what you want to remember...',
+                decoration: InputDecoration(
+                  labelText: strings.contentLabel,
+                  hintText: strings.contentHint,
                 ),
               ),
               const SizedBox(height: 16),
               TextField(
                 controller: _locationController,
-                decoration: const InputDecoration(
-                  labelText: 'Location',
-                  hintText: 'For example: Home / Office / Shanghai',
+                decoration: InputDecoration(
+                  labelText: strings.locationLabel,
+                  hintText: strings.locationHint,
                 ),
               ),
               const SizedBox(height: 24),
-              Text('Mood', style: Theme.of(context).textTheme.titleMedium),
+              Text(strings.mood,
+                  style: Theme.of(context).textTheme.titleMedium),
               const SizedBox(height: 12),
               MoodSelector(
                 value: _mood,
                 onChanged: (mood) => setState(() => _mood = mood),
               ),
               const SizedBox(height: 24),
-              Text('Media toolbar',
-                  style: Theme.of(context).textTheme.titleMedium),
+              Text(
+                strings.mediaToolbar,
+                style: Theme.of(context).textTheme.titleMedium,
+              ),
               const SizedBox(height: 12),
               Wrap(
                 spacing: 12,
@@ -100,7 +105,7 @@ class _EditorPageState extends ConsumerState<EditorPage> {
                   FilledButton.tonalIcon(
                     onPressed: _pickImages,
                     icon: const Icon(Icons.image_outlined),
-                    label: const Text('Import image'),
+                    label: Text(strings.importImage),
                   ),
                   FilledButton.tonalIcon(
                     onPressed: _isRecording ? _stopRecording : _startRecording,
@@ -108,14 +113,19 @@ class _EditorPageState extends ConsumerState<EditorPage> {
                         ? Icons.stop_circle_outlined
                         : Icons.mic_none),
                     label: Text(
-                        _isRecording ? 'Stop recording' : 'Start recording'),
+                      _isRecording
+                          ? strings.stopRecording
+                          : strings.startRecording,
+                    ),
                   ),
                   FilledButton.tonalIcon(
                     onPressed: _isTranscribing ? null : _transcribeLatestAudio,
                     icon: const Icon(Icons.subtitles_outlined),
-                    label: Text(_isTranscribing
-                        ? 'Transcribing...'
-                        : 'Transcribe latest audio'),
+                    label: Text(
+                      _isTranscribing
+                          ? strings.transcribing
+                          : strings.transcribeLatestAudio,
+                    ),
                   ),
                 ],
               ),
@@ -140,7 +150,7 @@ class _EditorPageState extends ConsumerState<EditorPage> {
                 child: FilledButton.icon(
                   onPressed: _isSaving ? null : _save,
                   icon: const Icon(Icons.save_outlined),
-                  label: Text(_isSaving ? 'Saving...' : 'Save entry'),
+                  label: Text(_isSaving ? strings.saving : strings.saveEntry),
                 ),
               ),
             ],
@@ -151,6 +161,7 @@ class _EditorPageState extends ConsumerState<EditorPage> {
   }
 
   Future<void> _pickImages() async {
+    final strings = context.strings;
     final result = await FilePicker.platform.pickFiles(
       type: FileType.image,
       allowMultiple: true,
@@ -178,16 +189,17 @@ class _EditorPageState extends ConsumerState<EditorPage> {
     if (added.isNotEmpty) {
       setState(() => _media.addAll(added));
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Imported ${added.length} image file(s).')),
+        SnackBar(content: Text(strings.importedImages(added.length))),
       );
     }
   }
 
   Future<void> _startRecording() async {
+    final strings = context.strings;
     if (!await _audioRecorder.hasPermission()) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Microphone permission denied.')),
+        SnackBar(content: Text(strings.microphonePermissionDenied)),
       );
       return;
     }
@@ -211,6 +223,7 @@ class _EditorPageState extends ConsumerState<EditorPage> {
   }
 
   Future<void> _stopRecording() async {
+    final strings = context.strings;
     final outputPath = await _audioRecorder.stop();
     final startedAt = _recordingStartedAt;
 
@@ -237,15 +250,16 @@ class _EditorPageState extends ConsumerState<EditorPage> {
     });
 
     ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Audio recording saved.')),
+      SnackBar(content: Text(strings.audioRecordingSaved)),
     );
   }
 
   Future<void> _transcribeLatestAudio() async {
+    final strings = context.strings;
     final latestAudio = _findLatestAudio();
     if (latestAudio == null) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please record audio first.')),
+        SnackBar(content: Text(strings.pleaseRecordAudioFirst)),
       );
       return;
     }
@@ -259,7 +273,7 @@ class _EditorPageState extends ConsumerState<EditorPage> {
 
     if (!result.ok || result.text == null) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(result.message)),
+        SnackBar(content: Text(_transcriptionFailureMessage(strings, result))),
       );
       return;
     }
@@ -270,8 +284,7 @@ class _EditorPageState extends ConsumerState<EditorPage> {
         TextSelection.collapsed(offset: _contentController.text.length);
 
     ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-          content: Text('Transcription inserted into entry content.')),
+      SnackBar(content: Text(strings.transcriptionInserted)),
     );
   }
 
@@ -284,6 +297,7 @@ class _EditorPageState extends ConsumerState<EditorPage> {
   }
 
   Future<void> _save() async {
+    final strings = context.strings;
     setState(() => _isSaving = true);
     await ref.read(diaryControllerProvider.notifier).addEntry(
           title: _titleController.text,
@@ -296,7 +310,7 @@ class _EditorPageState extends ConsumerState<EditorPage> {
     if (!mounted) return;
     setState(() => _isSaving = false);
     ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Entry saved to local SQLite.')),
+      SnackBar(content: Text(strings.entrySaved)),
     );
     context.go('/timeline');
   }
@@ -313,22 +327,31 @@ class _EditorPageState extends ConsumerState<EditorPage> {
   }
 
   String _mediaLabel(DiaryMedia media) {
+    final strings = context.strings;
     final name = p.basename(media.path);
-    switch (media.type) {
-      case MediaType.image:
-        return 'Image: $name';
-      case MediaType.audio:
-        final duration =
-            media.durationLabel == null ? '' : ' (${media.durationLabel})';
-        return 'Audio$duration: $name';
-      case MediaType.video:
-        return 'Video: $name';
-    }
+    return strings.mediaLabel(media, baseName: name);
   }
 
   String _formatDuration(int totalSeconds) {
     final minutes = (totalSeconds ~/ 60).toString().padLeft(2, '0');
     final seconds = (totalSeconds % 60).toString().padLeft(2, '0');
     return '$minutes:$seconds';
+  }
+
+  String _transcriptionFailureMessage(
+    AppStrings strings,
+    TranscriptionResult result,
+  ) {
+    switch (result.failure) {
+      case TranscriptionFailure.apiKeyMissing:
+        return strings.apiKeyMissing;
+      case TranscriptionFailure.fileNotFound:
+        return strings.audioFileMissing;
+      case TranscriptionFailure.requestFailed:
+        return strings.transcriptionRequestFailed(result.statusCode);
+      case TranscriptionFailure.emptyResponse:
+      case null:
+        return strings.noTranscriptionText;
+    }
   }
 }

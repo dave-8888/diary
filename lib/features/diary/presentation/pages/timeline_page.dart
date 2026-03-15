@@ -1,3 +1,4 @@
+import 'package:diary_mvp/app/localization/app_strings.dart';
 import 'package:diary_mvp/features/diary/application/diary_controller.dart';
 import 'package:diary_mvp/features/diary/presentation/widgets/diary_card.dart';
 import 'package:diary_mvp/features/diary/presentation/widgets/diary_shell.dart';
@@ -9,18 +10,18 @@ class TimelinePage extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final strings = context.strings;
     final entriesAsync = ref.watch(diaryControllerProvider);
 
     return DiaryShell(
-      title: 'Timeline',
+      title: strings.timelineNav,
       child: entriesAsync.when(
         loading: () => const Center(child: CircularProgressIndicator()),
         error: (error, stack) =>
-            Center(child: Text('Failed to load timeline: $error')),
+            Center(child: Text(strings.failedToLoadTimeline(error))),
         data: (entries) {
           if (entries.isEmpty) {
-            return const Center(
-                child: Text('No entries yet. Start with your first note.'));
+            return Center(child: Text(strings.noEntriesYet));
           }
           return ListView.separated(
             itemCount: entries.length,

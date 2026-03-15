@@ -8,16 +8,25 @@ final transcriptionServiceProvider = Provider<TranscriptionService>((ref) {
   return TranscriptionService();
 });
 
+enum TranscriptionFailure {
+  apiKeyMissing,
+  fileNotFound,
+  requestFailed,
+  emptyResponse,
+}
+
 class TranscriptionResult {
   const TranscriptionResult({
     required this.ok,
-    required this.message,
     this.text,
+    this.failure,
+    this.statusCode,
   });
 
   final bool ok;
-  final String message;
   final String? text;
+  final TranscriptionFailure? failure;
+  final int? statusCode;
 }
 
 class TranscriptionService {
@@ -29,15 +38,15 @@ class TranscriptionService {
     if (_apiKey.isEmpty) {
       return const TranscriptionResult(
         ok: false,
-        message: 'OPENAI_API_KEY not set. Skipping transcription.',
+        failure: TranscriptionFailure.apiKeyMissing,
       );
     }
 
     final file = File(audioPath);
     if (!await file.exists()) {
-      return TranscriptionResult(
+      return const TranscriptionResult(
         ok: false,
-        message: 'Audio file was not found: $audioPath',
+        failure: TranscriptionFailure.fileNotFound,
       );
     }
 
@@ -53,8 +62,8 @@ class TranscriptionService {
     if (streamedResponse.statusCode >= 400) {
       return TranscriptionResult(
         ok: false,
-        message:
-            'Transcription request failed (${streamedResponse.statusCode}).',
+        failure: TranscriptionFailure.requestFailed,
+        statusCode: streamedResponse.statusCode,
       );
     }
 
@@ -64,7 +73,6 @@ class TranscriptionService {
       if (text != null && text.trim().isNotEmpty) {
         return TranscriptionResult(
           ok: true,
-          message: 'Transcription completed.',
           text: text.trim(),
         );
       }
@@ -72,7 +80,7 @@ class TranscriptionService {
 
     return const TranscriptionResult(
       ok: false,
-      message: 'No transcription text returned from API.',
+      failure: TranscriptionFailure.emptyResponse,
     );
   }
 }
