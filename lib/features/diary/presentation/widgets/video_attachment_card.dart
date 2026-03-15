@@ -1,5 +1,6 @@
 import 'package:diary_mvp/app/localization/app_strings.dart';
 import 'package:diary_mvp/features/diary/domain/diary_entry.dart';
+import 'package:diary_mvp/features/diary/presentation/widgets/local_video_player.dart';
 import 'package:flutter/material.dart';
 import 'package:path/path.dart' as p;
 
@@ -48,26 +49,40 @@ class VideoAttachmentCard extends StatelessWidget {
                 child: Stack(
                   fit: StackFit.expand,
                   children: [
-                    DecoratedBox(
-                      decoration: BoxDecoration(
-                        borderRadius: const BorderRadius.vertical(
-                          top: Radius.circular(22),
-                        ),
-                        gradient: LinearGradient(
-                          begin: Alignment.topLeft,
-                          end: Alignment.bottomRight,
-                          colors: [
-                            theme.colorScheme.primaryContainer,
-                            theme.colorScheme.surfaceContainerHigh,
-                          ],
+                    ClipRRect(
+                      borderRadius: const BorderRadius.vertical(
+                        top: Radius.circular(22),
+                      ),
+                      child: IgnorePointer(
+                        child: LocalVideoPlayer(
+                          path: media.path,
+                          showControls: false,
+                          fit: BoxFit.cover,
                         ),
                       ),
                     ),
-                    Center(
+                    Positioned.fill(
+                      child: DecoratedBox(
+                        decoration: BoxDecoration(
+                          borderRadius: const BorderRadius.vertical(
+                            top: Radius.circular(22),
+                          ),
+                          gradient: LinearGradient(
+                            begin: Alignment.topCenter,
+                            end: Alignment.bottomCenter,
+                            colors: [
+                              Colors.black.withOpacity(0.12),
+                              Colors.black.withOpacity(0.28),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ),
+                    const Center(
                       child: Icon(
                         Icons.play_circle_fill_rounded,
                         size: 58,
-                        color: theme.colorScheme.primary,
+                        color: Colors.white,
                       ),
                     ),
                     if (onDeleted != null)
