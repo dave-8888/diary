@@ -17,7 +17,9 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       ),
       GoRoute(
         path: '/editor',
-        builder: (context, state) => const EditorPage(),
+        builder: (context, state) => EditorPage(
+          entry: state.extra as DiaryEntry?,
+        ),
       ),
       GoRoute(
         path: '/camera',

@@ -17,6 +17,14 @@ abstract class DiaryRepository {
     required String location,
     required List<DiaryMedia> media,
   });
+  Future<DiaryEntry> updateEntry({
+    required DiaryEntry entry,
+    required String title,
+    required String content,
+    required DiaryMood mood,
+    required String location,
+    required List<DiaryMedia> media,
+  });
 }
 
 class DriftDiaryRepository implements DiaryRepository {
@@ -51,6 +59,28 @@ class DriftDiaryRepository implements DiaryRepository {
 
     await _database.insertEntry(entry);
     return entry;
+  }
+
+  @override
+  Future<DiaryEntry> updateEntry({
+    required DiaryEntry entry,
+    required String title,
+    required String content,
+    required DiaryMood mood,
+    required String location,
+    required List<DiaryMedia> media,
+  }) async {
+    final updated = entry.copyWith(
+      title: title.trim().isEmpty ? 'Untitled entry' : title.trim(),
+      content: content.trim(),
+      mood: mood,
+      location: location.trim().isEmpty ? null : location.trim(),
+      media: media,
+      tags: _buildTags(content),
+    );
+
+    await _database.updateEntry(updated);
+    return updated;
   }
 
   List<String> _buildTags(String content) {

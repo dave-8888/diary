@@ -20,7 +20,12 @@ import 'package:record/record.dart';
 import 'package:uuid/uuid.dart';
 
 class EditorPage extends ConsumerStatefulWidget {
-  const EditorPage({super.key});
+  const EditorPage({
+    super.key,
+    this.entry,
+  });
+
+  final DiaryEntry? entry;
 
   @override
   ConsumerState<EditorPage> createState() => _EditorPageState();
@@ -40,6 +45,21 @@ class _EditorPageState extends ConsumerState<EditorPage> {
   bool _isRecording = false;
   bool _isTranscribing = false;
   DateTime? _recordingStartedAt;
+
+  bool get _isEditing => widget.entry != null;
+
+  @override
+  void initState() {
+    super.initState();
+    final entry = widget.entry;
+    if (entry == null) return;
+
+    _titleController.text = entry.title;
+    _contentController.text = entry.content;
+    _locationController.text = entry.location ?? '';
+    _mood = entry.mood;
+    _media.addAll(entry.media);
+  }
 
   @override
   void dispose() {
@@ -67,7 +87,7 @@ class _EditorPageState extends ConsumerState<EditorPage> {
         .toList();
 
     return DiaryShell(
-      title: strings.newEntry,
+      title: _isEditing ? strings.editEntry : strings.newEntry,
       child: Center(
         child: ConstrainedBox(
           constraints: const BoxConstraints(maxWidth: 1240),
@@ -253,7 +273,11 @@ class _EditorPageState extends ConsumerState<EditorPage> {
         child: FilledButton.icon(
           onPressed: _isSaving ? null : _save,
           icon: const Icon(Icons.save_outlined),
-          label: Text(_isSaving ? strings.saving : strings.saveEntry),
+          label: Text(
+            _isSaving
+                ? strings.saving
+                : (_isEditing ? strings.updateEntry : strings.saveEntry),
+          ),
         ),
       ),
     ];
@@ -479,18 +503,34 @@ class _EditorPageState extends ConsumerState<EditorPage> {
   Future<void> _save() async {
     final strings = context.strings;
     setState(() => _isSaving = true);
-    await ref.read(diaryControllerProvider.notifier).addEntry(
-          title: _titleController.text,
-          content: _contentController.text,
-          mood: _mood,
-          location: _locationController.text,
-          media: List<DiaryMedia>.from(_media),
-        );
+    final controller = ref.read(diaryControllerProvider.notifier);
+    final media = List<DiaryMedia>.from(_media);
+
+    if (_isEditing) {
+      await controller.updateEntry(
+        entry: widget.entry!,
+        title: _titleController.text,
+        content: _contentController.text,
+        mood: _mood,
+        location: _locationController.text,
+        media: media,
+      );
+    } else {
+      await controller.addEntry(
+        title: _titleController.text,
+        content: _contentController.text,
+        mood: _mood,
+        location: _locationController.text,
+        media: media,
+      );
+    }
 
     if (!mounted) return;
     setState(() => _isSaving = false);
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(strings.entrySaved)),
+      SnackBar(
+        content: Text(_isEditing ? strings.entryUpdated : strings.entrySaved),
+      ),
     );
     context.go('/timeline');
   }

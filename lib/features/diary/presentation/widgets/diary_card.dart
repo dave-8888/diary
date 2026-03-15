@@ -11,9 +11,11 @@ class DiaryCard extends StatelessWidget {
   const DiaryCard({
     super.key,
     required this.entry,
+    this.onEdit,
   });
 
   final DiaryEntry entry;
+  final VoidCallback? onEdit;
 
   @override
   Widget build(BuildContext context) {
@@ -77,7 +79,21 @@ class DiaryCard extends StatelessWidget {
                       Chip(
                         label: Text(entry.location!),
                         avatar: const Icon(Icons.place_outlined, size: 18),
+                      )
+                    else if (onEdit != null)
+                      IconButton(
+                        onPressed: onEdit,
+                        tooltip: strings.editEntry,
+                        icon: const Icon(Icons.edit_outlined),
                       ),
+                    if (entry.location != null && onEdit != null) ...[
+                      const SizedBox(width: 8),
+                      IconButton(
+                        onPressed: onEdit,
+                        tooltip: strings.editEntry,
+                        icon: const Icon(Icons.edit_outlined),
+                      ),
+                    ],
                   ],
                 ),
                 const SizedBox(height: 16),

@@ -148,6 +148,52 @@ class DiaryDatabase extends GeneratedDatabase {
     });
   }
 
+  Future<void> updateEntry(DiaryEntry entry) async {
+    await _ensureInitialized();
+    await transaction(() async {
+      await customStatement(
+        '''
+        UPDATE diary_entries
+        SET title = ?, content = ?, mood = ?, created_at = ?, location = ?, tags_json = ?
+        WHERE id = ?;
+        ''',
+        [
+          entry.title,
+          entry.content,
+          entry.mood.name,
+          entry.createdAt.millisecondsSinceEpoch,
+          entry.location,
+          jsonEncode(entry.tags),
+          entry.id,
+        ],
+      );
+
+      await customStatement(
+        '''
+        DELETE FROM diary_media
+        WHERE diary_id = ?;
+        ''',
+        [entry.id],
+      );
+
+      for (final media in entry.media) {
+        await customStatement(
+          '''
+          INSERT INTO diary_media (id, diary_id, type, path, duration_label)
+          VALUES (?, ?, ?, ?, ?);
+          ''',
+          [
+            media.id,
+            entry.id,
+            media.type.name,
+            media.path,
+            media.durationLabel,
+          ],
+        );
+      }
+    });
+  }
+
   DiaryMedia _mapMediaRow(QueryRow row) {
     return DiaryMedia(
       id: row.read<String>('id'),
