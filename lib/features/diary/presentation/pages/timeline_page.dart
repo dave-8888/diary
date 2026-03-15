@@ -31,6 +31,7 @@ class TimelinePage extends ConsumerWidget {
             itemBuilder: (context, index) => DiaryCard(
               entry: entries[index],
               onEdit: () => _openEditor(context, entries[index]),
+              onTap: () => _openEditor(context, entries[index]),
             ),
           );
         },

@@ -25,6 +25,7 @@ abstract class DiaryRepository {
     required String location,
     required List<DiaryMedia> media,
   });
+  Future<void> deleteEntry(String id);
 }
 
 class DriftDiaryRepository implements DiaryRepository {
@@ -81,6 +82,11 @@ class DriftDiaryRepository implements DiaryRepository {
 
     await _database.updateEntry(updated);
     return updated;
+  }
+
+  @override
+  Future<void> deleteEntry(String id) {
+    return _database.deleteEntry(id);
   }
 
   List<String> _buildTags(String content) {

@@ -1,6 +1,7 @@
 import 'dart:io';
 import 'dart:typed_data';
 
+import 'package:diary_mvp/features/diary/domain/diary_entry.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
@@ -87,5 +88,14 @@ class LocalStorageService {
   Future<String> createAudioRecordingPath() async {
     final audioDir = await audioDirectory();
     return p.join(audioDir.path, '${_uuid.v4()}.m4a');
+  }
+
+  Future<void> deleteMediaFiles(Iterable<DiaryMedia> media) async {
+    for (final item in media) {
+      final file = File(item.path);
+      if (await file.exists()) {
+        await file.delete();
+      }
+    }
   }
 }

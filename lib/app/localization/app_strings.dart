@@ -51,6 +51,8 @@ class AppStrings {
 
   String get newEntry => isChinese ? '\u65b0\u5efa\u65e5\u8bb0' : 'New Entry';
   String get editEntry => isChinese ? '\u7f16\u8f91\u65e5\u8bb0' : 'Edit Entry';
+  String get deleteEntry =>
+      isChinese ? '\u5220\u9664\u65e5\u8bb0' : 'Delete entry';
   String get today => isChinese ? '\u4eca\u5929' : 'Today';
   String get recentEntries =>
       isChinese ? '\u6700\u8fd1\u65e5\u8bb0' : 'Recent entries';
@@ -191,6 +193,7 @@ class AppStrings {
       ? '\u64ad\u653e\u5931\u8d25\uff1a$error'
       : 'Playback failed: $error';
   String get saving => isChinese ? '\u4fdd\u5b58\u4e2d...' : 'Saving...';
+  String get deleting => isChinese ? '\u5220\u9664\u4e2d...' : 'Deleting...';
   String get saveEntry => isChinese ? '\u4fdd\u5b58\u65e5\u8bb0' : 'Save entry';
   String get updateEntry =>
       isChinese ? '\u66f4\u65b0\u65e5\u8bb0' : 'Update entry';
@@ -214,6 +217,19 @@ class AppStrings {
       : 'Entry saved to local SQLite.';
   String get entryUpdated =>
       isChinese ? '\u65e5\u8bb0\u5df2\u66f4\u65b0\u3002' : 'Entry updated.';
+  String get entryDeleted =>
+      isChinese ? '\u65e5\u8bb0\u5df2\u5220\u9664\u3002' : 'Entry deleted.';
+  String get deleteEntryConfirmTitle => isChinese
+      ? '\u786e\u8ba4\u5220\u9664\u8fd9\u7bc7\u65e5\u8bb0\uff1f'
+      : 'Delete this entry?';
+  String deleteEntryConfirmMessage(String title) => isChinese
+      ? '\u5220\u9664\u540e\u65e0\u6cd5\u6062\u590d\uff1a$title'
+      : 'This cannot be undone: $title';
+  String get cancelAction => isChinese ? '\u53d6\u6d88' : 'Cancel';
+  String get confirmDelete => isChinese ? '\u786e\u8ba4\u5220\u9664' : 'Delete';
+  String deleteEntryFailed(Object error) => isChinese
+      ? '\u5220\u9664\u5931\u8d25\uff1a$error'
+      : 'Delete failed: $error';
   String get apiKeyMissing => isChinese
       ? '\u672a\u8bbe\u7f6e OPENAI_API_KEY\uff0c\u5df2\u8df3\u8fc7\u8f6c\u5199\u3002'
       : 'OPENAI_API_KEY not set. Skipping transcription.';

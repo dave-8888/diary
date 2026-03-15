@@ -10,11 +10,13 @@ class DiaryShell extends ConsumerWidget {
     required this.title,
     required this.child,
     this.floatingActionButton,
+    this.actions = const [],
   });
 
   final String title;
   final Widget child;
   final Widget? floatingActionButton;
+  final List<Widget> actions;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -22,6 +24,25 @@ class DiaryShell extends ConsumerWidget {
     final selectedLanguage = ref.watch(appLanguageProvider);
     final location = GoRouterState.of(context).uri.toString();
     final selectedIndex = _indexForLocation(location);
+    final appBarActions = [
+      ...actions,
+      PopupMenuButton<AppLanguage>(
+        tooltip: strings.language,
+        initialValue: selectedLanguage,
+        icon: const Icon(Icons.language),
+        onSelected: (language) {
+          ref.read(appLanguageProvider.notifier).setLanguage(language);
+        },
+        itemBuilder: (context) => AppLanguage.values
+            .map(
+              (language) => PopupMenuItem<AppLanguage>(
+                value: language,
+                child: Text(strings.titleForLanguage(language)),
+              ),
+            )
+            .toList(),
+      ),
+    ];
 
     return LayoutBuilder(
       builder: (context, constraints) {
@@ -31,26 +52,7 @@ class DiaryShell extends ConsumerWidget {
               title: Text(title),
               centerTitle: false,
               backgroundColor: Colors.transparent,
-              actions: [
-                PopupMenuButton<AppLanguage>(
-                  tooltip: strings.language,
-                  initialValue: selectedLanguage,
-                  icon: const Icon(Icons.language),
-                  onSelected: (language) {
-                    ref
-                        .read(appLanguageProvider.notifier)
-                        .setLanguage(language);
-                  },
-                  itemBuilder: (context) => AppLanguage.values
-                      .map(
-                        (language) => PopupMenuItem<AppLanguage>(
-                          value: language,
-                          child: Text(strings.titleForLanguage(language)),
-                        ),
-                      )
-                      .toList(),
-                ),
-              ],
+              actions: appBarActions,
             ),
             floatingActionButton: floatingActionButton,
             body: SafeArea(
@@ -85,24 +87,7 @@ class DiaryShell extends ConsumerWidget {
             title: Text(title),
             centerTitle: false,
             backgroundColor: Colors.transparent,
-            actions: [
-              PopupMenuButton<AppLanguage>(
-                tooltip: strings.language,
-                initialValue: selectedLanguage,
-                icon: const Icon(Icons.language),
-                onSelected: (language) {
-                  ref.read(appLanguageProvider.notifier).setLanguage(language);
-                },
-                itemBuilder: (context) => AppLanguage.values
-                    .map(
-                      (language) => PopupMenuItem<AppLanguage>(
-                        value: language,
-                        child: Text(strings.titleForLanguage(language)),
-                      ),
-                    )
-                    .toList(),
-              ),
-            ],
+            actions: appBarActions,
           ),
           floatingActionButton: floatingActionButton,
           body: Row(

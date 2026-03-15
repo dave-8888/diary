@@ -42,6 +42,7 @@ class _EditorPageState extends ConsumerState<EditorPage> {
   final List<DiaryMedia> _media = [];
 
   bool _isSaving = false;
+  bool _isDeleting = false;
   bool _isRecording = false;
   bool _isTranscribing = false;
   DateTime? _recordingStartedAt;
@@ -88,6 +89,20 @@ class _EditorPageState extends ConsumerState<EditorPage> {
 
     return DiaryShell(
       title: _isEditing ? strings.editEntry : strings.newEntry,
+      actions: [
+        if (_isEditing)
+          IconButton(
+            onPressed: _isSaving || _isDeleting ? null : _confirmDelete,
+            tooltip: strings.deleteEntry,
+            icon: _isDeleting
+                ? const SizedBox(
+                    width: 18,
+                    height: 18,
+                    child: CircularProgressIndicator(strokeWidth: 2),
+                  )
+                : const Icon(Icons.delete_outline),
+          ),
+      ],
       child: Center(
         child: ConstrainedBox(
           constraints: const BoxConstraints(maxWidth: 1240),
@@ -271,12 +286,14 @@ class _EditorPageState extends ConsumerState<EditorPage> {
       Align(
         alignment: Alignment.centerRight,
         child: FilledButton.icon(
-          onPressed: _isSaving ? null : _save,
+          onPressed: _isSaving || _isDeleting ? null : _save,
           icon: const Icon(Icons.save_outlined),
           label: Text(
-            _isSaving
-                ? strings.saving
-                : (_isEditing ? strings.updateEntry : strings.saveEntry),
+            _isDeleting
+                ? strings.deleting
+                : _isSaving
+                    ? strings.saving
+                    : (_isEditing ? strings.updateEntry : strings.saveEntry),
           ),
         ),
       ),
@@ -531,6 +548,67 @@ class _EditorPageState extends ConsumerState<EditorPage> {
       SnackBar(
         content: Text(_isEditing ? strings.entryUpdated : strings.entrySaved),
       ),
+    );
+    context.go('/timeline');
+  }
+
+  Future<void> _confirmDelete() async {
+    final entry = widget.entry;
+    if (entry == null) return;
+
+    final strings = context.strings;
+    final confirmed = await showDialog<bool>(
+          context: context,
+          builder: (context) => AlertDialog(
+            title: Text(strings.deleteEntryConfirmTitle),
+            content: Text(strings.deleteEntryConfirmMessage(entry.title)),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.of(context).pop(false),
+                child: Text(strings.cancelAction),
+              ),
+              FilledButton(
+                onPressed: () => Navigator.of(context).pop(true),
+                child: Text(strings.confirmDelete),
+              ),
+            ],
+          ),
+        ) ??
+        false;
+
+    if (!confirmed || !mounted) return;
+    await _deleteEntry();
+  }
+
+  Future<void> _deleteEntry() async {
+    final entry = widget.entry;
+    if (entry == null) return;
+
+    final strings = context.strings;
+    setState(() => _isDeleting = true);
+
+    try {
+      await ref.read(diaryControllerProvider.notifier).deleteEntry(entry.id);
+    } catch (error) {
+      if (!mounted) return;
+      setState(() => _isDeleting = false);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(strings.deleteEntryFailed(error))),
+      );
+      return;
+    }
+
+    final storage = ref.read(localStorageServiceProvider);
+    try {
+      await storage.deleteMediaFiles(_media);
+    } catch (_) {
+      // Best-effort cleanup for local files after the entry is gone.
+    }
+
+    if (!mounted) return;
+    setState(() => _isDeleting = false);
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(strings.entryDeleted)),
     );
     context.go('/timeline');
   }

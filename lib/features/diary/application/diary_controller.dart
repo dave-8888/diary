@@ -61,4 +61,12 @@ class DiaryController extends AsyncNotifier<List<DiaryEntry>> {
       return _repository.listEntries();
     });
   }
+
+  Future<void> deleteEntry(String id) async {
+    state = const AsyncLoading();
+    state = await AsyncValue.guard(() async {
+      await _repository.deleteEntry(id);
+      return _repository.listEntries();
+    });
+  }
 }

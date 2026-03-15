@@ -12,10 +12,12 @@ class DiaryCard extends StatelessWidget {
     super.key,
     required this.entry,
     this.onEdit,
+    this.onTap,
   });
 
   final DiaryEntry entry;
   final VoidCallback? onEdit;
+  final VoidCallback? onTap;
 
   @override
   Widget build(BuildContext context) {
@@ -40,96 +42,111 @@ class DiaryCard extends StatelessWidget {
         hasMetaChips ||
         audioMedia.isNotEmpty;
 
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(20),
-        child: LayoutBuilder(
-          builder: (context, constraints) {
-            final useVideoSideRail = constraints.maxWidth >= 860 &&
-                videoMedia.isNotEmpty &&
-                hasMainBody;
+    final body = Padding(
+      padding: const EdgeInsets.all(20),
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          final useVideoSideRail = constraints.maxWidth >= 860 &&
+              videoMedia.isNotEmpty &&
+              hasMainBody;
 
-            return Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  children: [
-                    Text(
-                      entry.mood.emoji,
-                      style: Theme.of(context).textTheme.headlineMedium,
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            entry.title,
-                            style: Theme.of(context).textTheme.titleLarge,
-                          ),
-                          const SizedBox(height: 4),
-                          Text(
-                            dateText,
-                            style: Theme.of(context).textTheme.bodySmall,
-                          ),
-                        ],
-                      ),
-                    ),
-                    if (entry.location != null)
-                      Chip(
-                        label: Text(entry.location!),
-                        avatar: const Icon(Icons.place_outlined, size: 18),
-                      )
-                    else if (onEdit != null)
-                      IconButton(
-                        onPressed: onEdit,
-                        tooltip: strings.editEntry,
-                        icon: const Icon(Icons.edit_outlined),
-                      ),
-                    if (entry.location != null && onEdit != null) ...[
-                      const SizedBox(width: 8),
-                      IconButton(
-                        onPressed: onEdit,
-                        tooltip: strings.editEntry,
-                        icon: const Icon(Icons.edit_outlined),
-                      ),
-                    ],
-                  ],
-                ),
-                const SizedBox(height: 16),
-                if (useVideoSideRail)
-                  Row(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Expanded(
-                          child: _buildMainBody(context, imageMedia, audioMedia,
-                              otherMedia, hasContent, hasMetaChips)),
-                      const SizedBox(width: 18),
-                      SizedBox(
-                        width: 240,
-                        child: _buildVideoColumn(context, videoMedia),
-                      ),
-                    ],
-                  )
-                else ...[
-                  _buildMainBody(
-                    context,
-                    imageMedia,
-                    audioMedia,
-                    otherMedia,
-                    hasContent,
-                    hasMetaChips,
+          return Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  Text(
+                    entry.mood.emoji,
+                    style: Theme.of(context).textTheme.headlineMedium,
                   ),
-                  if (videoMedia.isNotEmpty) ...[
-                    const SizedBox(height: 16),
-                    _buildVideoColumn(context, videoMedia),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          entry.title,
+                          style: Theme.of(context).textTheme.titleLarge,
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          dateText,
+                          style: Theme.of(context).textTheme.bodySmall,
+                        ),
+                      ],
+                    ),
+                  ),
+                  if (entry.location != null)
+                    Chip(
+                      label: Text(entry.location!),
+                      avatar: const Icon(Icons.place_outlined, size: 18),
+                    )
+                  else if (onEdit != null)
+                    IconButton(
+                      onPressed: onEdit,
+                      tooltip: strings.editEntry,
+                      icon: const Icon(Icons.edit_outlined),
+                    ),
+                  if (entry.location != null && onEdit != null) ...[
+                    const SizedBox(width: 8),
+                    IconButton(
+                      onPressed: onEdit,
+                      tooltip: strings.editEntry,
+                      icon: const Icon(Icons.edit_outlined),
+                    ),
                   ],
                 ],
+              ),
+              const SizedBox(height: 16),
+              if (useVideoSideRail)
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Expanded(
+                      child: _buildMainBody(
+                        context,
+                        imageMedia,
+                        audioMedia,
+                        otherMedia,
+                        hasContent,
+                        hasMetaChips,
+                      ),
+                    ),
+                    const SizedBox(width: 18),
+                    SizedBox(
+                      width: 240,
+                      child: _buildVideoColumn(context, videoMedia),
+                    ),
+                  ],
+                )
+              else ...[
+                _buildMainBody(
+                  context,
+                  imageMedia,
+                  audioMedia,
+                  otherMedia,
+                  hasContent,
+                  hasMetaChips,
+                ),
+                if (videoMedia.isNotEmpty) ...[
+                  const SizedBox(height: 16),
+                  _buildVideoColumn(context, videoMedia),
+                ],
               ],
-            );
-          },
-        ),
+            ],
+          );
+        },
       ),
+    );
+
+    return Card(
+      clipBehavior: Clip.antiAlias,
+      child: onTap == null
+          ? body
+          : InkWell(
+              onTap: onTap,
+              child: body,
+            ),
     );
   }
 

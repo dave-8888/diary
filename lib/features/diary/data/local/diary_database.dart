@@ -194,6 +194,17 @@ class DiaryDatabase extends GeneratedDatabase {
     });
   }
 
+  Future<void> deleteEntry(String id) async {
+    await _ensureInitialized();
+    await customStatement(
+      '''
+      DELETE FROM diary_entries
+      WHERE id = ?;
+      ''',
+      [id],
+    );
+  }
+
   DiaryMedia _mapMediaRow(QueryRow row) {
     return DiaryMedia(
       id: row.read<String>('id'),

@@ -90,10 +90,18 @@ class _HomeList extends StatelessWidget {
         ...entries.take(3).map(
               (entry) => Padding(
                 padding: const EdgeInsets.only(bottom: 16),
-                child: DiaryCard(entry: entry),
+                child: DiaryCard(
+                  entry: entry,
+                  onEdit: () => _openEditor(context, entry),
+                  onTap: () => _openEditor(context, entry),
+                ),
               ),
             ),
       ],
     );
+  }
+
+  void _openEditor(BuildContext context, DiaryEntry entry) {
+    context.push('/editor', extra: entry);
   }
 }
