@@ -4,6 +4,7 @@ import 'dart:math';
 import 'package:diary_mvp/core/storage/local_storage_service.dart';
 import 'package:diary_mvp/features/diary/application/diary_controller.dart';
 import 'package:diary_mvp/features/diary/domain/diary_entry.dart';
+import 'package:diary_mvp/features/diary/presentation/widgets/audio_attachment_tile.dart';
 import 'package:diary_mvp/features/diary/presentation/widgets/diary_shell.dart';
 import 'package:diary_mvp/features/diary/presentation/widgets/mood_selector.dart';
 import 'package:diary_mvp/features/diary/services/transcription_service.dart';
@@ -49,6 +50,10 @@ class _EditorPageState extends ConsumerState<EditorPage> {
   @override
   Widget build(BuildContext context) {
     final strings = context.strings;
+    final audioMedia =
+        _media.where((item) => item.type == MediaType.audio).toList();
+    final otherMedia =
+        _media.where((item) => item.type != MediaType.audio).toList();
 
     return DiaryShell(
       title: strings.newEntry,
@@ -131,18 +136,37 @@ class _EditorPageState extends ConsumerState<EditorPage> {
               ),
               const SizedBox(height: 16),
               if (_media.isNotEmpty)
-                Wrap(
-                  spacing: 8,
-                  runSpacing: 8,
-                  children: _media
-                      .map(
-                        (media) => Chip(
-                          avatar: Icon(_iconForMedia(media.type), size: 18),
-                          label: Text(_mediaLabel(media)),
-                          onDeleted: () => setState(() => _media.remove(media)),
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    if (audioMedia.isNotEmpty)
+                      ...audioMedia.map(
+                        (media) => Padding(
+                          padding: const EdgeInsets.only(bottom: 10),
+                          child: AudioAttachmentTile(
+                            media: media,
+                            onDeleted: () =>
+                                setState(() => _media.remove(media)),
+                          ),
                         ),
-                      )
-                      .toList(),
+                      ),
+                    if (otherMedia.isNotEmpty)
+                      Wrap(
+                        spacing: 8,
+                        runSpacing: 8,
+                        children: otherMedia
+                            .map(
+                              (media) => Chip(
+                                avatar:
+                                    Icon(_iconForMedia(media.type), size: 18),
+                                label: Text(_mediaLabel(media)),
+                                onDeleted: () =>
+                                    setState(() => _media.remove(media)),
+                              ),
+                            )
+                            .toList(),
+                      ),
+                  ],
                 ),
               const SizedBox(height: 32),
               Align(

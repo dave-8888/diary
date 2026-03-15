@@ -93,6 +93,13 @@ class AppStrings {
   String get transcribing => isChinese ? '转写中...' : 'Transcribing...';
   String get transcribeLatestAudio =>
       isChinese ? '转写最新录音' : 'Transcribe latest audio';
+  String get playAudio => isChinese ? '播放' : 'Play';
+  String get pauseAudio => isChinese ? '暂停' : 'Pause';
+  String get audioReady => isChinese ? '可播放' : 'Ready to play';
+  String get audioPlaying => isChinese ? '播放中' : 'Playing';
+  String get audioPaused => isChinese ? '已暂停' : 'Paused';
+  String playbackFailed(Object error) =>
+      isChinese ? '播放失败：$error' : 'Playback failed: $error';
   String get saving => isChinese ? '保存中...' : 'Saving...';
   String get saveEntry => isChinese ? '保存日记' : 'Save entry';
   String importedImages(int count) =>

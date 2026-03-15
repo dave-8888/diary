@@ -1,5 +1,6 @@
 import 'package:diary_mvp/app/localization/app_strings.dart';
 import 'package:diary_mvp/features/diary/domain/diary_entry.dart';
+import 'package:diary_mvp/features/diary/presentation/widgets/audio_attachment_tile.dart';
 import 'package:flutter/material.dart';
 import 'package:path/path.dart' as p;
 
@@ -15,6 +16,10 @@ class DiaryCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final strings = context.strings;
     final dateText = strings.formatDateTime(entry.createdAt);
+    final audioMedia =
+        entry.media.where((item) => item.type == MediaType.audio).toList();
+    final otherMedia =
+        entry.media.where((item) => item.type != MediaType.audio).toList();
 
     return Card(
       child: Padding(
@@ -60,7 +65,7 @@ class DiaryCard extends StatelessWidget {
               runSpacing: 8,
               children: [
                 ...entry.tags.map((tag) => Chip(label: Text(tag))),
-                ...entry.media.map(
+                ...otherMedia.map(
                   (media) => Chip(
                     avatar: Icon(_iconForMedia(media.type), size: 18),
                     label: Text(_labelForMedia(context, media)),
@@ -68,6 +73,15 @@ class DiaryCard extends StatelessWidget {
                 ),
               ],
             ),
+            if (audioMedia.isNotEmpty) ...[
+              const SizedBox(height: 16),
+              ...audioMedia.map(
+                (media) => Padding(
+                  padding: const EdgeInsets.only(bottom: 10),
+                  child: AudioAttachmentTile(media: media),
+                ),
+              ),
+            ],
           ],
         ),
       ),
