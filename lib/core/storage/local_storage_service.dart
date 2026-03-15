@@ -37,6 +37,13 @@ class LocalStorageService {
     return dir;
   }
 
+  Future<Directory> videoDirectory() async {
+    final base = await baseDirectory();
+    final dir = Directory(p.join(base.path, 'diary', 'video'));
+    await dir.create(recursive: true);
+    return dir;
+  }
+
   Future<String> copyImageToAppStorage(String sourcePath) async {
     final source = File(sourcePath);
     if (!await source.exists()) {
@@ -61,6 +68,19 @@ class LocalStorageService {
         imagesDir.path, '${_uuid.v4()}${normalizedExtension.toLowerCase()}');
     final file = File(targetPath);
     await file.writeAsBytes(bytes, flush: true);
+    return targetPath;
+  }
+
+  Future<String> copyVideoToAppStorage(String sourcePath) async {
+    final source = File(sourcePath);
+    if (!await source.exists()) {
+      throw StateError('Video file does not exist: $sourcePath');
+    }
+
+    final extension = p.extension(sourcePath).toLowerCase();
+    final videoDir = await videoDirectory();
+    final targetPath = p.join(videoDir.path, '${_uuid.v4()}$extension');
+    await source.copy(targetPath);
     return targetPath;
   }
 

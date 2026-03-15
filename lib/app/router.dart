@@ -2,6 +2,8 @@ import 'package:diary_mvp/features/diary/presentation/pages/camera_capture_page.
 import 'package:diary_mvp/features/diary/presentation/pages/editor_page.dart';
 import 'package:diary_mvp/features/diary/presentation/pages/home_page.dart';
 import 'package:diary_mvp/features/diary/presentation/pages/timeline_page.dart';
+import 'package:diary_mvp/features/diary/presentation/pages/video_preview_page.dart';
+import 'package:diary_mvp/features/diary/domain/diary_entry.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
@@ -19,11 +21,21 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       ),
       GoRoute(
         path: '/camera',
-        builder: (context, state) => const CameraCapturePage(),
+        builder: (context, state) => CameraCapturePage(
+          initialMode: state.uri.queryParameters['mode'] == 'video'
+              ? CameraCaptureMode.video
+              : CameraCaptureMode.photo,
+        ),
       ),
       GoRoute(
         path: '/timeline',
         builder: (context, state) => const TimelinePage(),
+      ),
+      GoRoute(
+        path: '/video-preview',
+        builder: (context, state) => VideoPreviewPage(
+          media: state.extra as DiaryMedia?,
+        ),
       ),
     ],
   );

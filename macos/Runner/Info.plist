@@ -26,6 +26,8 @@
 	<string>$(PRODUCT_COPYRIGHT)</string>
 	<key>NSCameraUsageDescription</key>
 	<string>We use the camera so you can capture photos for diary entries.</string>
+	<key>NSMicrophoneUsageDescription</key>
+	<string>We use the microphone so recorded diary videos can keep their audio.</string>
 	<key>NSMainNibFile</key>
 	<string>MainMenu</string>
 	<key>NSPrincipalClass</key>

@@ -5,7 +5,10 @@
 list(APPEND FLUTTER_PLUGIN_LIST
   audioplayers_windows
   camera_windows
+  media_kit_libs_windows_video
+  media_kit_video
   record_windows
+  screen_brightness_windows
   sqlite3_flutter_libs
 )
 

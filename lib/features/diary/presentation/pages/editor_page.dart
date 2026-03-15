@@ -1,13 +1,15 @@
-import 'package:diary_mvp/app/localization/app_strings.dart';
 import 'dart:math';
 
+import 'package:diary_mvp/app/localization/app_strings.dart';
 import 'package:diary_mvp/core/storage/local_storage_service.dart';
 import 'package:diary_mvp/features/diary/application/diary_controller.dart';
 import 'package:diary_mvp/features/diary/domain/diary_entry.dart';
+import 'package:diary_mvp/features/diary/presentation/models/captured_media_result.dart';
 import 'package:diary_mvp/features/diary/presentation/widgets/audio_attachment_tile.dart';
 import 'package:diary_mvp/features/diary/presentation/widgets/diary_shell.dart';
 import 'package:diary_mvp/features/diary/presentation/widgets/image_media_grid.dart';
 import 'package:diary_mvp/features/diary/presentation/widgets/mood_selector.dart';
+import 'package:diary_mvp/features/diary/presentation/widgets/video_attachment_card.dart';
 import 'package:diary_mvp/features/diary/services/transcription_service.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
@@ -53,150 +55,251 @@ class _EditorPageState extends ConsumerState<EditorPage> {
     final strings = context.strings;
     final imageMedia =
         _media.where((item) => item.type == MediaType.image).toList();
+    final videoMedia =
+        _media.where((item) => item.type == MediaType.video).toList();
     final audioMedia =
         _media.where((item) => item.type == MediaType.audio).toList();
     final otherMedia = _media
         .where((item) =>
-            item.type != MediaType.audio && item.type != MediaType.image)
+            item.type != MediaType.audio &&
+            item.type != MediaType.image &&
+            item.type != MediaType.video)
         .toList();
 
     return DiaryShell(
       title: strings.newEntry,
       child: Center(
         child: ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: 920),
-          child: ListView(
-            children: [
-              Text(strings.whatHappenedToday,
-                  style: Theme.of(context).textTheme.headlineMedium),
-              const SizedBox(height: 20),
-              TextField(
-                controller: _titleController,
-                decoration: InputDecoration(
-                  labelText: strings.titleLabel,
-                  hintText: strings.titleHint,
-                ),
-              ),
-              const SizedBox(height: 24),
-              Text(
-                strings.mediaToolbar,
-                style: Theme.of(context).textTheme.titleMedium,
-              ),
-              const SizedBox(height: 12),
-              Wrap(
-                spacing: 12,
-                runSpacing: 12,
+          constraints: const BoxConstraints(maxWidth: 1240),
+          child: LayoutBuilder(
+            builder: (context, constraints) {
+              final showVideoSidebar = constraints.maxWidth >= 1080;
+              final mainSections = _buildMainSections(
+                context: context,
+                strings: strings,
+                imageMedia: imageMedia,
+                audioMedia: audioMedia,
+                otherMedia: otherMedia,
+              );
+
+              if (!showVideoSidebar) {
+                return ListView(
+                  children: [
+                    ...mainSections,
+                    const SizedBox(height: 24),
+                    _buildVideoSection(context, strings, videoMedia),
+                  ],
+                );
+              }
+
+              return Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  FilledButton.tonalIcon(
-                    onPressed: _pickImages,
-                    icon: const Icon(Icons.image_outlined),
-                    label: Text(strings.importImage),
+                  Expanded(
+                    child: ListView(children: mainSections),
                   ),
-                  FilledButton.tonalIcon(
-                    onPressed: _takePhoto,
-                    icon: const Icon(Icons.camera_alt_outlined),
-                    label: Text(strings.takePhoto),
-                  ),
-                  FilledButton.tonalIcon(
-                    onPressed: _isRecording ? _stopRecording : _startRecording,
-                    icon: Icon(_isRecording
-                        ? Icons.stop_circle_outlined
-                        : Icons.mic_none),
-                    label: Text(
-                      _isRecording
-                          ? strings.stopRecording
-                          : strings.startRecording,
-                    ),
-                  ),
-                  FilledButton.tonalIcon(
-                    onPressed: _isTranscribing ? null : _transcribeLatestAudio,
-                    icon: const Icon(Icons.subtitles_outlined),
-                    label: Text(
-                      _isTranscribing
-                          ? strings.transcribing
-                          : strings.transcribeLatestAudio,
+                  const SizedBox(width: 24),
+                  SizedBox(
+                    width: 320,
+                    child: ListView(
+                      children: [
+                        _buildVideoSection(context, strings, videoMedia),
+                      ],
                     ),
                   ),
                 ],
-              ),
-              if (imageMedia.isNotEmpty) ...[
-                const SizedBox(height: 16),
-                ImageMediaGrid(
-                  media: imageMedia,
-                  onDeleted: (media) => setState(() => _media.remove(media)),
-                ),
-              ],
-              const SizedBox(height: 16),
-              TextField(
-                controller: _contentController,
-                maxLines: 10,
-                decoration: InputDecoration(
-                  labelText: strings.contentLabel,
-                  hintText: strings.contentHint,
-                ),
-              ),
-              if (audioMedia.isNotEmpty || otherMedia.isNotEmpty) ...[
-                const SizedBox(height: 16),
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    if (audioMedia.isNotEmpty)
-                      ...audioMedia.map(
-                        (media) => Padding(
-                          padding: const EdgeInsets.only(bottom: 10),
-                          child: AudioAttachmentTile(
-                            media: media,
-                            onDeleted: () =>
-                                setState(() => _media.remove(media)),
-                          ),
-                        ),
-                      ),
-                    if (otherMedia.isNotEmpty)
-                      Wrap(
-                        spacing: 8,
-                        runSpacing: 8,
-                        children: otherMedia
-                            .map(
-                              (media) => Chip(
-                                avatar:
-                                    Icon(_iconForMedia(media.type), size: 18),
-                                label: Text(_mediaLabel(media)),
-                                onDeleted: () =>
-                                    setState(() => _media.remove(media)),
-                              ),
-                            )
-                            .toList(),
-                      ),
-                  ],
-                ),
-              ],
-              const SizedBox(height: 16),
-              TextField(
-                controller: _locationController,
-                decoration: InputDecoration(
-                  labelText: strings.locationLabel,
-                  hintText: strings.locationHint,
-                ),
-              ),
-              const SizedBox(height: 24),
-              Text(strings.mood,
-                  style: Theme.of(context).textTheme.titleMedium),
-              const SizedBox(height: 12),
-              MoodSelector(
-                value: _mood,
-                onChanged: (mood) => setState(() => _mood = mood),
-              ),
-              const SizedBox(height: 32),
-              Align(
-                alignment: Alignment.centerRight,
-                child: FilledButton.icon(
-                  onPressed: _isSaving ? null : _save,
-                  icon: const Icon(Icons.save_outlined),
-                  label: Text(_isSaving ? strings.saving : strings.saveEntry),
-                ),
-              ),
-            ],
+              );
+            },
           ),
+        ),
+      ),
+    );
+  }
+
+  List<Widget> _buildMainSections({
+    required BuildContext context,
+    required AppStrings strings,
+    required List<DiaryMedia> imageMedia,
+    required List<DiaryMedia> audioMedia,
+    required List<DiaryMedia> otherMedia,
+  }) {
+    return [
+      Text(
+        strings.whatHappenedToday,
+        style: Theme.of(context).textTheme.headlineMedium,
+      ),
+      const SizedBox(height: 20),
+      TextField(
+        controller: _titleController,
+        decoration: InputDecoration(
+          labelText: strings.titleLabel,
+          hintText: strings.titleHint,
+        ),
+      ),
+      const SizedBox(height: 24),
+      Text(
+        strings.mediaToolbar,
+        style: Theme.of(context).textTheme.titleMedium,
+      ),
+      const SizedBox(height: 12),
+      Wrap(
+        spacing: 12,
+        runSpacing: 12,
+        children: [
+          FilledButton.tonalIcon(
+            onPressed: _pickImages,
+            icon: const Icon(Icons.image_outlined),
+            label: Text(strings.importImage),
+          ),
+          FilledButton.tonalIcon(
+            onPressed: _takePhoto,
+            icon: const Icon(Icons.camera_alt_outlined),
+            label: Text(strings.takePhoto),
+          ),
+          FilledButton.tonalIcon(
+            onPressed: _recordVideo,
+            icon: const Icon(Icons.videocam_outlined),
+            label: Text(strings.recordVideo),
+          ),
+          FilledButton.tonalIcon(
+            onPressed: _isRecording ? _stopRecording : _startRecording,
+            icon: Icon(
+              _isRecording ? Icons.stop_circle_outlined : Icons.mic_none,
+            ),
+            label: Text(
+              _isRecording ? strings.stopRecording : strings.startRecording,
+            ),
+          ),
+          FilledButton.tonalIcon(
+            onPressed: _isTranscribing ? null : _transcribeLatestAudio,
+            icon: const Icon(Icons.subtitles_outlined),
+            label: Text(
+              _isTranscribing
+                  ? strings.transcribing
+                  : strings.transcribeLatestAudio,
+            ),
+          ),
+        ],
+      ),
+      if (imageMedia.isNotEmpty) ...[
+        const SizedBox(height: 16),
+        ImageMediaGrid(
+          media: imageMedia,
+          onDeleted: (media) => setState(() => _media.remove(media)),
+        ),
+      ],
+      const SizedBox(height: 16),
+      TextField(
+        controller: _contentController,
+        maxLines: 10,
+        decoration: InputDecoration(
+          labelText: strings.contentLabel,
+          hintText: strings.contentHint,
+        ),
+      ),
+      if (audioMedia.isNotEmpty || otherMedia.isNotEmpty) ...[
+        const SizedBox(height: 16),
+        Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            if (audioMedia.isNotEmpty)
+              ...audioMedia.map(
+                (media) => Padding(
+                  padding: const EdgeInsets.only(bottom: 10),
+                  child: AudioAttachmentTile(
+                    media: media,
+                    onDeleted: () => setState(() => _media.remove(media)),
+                  ),
+                ),
+              ),
+            if (otherMedia.isNotEmpty)
+              Wrap(
+                spacing: 8,
+                runSpacing: 8,
+                children: otherMedia
+                    .map(
+                      (media) => Chip(
+                        avatar: Icon(_iconForMedia(media.type), size: 18),
+                        label: Text(_mediaLabel(media)),
+                        onDeleted: () => setState(() => _media.remove(media)),
+                      ),
+                    )
+                    .toList(),
+              ),
+          ],
+        ),
+      ],
+      const SizedBox(height: 16),
+      TextField(
+        controller: _locationController,
+        decoration: InputDecoration(
+          labelText: strings.locationLabel,
+          hintText: strings.locationHint,
+        ),
+      ),
+      const SizedBox(height: 24),
+      Text(
+        strings.mood,
+        style: Theme.of(context).textTheme.titleMedium,
+      ),
+      const SizedBox(height: 12),
+      MoodSelector(
+        value: _mood,
+        onChanged: (mood) => setState(() => _mood = mood),
+      ),
+      const SizedBox(height: 32),
+      Align(
+        alignment: Alignment.centerRight,
+        child: FilledButton.icon(
+          onPressed: _isSaving ? null : _save,
+          icon: const Icon(Icons.save_outlined),
+          label: Text(_isSaving ? strings.saving : strings.saveEntry),
+        ),
+      ),
+    ];
+  }
+
+  Widget _buildVideoSection(
+    BuildContext context,
+    AppStrings strings,
+    List<DiaryMedia> videoMedia,
+  ) {
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(18),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              strings.videoSidebarTitle,
+              style: Theme.of(context).textTheme.titleLarge,
+            ),
+            const SizedBox(height: 8),
+            Text(
+              strings.videoSidebarHint,
+              style: Theme.of(context).textTheme.bodySmall,
+            ),
+            if (videoMedia.isNotEmpty) const SizedBox(height: 16),
+            if (videoMedia.isEmpty)
+              Padding(
+                padding: const EdgeInsets.only(top: 18),
+                child: Text(
+                  strings.recordVideo,
+                  style: Theme.of(context).textTheme.titleMedium,
+                ),
+              )
+            else
+              ...videoMedia.map(
+                (media) => Padding(
+                  padding: const EdgeInsets.only(bottom: 12),
+                  child: VideoAttachmentCard(
+                    media: media,
+                    onTap: () => _openVideoPreview(media),
+                    onDeleted: () => setState(() => _media.remove(media)),
+                  ),
+                ),
+              ),
+          ],
         ),
       ),
     );
@@ -236,23 +339,38 @@ class _EditorPageState extends ConsumerState<EditorPage> {
     }
   }
 
-  Future<void> _takePhoto() async {
+  Future<void> _takePhoto() => _captureWithCamera(mode: 'photo');
+
+  Future<void> _recordVideo() => _captureWithCamera(mode: 'video');
+
+  Future<void> _captureWithCamera({
+    required String mode,
+  }) async {
     final strings = context.strings;
-    final savedPath = await context.push<String>('/camera');
-    if (!mounted || savedPath == null) return;
+    final result = await context.push<CapturedMediaResult>(
+      mode == 'video' ? '/camera?mode=video' : '/camera',
+    );
+    if (!mounted || result == null) return;
 
     setState(() {
       _media.add(
         DiaryMedia(
           id: _uuid.v4(),
-          type: MediaType.image,
-          path: savedPath,
+          type: result.type,
+          path: result.path,
+          durationLabel: result.durationLabel,
         ),
       );
     });
 
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(strings.photoImported)),
+      SnackBar(
+        content: Text(
+          result.type == MediaType.video
+              ? strings.videoImported
+              : strings.photoImported,
+        ),
+      ),
     );
   }
 
@@ -375,6 +493,10 @@ class _EditorPageState extends ConsumerState<EditorPage> {
       SnackBar(content: Text(strings.entrySaved)),
     );
     context.go('/timeline');
+  }
+
+  void _openVideoPreview(DiaryMedia media) {
+    context.push('/video-preview', extra: media);
   }
 
   IconData _iconForMedia(MediaType type) {

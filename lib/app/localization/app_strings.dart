@@ -98,13 +98,21 @@ class AppStrings {
   String get importImage =>
       isChinese ? '\u5bfc\u5165\u56fe\u7247' : 'Import image';
   String get takePhoto => isChinese ? '\u62cd\u7167' : 'Take photo';
+  String get recordVideo => isChinese ? '\u5f55\u89c6\u9891' : 'Record video';
+  String get photoMode => isChinese ? '\u7167\u7247' : 'Photo';
+  String get videoMode => isChinese ? '\u89c6\u9891' : 'Video';
   String get cameraCapture =>
       isChinese ? '\u76f8\u673a\u62cd\u6444' : 'Camera capture';
   String get previewPhoto =>
       isChinese ? '\u9884\u89c8\u7167\u7247' : 'Preview photo';
+  String get previewVideo =>
+      isChinese ? '\u9884\u89c8\u89c6\u9891' : 'Preview video';
   String get retakePhoto => isChinese ? '\u91cd\u62cd' : 'Retake';
+  String get retakeVideo =>
+      isChinese ? '\u91cd\u65b0\u5f55\u5236' : 'Record again';
   String get cropPhoto => isChinese ? '\u88c1\u526a' : 'Crop';
   String get usePhoto => isChinese ? '\u4f7f\u7528\u7167\u7247' : 'Use photo';
+  String get useVideo => isChinese ? '\u4f7f\u7528\u89c6\u9891' : 'Use video';
   String get cancelCrop =>
       isChinese ? '\u53d6\u6d88\u88c1\u526a' : 'Cancel crop';
   String get applyCrop => isChinese ? '\u5e94\u7528\u88c1\u526a' : 'Apply crop';
@@ -136,6 +144,34 @@ class AppStrings {
   String get photoImported => isChinese
       ? '\u7167\u7247\u5df2\u6dfb\u52a0\u5230\u65e5\u8bb0\u3002'
       : 'Photo added to the entry.';
+  String get videoImported => isChinese
+      ? '\u89c6\u9891\u5df2\u6dfb\u52a0\u5230\u65e5\u8bb0\u3002'
+      : 'Video added to the entry.';
+  String get startVideoRecording =>
+      isChinese ? '\u5f00\u59cb\u5f55\u89c6\u9891' : 'Start video recording';
+  String get stopVideoRecording =>
+      isChinese ? '\u505c\u6b62\u5f55\u5236' : 'Stop recording';
+  String get recordingVideo =>
+      isChinese ? '\u6b63\u5728\u5f55\u5236\u89c6\u9891' : 'Recording video';
+  String get videoRecordingSaved => isChinese
+      ? '\u89c6\u9891\u5df2\u4fdd\u5b58\u3002'
+      : 'Video recording saved.';
+  String get tapToPreviewVideo => isChinese
+      ? '\u70b9\u51fb\u9884\u89c8\u64ad\u653e'
+      : 'Tap to preview playback';
+  String get videoSidebarTitle =>
+      isChinese ? '\u89c6\u9891\u9884\u89c8' : 'Video previews';
+  String get videoSidebarHint => isChinese
+      ? '\u65b0\u5f55\u5236\u7684\u89c6\u9891\u4f1a\u663e\u793a\u5728\u8fd9\u91cc\uff0c\u653e\u5728\u53f3\u4fa7\uff0c\u4e0d\u5360\u7528\u6b63\u6587\u533a\u57df\u3002'
+      : 'Recorded videos appear here on the right so they do not take over the writing area.';
+  String get videoPreviewPageTitle =>
+      isChinese ? '\u89c6\u9891\u64ad\u653e' : 'Video preview';
+  String get noVideoSelected => isChinese
+      ? '\u672a\u9009\u4e2d\u8981\u9884\u89c8\u7684\u89c6\u9891\u3002'
+      : 'No video selected for preview.';
+  String videoRecordingFailed(Object error) => isChinese
+      ? '\u5f55\u5236\u89c6\u9891\u5931\u8d25\uff1a$error'
+      : 'Video recording failed: $error';
   String get startRecording =>
       isChinese ? '\u5f00\u59cb\u5f55\u97f3' : 'Start recording';
   String get stopRecording =>
@@ -220,9 +256,14 @@ class AppStrings {
             ? 'Audio${baseName == null ? '' : ': $baseName'}'
             : 'Audio ${media.durationLabel}${baseName == null ? '' : ': $baseName'}';
       case MediaType.video:
-        return isChinese
-            ? '\u89c6\u9891${baseName == null ? '' : '\uff1a$baseName'}'
-            : 'Video${baseName == null ? '' : ': $baseName'}';
+        if (isChinese) {
+          final duration =
+              media.durationLabel == null ? '' : ' ${media.durationLabel}';
+          return '\u89c6\u9891$duration${baseName == null ? '' : '\uff1a$baseName'}';
+        }
+        return media.durationLabel == null
+            ? 'Video${baseName == null ? '' : ': $baseName'}'
+            : 'Video ${media.durationLabel}${baseName == null ? '' : ': $baseName'}';
     }
   }
 
