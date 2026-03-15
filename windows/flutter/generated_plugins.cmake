@@ -4,6 +4,7 @@
 
 list(APPEND FLUTTER_PLUGIN_LIST
   audioplayers_windows
+  camera_windows
   record_windows
   sqlite3_flutter_libs
 )

@@ -6,6 +6,7 @@ import 'package:diary_mvp/features/diary/application/diary_controller.dart';
 import 'package:diary_mvp/features/diary/domain/diary_entry.dart';
 import 'package:diary_mvp/features/diary/presentation/widgets/audio_attachment_tile.dart';
 import 'package:diary_mvp/features/diary/presentation/widgets/diary_shell.dart';
+import 'package:diary_mvp/features/diary/presentation/widgets/image_media_grid.dart';
 import 'package:diary_mvp/features/diary/presentation/widgets/mood_selector.dart';
 import 'package:diary_mvp/features/diary/services/transcription_service.dart';
 import 'package:file_picker/file_picker.dart';
@@ -50,10 +51,14 @@ class _EditorPageState extends ConsumerState<EditorPage> {
   @override
   Widget build(BuildContext context) {
     final strings = context.strings;
+    final imageMedia =
+        _media.where((item) => item.type == MediaType.image).toList();
     final audioMedia =
         _media.where((item) => item.type == MediaType.audio).toList();
-    final otherMedia =
-        _media.where((item) => item.type != MediaType.audio).toList();
+    final otherMedia = _media
+        .where((item) =>
+            item.type != MediaType.audio && item.type != MediaType.image)
+        .toList();
 
     return DiaryShell(
       title: strings.newEntry,
@@ -72,31 +77,6 @@ class _EditorPageState extends ConsumerState<EditorPage> {
                   hintText: strings.titleHint,
                 ),
               ),
-              const SizedBox(height: 16),
-              TextField(
-                controller: _contentController,
-                maxLines: 10,
-                decoration: InputDecoration(
-                  labelText: strings.contentLabel,
-                  hintText: strings.contentHint,
-                ),
-              ),
-              const SizedBox(height: 16),
-              TextField(
-                controller: _locationController,
-                decoration: InputDecoration(
-                  labelText: strings.locationLabel,
-                  hintText: strings.locationHint,
-                ),
-              ),
-              const SizedBox(height: 24),
-              Text(strings.mood,
-                  style: Theme.of(context).textTheme.titleMedium),
-              const SizedBox(height: 12),
-              MoodSelector(
-                value: _mood,
-                onChanged: (mood) => setState(() => _mood = mood),
-              ),
               const SizedBox(height: 24),
               Text(
                 strings.mediaToolbar,
@@ -111,6 +91,11 @@ class _EditorPageState extends ConsumerState<EditorPage> {
                     onPressed: _pickImages,
                     icon: const Icon(Icons.image_outlined),
                     label: Text(strings.importImage),
+                  ),
+                  FilledButton.tonalIcon(
+                    onPressed: _takePhoto,
+                    icon: const Icon(Icons.camera_alt_outlined),
+                    label: Text(strings.takePhoto),
                   ),
                   FilledButton.tonalIcon(
                     onPressed: _isRecording ? _stopRecording : _startRecording,
@@ -134,8 +119,24 @@ class _EditorPageState extends ConsumerState<EditorPage> {
                   ),
                 ],
               ),
+              if (imageMedia.isNotEmpty) ...[
+                const SizedBox(height: 16),
+                ImageMediaGrid(
+                  media: imageMedia,
+                  onDeleted: (media) => setState(() => _media.remove(media)),
+                ),
+              ],
               const SizedBox(height: 16),
-              if (_media.isNotEmpty)
+              TextField(
+                controller: _contentController,
+                maxLines: 10,
+                decoration: InputDecoration(
+                  labelText: strings.contentLabel,
+                  hintText: strings.contentHint,
+                ),
+              ),
+              if (audioMedia.isNotEmpty || otherMedia.isNotEmpty) ...[
+                const SizedBox(height: 16),
                 Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
@@ -168,6 +169,23 @@ class _EditorPageState extends ConsumerState<EditorPage> {
                       ),
                   ],
                 ),
+              ],
+              const SizedBox(height: 16),
+              TextField(
+                controller: _locationController,
+                decoration: InputDecoration(
+                  labelText: strings.locationLabel,
+                  hintText: strings.locationHint,
+                ),
+              ),
+              const SizedBox(height: 24),
+              Text(strings.mood,
+                  style: Theme.of(context).textTheme.titleMedium),
+              const SizedBox(height: 12),
+              MoodSelector(
+                value: _mood,
+                onChanged: (mood) => setState(() => _mood = mood),
+              ),
               const SizedBox(height: 32),
               Align(
                 alignment: Alignment.centerRight,
@@ -216,6 +234,26 @@ class _EditorPageState extends ConsumerState<EditorPage> {
         SnackBar(content: Text(strings.importedImages(added.length))),
       );
     }
+  }
+
+  Future<void> _takePhoto() async {
+    final strings = context.strings;
+    final savedPath = await context.push<String>('/camera');
+    if (!mounted || savedPath == null) return;
+
+    setState(() {
+      _media.add(
+        DiaryMedia(
+          id: _uuid.v4(),
+          type: MediaType.image,
+          path: savedPath,
+        ),
+      );
+    });
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(strings.photoImported)),
+    );
   }
 
   Future<void> _startRecording() async {

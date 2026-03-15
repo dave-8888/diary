@@ -1,3 +1,4 @@
+import 'package:diary_mvp/features/diary/presentation/pages/camera_capture_page.dart';
 import 'package:diary_mvp/features/diary/presentation/pages/editor_page.dart';
 import 'package:diary_mvp/features/diary/presentation/pages/home_page.dart';
 import 'package:diary_mvp/features/diary/presentation/pages/timeline_page.dart';
@@ -15,6 +16,10 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: '/editor',
         builder: (context, state) => const EditorPage(),
+      ),
+      GoRoute(
+        path: '/camera',
+        builder: (context, state) => const CameraCapturePage(),
       ),
       GoRoute(
         path: '/timeline',

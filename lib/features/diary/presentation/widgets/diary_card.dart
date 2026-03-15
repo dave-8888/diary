@@ -1,6 +1,7 @@
 import 'package:diary_mvp/app/localization/app_strings.dart';
 import 'package:diary_mvp/features/diary/domain/diary_entry.dart';
 import 'package:diary_mvp/features/diary/presentation/widgets/audio_attachment_tile.dart';
+import 'package:diary_mvp/features/diary/presentation/widgets/image_media_grid.dart';
 import 'package:flutter/material.dart';
 import 'package:path/path.dart' as p;
 
@@ -16,10 +17,16 @@ class DiaryCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final strings = context.strings;
     final dateText = strings.formatDateTime(entry.createdAt);
+    final imageMedia =
+        entry.media.where((item) => item.type == MediaType.image).toList();
     final audioMedia =
         entry.media.where((item) => item.type == MediaType.audio).toList();
-    final otherMedia =
-        entry.media.where((item) => item.type != MediaType.audio).toList();
+    final otherMedia = entry.media
+        .where((item) =>
+            item.type != MediaType.audio && item.type != MediaType.image)
+        .toList();
+    final hasContent = entry.content.trim().isNotEmpty;
+    final hasMetaChips = entry.tags.isNotEmpty || otherMedia.isNotEmpty;
 
     return Card(
       child: Padding(
@@ -54,25 +61,32 @@ class DiaryCard extends StatelessWidget {
               ],
             ),
             const SizedBox(height: 16),
-            Text(
-              entry.content,
-              maxLines: 4,
-              overflow: TextOverflow.ellipsis,
-            ),
-            const SizedBox(height: 16),
-            Wrap(
-              spacing: 8,
-              runSpacing: 8,
-              children: [
-                ...entry.tags.map((tag) => Chip(label: Text(tag))),
-                ...otherMedia.map(
-                  (media) => Chip(
-                    avatar: Icon(_iconForMedia(media.type), size: 18),
-                    label: Text(_labelForMedia(context, media)),
+            if (imageMedia.isNotEmpty) ...[
+              ImageMediaGrid(media: imageMedia),
+              const SizedBox(height: 16),
+            ],
+            if (hasContent) ...[
+              Text(
+                entry.content,
+                maxLines: 4,
+                overflow: TextOverflow.ellipsis,
+              ),
+            ],
+            if (hasContent && hasMetaChips) const SizedBox(height: 16),
+            if (hasMetaChips)
+              Wrap(
+                spacing: 8,
+                runSpacing: 8,
+                children: [
+                  ...entry.tags.map((tag) => Chip(label: Text(tag))),
+                  ...otherMedia.map(
+                    (media) => Chip(
+                      avatar: Icon(_iconForMedia(media.type), size: 18),
+                      label: Text(_labelForMedia(context, media)),
+                    ),
                   ),
-                ),
-              ],
-            ),
+                ],
+              ),
             if (audioMedia.isNotEmpty) ...[
               const SizedBox(height: 16),
               ...audioMedia.map(

@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'dart:typed_data';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:path/path.dart' as p;
@@ -46,6 +47,20 @@ class LocalStorageService {
     final imagesDir = await imagesDirectory();
     final targetPath = p.join(imagesDir.path, '${_uuid.v4()}$extension');
     await source.copy(targetPath);
+    return targetPath;
+  }
+
+  Future<String> saveImageBytesToAppStorage(
+    Uint8List bytes, {
+    String extension = '.jpg',
+  }) async {
+    final normalizedExtension =
+        extension.startsWith('.') ? extension : '.$extension';
+    final imagesDir = await imagesDirectory();
+    final targetPath = p.join(
+        imagesDir.path, '${_uuid.v4()}${normalizedExtension.toLowerCase()}');
+    final file = File(targetPath);
+    await file.writeAsBytes(bytes, flush: true);
     return targetPath;
   }
 
