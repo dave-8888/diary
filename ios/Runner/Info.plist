@@ -45,6 +45,8 @@
 	<true/>
 	<key>NSCameraUsageDescription</key>
 	<string>We use the camera so you can capture photos for diary entries.</string>
+	<key>NSLocationWhenInUseUsageDescription</key>
+	<string>We use your location to help fill in where you wrote this diary entry.</string>
 	<key>NSMicrophoneUsageDescription</key>
 	<string>We use the microphone so recorded diary videos can keep their audio.</string>
 	<key>UIApplicationSupportsIndirectInputEvents</key>

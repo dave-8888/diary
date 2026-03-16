@@ -143,6 +143,24 @@ class AppStrings {
   String get locationHint => isChinese
       ? '\u4f8b\u5982\uff1a\u5bb6 / \u516c\u53f8 / \u4e0a\u6d77'
       : 'For example: Home / Office / Shanghai';
+  String get useCurrentLocation => isChinese
+      ? '\u83b7\u53d6\u5f53\u524d\u4f4d\u7f6e'
+      : 'Use current location';
+  String get locationUpdated => isChinese
+      ? '\u5df2\u81ea\u52a8\u586b\u5165\u5f53\u524d\u4f4d\u7f6e\u3002'
+      : 'Current location added.';
+  String get locationServiceDisabled => isChinese
+      ? '\u8bf7\u5148\u6253\u5f00\u7cfb\u7edf\u5b9a\u4f4d\u670d\u52a1\u3002'
+      : 'Please turn on location services first.';
+  String get locationPermissionDenied => isChinese
+      ? '\u5b9a\u4f4d\u6743\u9650\u88ab\u62d2\u7edd\u3002'
+      : 'Location permission denied.';
+  String get locationPermissionDeniedForever => isChinese
+      ? '\u5b9a\u4f4d\u6743\u9650\u5df2\u88ab\u6c38\u4e45\u7981\u7528\uff0c\u8bf7\u5230\u7cfb\u7edf\u8bbe\u7f6e\u4e2d\u5f00\u542f\u3002'
+      : 'Location permission is permanently denied. Please enable it in system settings.';
+  String locationLookupFailed(Object? error) => isChinese
+      ? '\u83b7\u53d6\u4f4d\u7f6e\u5931\u8d25${error == null ? '' : '\uff1a$error'}'
+      : 'Could not get location${error == null ? '' : ': $error'}';
   String get mood => isChinese ? '\u5fc3\u60c5' : 'Mood';
   String get mediaToolbar =>
       isChinese ? '\u5a92\u4f53\u5de5\u5177\u680f' : 'Media toolbar';

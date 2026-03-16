@@ -10,6 +10,7 @@ import 'package:diary_mvp/features/diary/presentation/widgets/diary_shell.dart';
 import 'package:diary_mvp/features/diary/presentation/widgets/image_media_grid.dart';
 import 'package:diary_mvp/features/diary/presentation/widgets/mood_selector.dart';
 import 'package:diary_mvp/features/diary/presentation/widgets/video_attachment_card.dart';
+import 'package:diary_mvp/features/diary/services/location_service.dart';
 import 'package:diary_mvp/features/diary/services/transcription_service.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
@@ -45,6 +46,7 @@ class _EditorPageState extends ConsumerState<EditorPage> {
   bool _isDeleting = false;
   bool _isRecording = false;
   bool _isTranscribing = false;
+  bool _isLocating = false;
   DateTime? _recordingStartedAt;
 
   bool get _isEditing => widget.entry != null;
@@ -270,6 +272,21 @@ class _EditorPageState extends ConsumerState<EditorPage> {
         decoration: InputDecoration(
           labelText: strings.locationLabel,
           hintText: strings.locationHint,
+          suffixIcon: _isLocating
+              ? const Padding(
+                  padding: EdgeInsets.all(12),
+                  child: SizedBox(
+                    width: 20,
+                    height: 20,
+                    child: CircularProgressIndicator(strokeWidth: 2),
+                  ),
+                )
+              : IconButton(
+                  onPressed:
+                      _isSaving || _isDeleting ? null : _fillCurrentLocation,
+                  tooltip: strings.useCurrentLocation,
+                  icon: const Icon(Icons.my_location_outlined),
+                ),
         ),
       ),
       const SizedBox(height: 24),
@@ -517,6 +534,34 @@ class _EditorPageState extends ConsumerState<EditorPage> {
     return null;
   }
 
+  Future<void> _fillCurrentLocation() async {
+    final strings = context.strings;
+    setState(() => _isLocating = true);
+
+    final result =
+        await ref.read(locationServiceProvider).lookupCurrentLocation(
+              locale: Localizations.localeOf(context),
+            );
+
+    if (!mounted) return;
+    setState(() => _isLocating = false);
+
+    if (result.ok && result.locationText != null) {
+      _locationController.text = result.locationText!;
+      _locationController.selection = TextSelection.collapsed(
+        offset: _locationController.text.length,
+      );
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(strings.locationUpdated)),
+      );
+      return;
+    }
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(_locationFailureMessage(strings, result))),
+    );
+  }
+
   Future<void> _save() async {
     final strings = context.strings;
     setState(() => _isSaving = true);
@@ -669,6 +714,23 @@ class _EditorPageState extends ConsumerState<EditorPage> {
       case TranscriptionFailure.emptyResponse:
       case null:
         return strings.noTranscriptionText;
+    }
+  }
+
+  String _locationFailureMessage(
+    AppStrings strings,
+    LocationLookupResult result,
+  ) {
+    switch (result.failure) {
+      case LocationLookupFailure.serviceDisabled:
+        return strings.locationServiceDisabled;
+      case LocationLookupFailure.permissionDenied:
+        return strings.locationPermissionDenied;
+      case LocationLookupFailure.permissionDeniedForever:
+        return strings.locationPermissionDeniedForever;
+      case LocationLookupFailure.positionUnavailable:
+      case null:
+        return strings.locationLookupFailed(result.error);
     }
   }
 }
