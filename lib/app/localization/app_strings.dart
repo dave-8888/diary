@@ -27,8 +27,28 @@ class AppStrings {
 
   bool get isChinese => locale.languageCode == 'zh';
 
-  String get appTitle => isChinese ? '\u6211\u7684\u65e5\u8bb0' : 'Diary';
+  String get appTitle => '\u65e5\u8bb0';
+  String get renameAppTitle =>
+      isChinese ? '\u81ea\u5b9a\u4e49\u5e94\u7528\u540d' : 'Customize app name';
+  String get renameAppTooltip =>
+      isChinese ? '\u4fee\u6539\u5e94\u7528\u540d' : 'Rename app';
+  String get appNameLabel => isChinese ? '\u5e94\u7528\u540d' : 'App name';
+  String get appNameHint => isChinese
+      ? '\u4f8b\u5982\uff1a\u65e5\u8bb0 / \u6211\u7684\u65e5\u8bb0'
+      : 'For example: Diary / My Diary';
+  String get resetAppName =>
+      isChinese ? '\u6062\u590d\u9ed8\u8ba4' : 'Reset to default';
+  String get appNameUpdated => isChinese
+      ? '\u5e94\u7528\u540d\u5df2\u66f4\u65b0\u3002'
+      : 'App name updated.';
+  String get appNameReset => isChinese
+      ? '\u5df2\u6062\u590d\u9ed8\u8ba4\u5e94\u7528\u540d\u3002'
+      : 'App name reset to default.';
+  String appNameUpdateFailed(Object error) => isChinese
+      ? '\u4fdd\u5b58\u5e94\u7528\u540d\u5931\u8d25\uff1a$error'
+      : 'Failed to save app name: $error';
   String get language => isChinese ? '\u8bed\u8a00' : 'Language';
+  String get saveAction => isChinese ? '\u4fdd\u5b58' : 'Save';
   String get systemLanguage =>
       isChinese ? '\u8ddf\u968f\u7cfb\u7edf' : 'System';
   String get englishLanguage => 'English';
@@ -63,6 +83,75 @@ class AppStrings {
   String get viewAll => isChinese ? '\u67e5\u770b\u5168\u90e8' : 'View all';
   String get previewEntry =>
       isChinese ? '\u9884\u89c8\u65e5\u8bb0' : 'Preview entry';
+  String get migrationTitle =>
+      isChinese ? '\u6570\u636e\u8fc1\u79fb' : 'Migration';
+  String get migrationHint => isChinese
+      ? '\u53ef\u4ee5\u5bfc\u51fa\u6574\u4e2a\u672c\u5730\u65e5\u8bb0\u6570\u636e\u5305\uff0c\u4e5f\u53ef\u4ee5\u4ece\u5df2\u5bfc\u51fa\u7684\u8fc1\u79fb\u5305\u6062\u590d\u5230\u8fd9\u53f0\u8bbe\u5907\u3002'
+      : 'Export a full local migration package, or import one back onto this device.';
+  String get currentDataLocation => isChinese
+      ? '\u5f53\u524d\u6570\u636e\u4f4d\u7f6e'
+      : 'Current data location';
+  String get exportMigrationPackage =>
+      isChinese ? '\u5bfc\u51fa\u8fc1\u79fb\u5305' : 'Export migration package';
+  String get exportingMigrationPackage => isChinese
+      ? '\u5bfc\u51fa\u8fc1\u79fb\u5305\u4e2d...'
+      : 'Exporting package...';
+  String get importMigrationPackage =>
+      isChinese ? '\u5bfc\u5165\u8fc1\u79fb\u5305' : 'Import migration package';
+  String get importingMigrationPackage => isChinese
+      ? '\u5bfc\u5165\u8fc1\u79fb\u5305\u4e2d...'
+      : 'Importing package...';
+  String get exportMigrationHint => isChinese
+      ? '\u4f1a\u628a\u65e5\u8bb0\u6570\u636e\u3001\u56fe\u7247\u3001\u5f55\u97f3\u3001\u89c6\u9891\u548c\u5783\u573e\u6876\u4e00\u8d77\u6253\u5305\u5bfc\u51fa\u3002'
+      : 'Export diary data, images, audio, videos, and trash into one package.';
+  String get importMigrationHint => isChinese
+      ? '\u5bfc\u5165\u540e\u4f1a\u8986\u76d6\u5f53\u524d\u8bbe\u5907\u7684\u672c\u5730\u6570\u636e\uff0c\u9002\u5408\u6362\u7535\u8111\u6216\u6062\u590d\u5907\u4efd\u3002'
+      : 'Importing replaces the current local data on this device, which is useful for moving to a new computer or restoring a backup.';
+  String get selectMigrationExportFolder => isChinese
+      ? '\u9009\u62e9\u8fc1\u79fb\u5305\u5bfc\u51fa\u76ee\u5f55'
+      : 'Select export location';
+  String get selectMigrationImportFolder => isChinese
+      ? '\u9009\u62e9\u8fc1\u79fb\u5305\u76ee\u5f55'
+      : 'Select migration package';
+  String get migrationFolderNotSelected => isChinese
+      ? '\u672a\u9009\u62e9\u8fc1\u79fb\u5305\u76ee\u5f55\u3002'
+      : 'No migration folder selected.';
+  String migrationExported(String path, int entryCount) => isChinese
+      ? '\u5df2\u5bfc\u51fa $entryCount \u7bc7\u65e5\u8bb0\u5230\uff1a$path'
+      : 'Exported $entryCount entries to: $path';
+  String migrationExportFailed(Object error) => isChinese
+      ? '\u5bfc\u51fa\u8fc1\u79fb\u5305\u5931\u8d25\uff1a$error'
+      : 'Failed to export migration package: $error';
+  String migrationImported(int entryCount) => isChinese
+      ? '\u5df2\u5bfc\u5165 $entryCount \u7bc7\u65e5\u8bb0\u3002'
+      : 'Imported $entryCount entries.';
+  String migrationImportFailed(Object error) => isChinese
+      ? '\u5bfc\u5165\u8fc1\u79fb\u5305\u5931\u8d25\uff1a$error'
+      : 'Failed to import migration package: $error';
+  String get importMigrationConfirmTitle => isChinese
+      ? '\u786e\u8ba4\u5bfc\u5165\u8fc1\u79fb\u5305\uff1f'
+      : 'Import this migration package?';
+  String get importMigrationConfirmMessage => isChinese
+      ? '\u5f53\u524d\u8bbe\u5907\u4e0a\u7684\u672c\u5730\u65e5\u8bb0\u3001\u5783\u573e\u6876\u548c\u5a92\u4f53\u6587\u4ef6\u4f1a\u88ab\u65b0\u6570\u636e\u8986\u76d6\u3002'
+      : 'The current local diary data, trash, and media files on this device will be replaced.';
+  String get confirmImportMigration =>
+      isChinese ? '\u5f00\u59cb\u5bfc\u5165' : 'Import now';
+  String get exportEntry =>
+      isChinese ? '\u5bfc\u51fa\u65e5\u8bb0' : 'Export entry';
+  String get exportingEntry =>
+      isChinese ? '\u5bfc\u51fa\u4e2d...' : 'Exporting...';
+  String get selectExportFolder => isChinese
+      ? '\u9009\u62e9\u5bfc\u51fa\u76ee\u5f55'
+      : 'Select export folder';
+  String get exportFolderNotSelected => isChinese
+      ? '\u672a\u9009\u62e9\u5bfc\u51fa\u76ee\u5f55\u3002'
+      : 'No export folder selected.';
+  String entryExported(String path) => isChinese
+      ? '\u65e5\u8bb0\u5df2\u5bfc\u51fa\u5230\uff1a$path'
+      : 'Entry exported to: $path';
+  String entryExportFailed(Object error) => isChinese
+      ? '\u5bfc\u51fa\u65e5\u8bb0\u5931\u8d25\uff1a$error'
+      : 'Failed to export entry: $error';
   String get restoreEntry =>
       isChinese ? '\u6062\u590d\u65e5\u8bb0' : 'Restore entry';
   String get restoreSelected =>
@@ -109,8 +198,8 @@ class AppStrings {
       ? '\u5f00\u59cb\u8bb0\u5f55\u4eca\u5929\u5427\uff0c\u628a\u6587\u5b57\u3001\u5fc3\u60c5\u548c\u58f0\u97f3\u90fd\u7559\u4e0b\u6765\u3002'
       : 'Start capturing today with words, mood, and voice.';
   String get firstEntryPrompt => isChinese
-      ? 'MVP \u5df2\u51c6\u5907\u597d\uff0c\u5f00\u59cb\u5199\u7b2c\u4e00\u7bc7\u65e5\u8bb0\u5427\u3002'
-      : 'The MVP is ready for your first diary entry.';
+      ? '\u5f00\u59cb\u5199\u7b2c\u4e00\u7bc7\u65e5\u8bb0\u5427\u3002'
+      : 'Start with your first diary entry.';
   String failedToLoadEntries(Object error) => isChinese
       ? '\u52a0\u8f7d\u65e5\u8bb0\u5931\u8d25\uff1a$error'
       : 'Failed to load entries: $error';
@@ -139,6 +228,8 @@ class AppStrings {
   String get whatHappenedToday => isChinese
       ? '\u4eca\u5929\u53d1\u751f\u4e86\u4ec0\u4e48\uff1f'
       : 'What happened today?';
+  String get untitledEntry =>
+      isChinese ? '\u65e0\u6807\u9898\u65e5\u8bb0' : 'Untitled entry';
   String get titleLabel => isChinese ? '\u6807\u9898' : 'Title';
   String get titleHint => isChinese
       ? '\u4f8b\u5982\uff1a\u516c\u56ed\u7684\u4e0b\u5348'
@@ -148,9 +239,11 @@ class AppStrings {
       ? '\u5199\u4e0b\u4eca\u5929\u53d1\u751f\u7684\u4e8b\u3001\u4f60\u7684\u611f\u53d7\uff0c\u4ee5\u53ca\u60f3\u7559\u4e0b\u7684\u8bb0\u5fc6...'
       : 'Write down what happened, how you felt, and what you want to remember...';
   String get locationLabel => isChinese ? '\u5730\u70b9' : 'Location';
+  String get createdAtLabel => isChinese ? '\u65f6\u95f4' : 'Created at';
   String get locationHint => isChinese
       ? '\u4f8b\u5982\uff1a\u5bb6 / \u516c\u53f8 / \u4e0a\u6d77'
       : 'For example: Home / Office / Shanghai';
+  String get notProvided => isChinese ? '\u672a\u586b\u5199' : 'Not provided';
   String get useCurrentLocation => isChinese
       ? '\u83b7\u53d6\u5f53\u524d\u4f4d\u7f6e'
       : 'Use current location';
@@ -187,6 +280,7 @@ class AppStrings {
   String get noSelectedTags => isChinese
       ? '\u5f53\u524d\u65e5\u8bb0\u6682\u65e0\u6807\u7b7e\u3002'
       : 'This entry has no tags yet.';
+  String get noTagsValue => isChinese ? '\u65e0\u6807\u7b7e' : 'No tags';
   String get tagAdded => isChinese
       ? '\u6807\u7b7e\u5df2\u52a0\u5165\u6807\u7b7e\u5e93\u3002'
       : 'Tag added to the library.';
@@ -214,6 +308,12 @@ class AppStrings {
       ? '\u52a0\u8f7d\u6807\u7b7e\u5931\u8d25\uff1a$error'
       : 'Failed to load tags: $error';
   String get mood => isChinese ? '\u5fc3\u60c5' : 'Mood';
+  String get contentSectionTitle => isChinese ? '\u5185\u5bb9' : 'Content';
+  String get imagesSectionTitle => isChinese ? '\u56fe\u7247' : 'Images';
+  String get audioSectionTitle => isChinese ? '\u97f3\u9891' : 'Audio';
+  String get videoSectionTitle => isChinese ? '\u89c6\u9891' : 'Videos';
+  String get emptyContentValue =>
+      isChinese ? '\u6682\u65e0\u5185\u5bb9' : 'No content';
   String get mediaToolbar =>
       isChinese ? '\u5a92\u4f53\u5de5\u5177\u680f' : 'Media toolbar';
   String get importImage =>

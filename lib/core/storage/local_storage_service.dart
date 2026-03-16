@@ -25,6 +25,11 @@ class LocalStorageService {
   final Uuid _uuid = const Uuid();
   Directory? _baseDirectory;
 
+  Future<Directory> appRootDirectory() async {
+    final base = await baseDirectory();
+    return base.parent;
+  }
+
   Future<Directory> baseDirectory() async {
     if (_baseDirectory != null) return _baseDirectory!;
     final documents = await getApplicationDocumentsDirectory();
@@ -154,6 +159,13 @@ class LocalStorageService {
       targetDirectoryForType: (type) =>
           _directoryForType(type, useTrash: false, createFreshName: true),
     );
+  }
+
+  Future<Directory> mediaDirectoryForType(
+    MediaType type, {
+    required bool useTrash,
+  }) {
+    return _directoryForType(type, useTrash: useTrash);
   }
 
   Future<void> revertMediaMoves(Iterable<MediaFileMove> moves) async {

@@ -1,3 +1,4 @@
+import 'package:diary_mvp/app/app_display_name.dart';
 import 'package:diary_mvp/app/localization/app_strings.dart';
 import 'package:diary_mvp/features/diary/application/diary_controller.dart';
 import 'package:diary_mvp/features/diary/domain/diary_entry.dart';
@@ -16,15 +17,38 @@ class HomePage extends ConsumerWidget {
     final strings = context.strings;
     final entriesAsync = ref.watch(diaryControllerProvider);
     final selectedTag = ref.watch(selectedTagFilterProvider);
+    final customAppNameAsync = ref.watch(appDisplayNameControllerProvider);
     final showTagFilters = ref.watch(tagLibraryControllerProvider).maybeWhen(
           data: (tags) => tags.isNotEmpty,
           loading: () => true,
           error: (_, __) => true,
           orElse: () => false,
         );
+    final appTitle = resolveAppDisplayName(
+      strings: strings,
+      customNameAsync: customAppNameAsync,
+    );
 
     return DiaryShell(
-      title: strings.appTitle,
+      title: appTitle,
+      actions: [
+        IconButton(
+          onPressed: () => _showRenameDialog(
+            context: context,
+            ref: ref,
+            initialValue: customAppNameAsync.valueOrNull ?? appTitle,
+            hasCustomName:
+                (customAppNameAsync.valueOrNull?.trim().isNotEmpty ?? false),
+          ),
+          tooltip: strings.renameAppTooltip,
+          icon: const Icon(Icons.drive_file_rename_outline),
+        ),
+        IconButton(
+          onPressed: () => context.push('/migration'),
+          tooltip: strings.migrationTitle,
+          icon: const Icon(Icons.import_export_outlined),
+        ),
+      ],
       floatingActionButton: FloatingActionButton.extended(
         onPressed: () => context.go('/editor'),
         icon: const Icon(Icons.add),
@@ -42,6 +66,81 @@ class HomePage extends ConsumerWidget {
         ),
       ),
     );
+  }
+
+  Future<void> _showRenameDialog({
+    required BuildContext context,
+    required WidgetRef ref,
+    required String initialValue,
+    required bool hasCustomName,
+  }) async {
+    final strings = context.strings;
+    final controller = TextEditingController(text: initialValue);
+
+    final result = await showDialog<_RenameAppResult>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: Text(strings.renameAppTitle),
+        content: TextField(
+          controller: controller,
+          autofocus: true,
+          textInputAction: TextInputAction.done,
+          decoration: InputDecoration(
+            labelText: strings.appNameLabel,
+            hintText: strings.appNameHint,
+          ),
+          onSubmitted: (_) => Navigator.of(dialogContext).pop(
+            _RenameAppResult.save(controller.text),
+          ),
+        ),
+        actions: [
+          if (hasCustomName)
+            TextButton(
+              onPressed: () => Navigator.of(dialogContext).pop(
+                const _RenameAppResult.reset(),
+              ),
+              child: Text(strings.resetAppName),
+            ),
+          TextButton(
+            onPressed: () => Navigator.of(dialogContext).pop(),
+            child: Text(strings.cancelAction),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.of(dialogContext).pop(
+              _RenameAppResult.save(controller.text),
+            ),
+            child: Text(strings.saveAction),
+          ),
+        ],
+      ),
+    );
+
+    controller.dispose();
+    if (result == null || !context.mounted) return;
+
+    try {
+      if (result.resetToDefault) {
+        await ref.read(appDisplayNameControllerProvider.notifier).reset();
+        if (!context.mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(strings.appNameReset)),
+        );
+        return;
+      }
+
+      await ref
+          .read(appDisplayNameControllerProvider.notifier)
+          .save(result.value ?? '');
+      if (!context.mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(strings.appNameUpdated)),
+      );
+    } catch (error) {
+      if (!context.mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(strings.appNameUpdateFailed(error))),
+      );
+    }
   }
 }
 
@@ -152,4 +251,14 @@ class _HomeList extends StatelessWidget {
   void _openEditor(BuildContext context, DiaryEntry entry) {
     context.push('/editor', extra: entry);
   }
+}
+
+class _RenameAppResult {
+  const _RenameAppResult.save(this.value) : resetToDefault = false;
+  const _RenameAppResult.reset()
+      : value = null,
+        resetToDefault = true;
+
+  final String? value;
+  final bool resetToDefault;
 }

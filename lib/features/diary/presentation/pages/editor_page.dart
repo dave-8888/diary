@@ -10,6 +10,7 @@ import 'package:diary_mvp/features/diary/presentation/widgets/diary_shell.dart';
 import 'package:diary_mvp/features/diary/presentation/widgets/image_media_grid.dart';
 import 'package:diary_mvp/features/diary/presentation/widgets/mood_selector.dart';
 import 'package:diary_mvp/features/diary/presentation/widgets/video_attachment_card.dart';
+import 'package:diary_mvp/features/diary/services/export_service.dart';
 import 'package:diary_mvp/features/diary/services/location_service.dart';
 import 'package:diary_mvp/features/diary/services/transcription_service.dart';
 import 'package:file_picker/file_picker.dart';
@@ -46,6 +47,7 @@ class _EditorPageState extends ConsumerState<EditorPage> {
 
   bool _isSaving = false;
   bool _isDeleting = false;
+  bool _isExporting = false;
   bool _isRecording = false;
   bool _isTranscribing = false;
   bool _isLocating = false;
@@ -98,9 +100,23 @@ class _EditorPageState extends ConsumerState<EditorPage> {
     return DiaryShell(
       title: _isEditing ? strings.editEntry : strings.newEntry,
       actions: [
+        IconButton(
+          onPressed:
+              _isSaving || _isDeleting || _isExporting ? null : _exportEntry,
+          tooltip: _isExporting ? strings.exportingEntry : strings.exportEntry,
+          icon: _isExporting
+              ? const SizedBox(
+                  width: 18,
+                  height: 18,
+                  child: CircularProgressIndicator(strokeWidth: 2),
+                )
+              : const Icon(Icons.file_download_outlined),
+        ),
         if (_isEditing)
           IconButton(
-            onPressed: _isSaving || _isDeleting ? null : _confirmDelete,
+            onPressed: _isSaving || _isDeleting || _isExporting
+                ? null
+                : _confirmDelete,
             tooltip: strings.deleteEntry,
             icon: _isDeleting
                 ? const SizedBox(
@@ -902,17 +918,14 @@ class _EditorPageState extends ConsumerState<EditorPage> {
     if (entry == null) return;
 
     final strings = context.strings;
+    final draftEntry = _buildDraftEntry();
     final entryToTrash = entry.copyWith(
-      title: _titleController.text.trim().isEmpty
-          ? entry.title
-          : _titleController.text.trim(),
-      content: _contentController.text.trim(),
-      mood: _mood,
-      location: _locationController.text.trim().isEmpty
-          ? null
-          : _locationController.text.trim(),
-      tags: List<String>.from(_tags),
-      media: List<DiaryMedia>.from(_media),
+      title: draftEntry.title.trim().isEmpty ? entry.title : draftEntry.title,
+      content: draftEntry.content,
+      mood: draftEntry.mood,
+      location: draftEntry.location,
+      tags: draftEntry.tags,
+      media: draftEntry.media,
     );
     setState(() => _isDeleting = true);
 
@@ -935,6 +948,41 @@ class _EditorPageState extends ConsumerState<EditorPage> {
       SnackBar(content: Text(strings.entryDeleted)),
     );
     context.go('/trash');
+  }
+
+  Future<void> _exportEntry() async {
+    final strings = context.strings;
+    final destinationRootPath = await FilePicker.platform.getDirectoryPath(
+      dialogTitle: strings.selectExportFolder,
+    );
+    if (!mounted || destinationRootPath == null) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(strings.exportFolderNotSelected)),
+        );
+      }
+      return;
+    }
+
+    setState(() => _isExporting = true);
+    try {
+      final result = await ref.read(diaryExportServiceProvider).exportEntry(
+            entry: _buildDraftEntry(),
+            destinationRootPath: destinationRootPath,
+            strings: strings,
+          );
+      if (!mounted) return;
+      setState(() => _isExporting = false);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(strings.entryExported(result.directoryPath))),
+      );
+    } catch (error) {
+      if (!mounted) return;
+      setState(() => _isExporting = false);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(strings.entryExportFailed(error))),
+      );
+    }
   }
 
   void _openVideoPreview(DiaryMedia media) {
@@ -1057,5 +1105,24 @@ class _EditorPageState extends ConsumerState<EditorPage> {
     final trimmed = rawTag.trim();
     if (trimmed.isEmpty) return null;
     return trimmed.startsWith('#') ? trimmed : '#$trimmed';
+  }
+
+  DiaryEntry _buildDraftEntry() {
+    final entry = widget.entry;
+    final title = _titleController.text.trim();
+    final content = _contentController.text.trim();
+    final location = _locationController.text.trim();
+
+    return DiaryEntry(
+      id: entry?.id ?? _uuid.v4(),
+      title: title,
+      content: content,
+      mood: _mood,
+      createdAt: entry?.createdAt ?? DateTime.now(),
+      location: location.isEmpty ? null : location,
+      trashedAt: entry?.trashedAt,
+      tags: List<String>.unmodifiable(_tags),
+      media: List<DiaryMedia>.unmodifiable(_media),
+    );
   }
 }

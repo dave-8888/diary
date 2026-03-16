@@ -1,6 +1,7 @@
 import 'package:diary_mvp/features/diary/presentation/pages/camera_capture_page.dart';
 import 'package:diary_mvp/features/diary/presentation/pages/editor_page.dart';
 import 'package:diary_mvp/features/diary/presentation/pages/home_page.dart';
+import 'package:diary_mvp/features/diary/presentation/pages/migration_page.dart';
 import 'package:diary_mvp/features/diary/presentation/pages/trash_page.dart';
 import 'package:diary_mvp/features/diary/presentation/pages/trash_preview_page.dart';
 import 'package:diary_mvp/features/diary/presentation/pages/timeline_page.dart';
@@ -22,6 +23,10 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         builder: (context, state) => EditorPage(
           entry: state.extra as DiaryEntry?,
         ),
+      ),
+      GoRoute(
+        path: '/migration',
+        builder: (context, state) => const MigrationPage(),
       ),
       GoRoute(
         path: '/camera',
