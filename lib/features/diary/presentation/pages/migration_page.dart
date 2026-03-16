@@ -1,4 +1,5 @@
 import 'package:diary_mvp/app/localization/app_strings.dart';
+import 'package:diary_mvp/app/themed_snackbar.dart';
 import 'package:diary_mvp/core/storage/local_storage_service.dart';
 import 'package:diary_mvp/features/diary/application/diary_controller.dart';
 import 'package:diary_mvp/features/diary/data/diary_repository.dart';
@@ -181,8 +182,9 @@ class _MigrationPageState extends ConsumerState<MigrationPage> {
     );
     if (!mounted || destinationRootPath == null) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(strings.migrationFolderNotSelected)),
+        context.showAppSnackBar(
+          strings.migrationFolderNotSelected,
+          tone: AppSnackBarTone.warning,
         );
       }
       return;
@@ -206,18 +208,16 @@ class _MigrationPageState extends ConsumerState<MigrationPage> {
 
       if (!mounted) return;
       setState(() => _isExporting = false);
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-            strings.migrationExported(result.directoryPath, result.entryCount),
-          ),
-        ),
+      context.showAppSnackBar(
+        strings.migrationExported(result.directoryPath, result.entryCount),
+        tone: AppSnackBarTone.success,
       );
     } catch (error) {
       if (!mounted) return;
       setState(() => _isExporting = false);
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(strings.migrationExportFailed(error))),
+      context.showAppSnackBar(
+        strings.migrationExportFailed(error),
+        tone: AppSnackBarTone.error,
       );
     }
   }
@@ -229,8 +229,9 @@ class _MigrationPageState extends ConsumerState<MigrationPage> {
     );
     if (!mounted || sourceDirectoryPath == null) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(strings.migrationFolderNotSelected)),
+        context.showAppSnackBar(
+          strings.migrationFolderNotSelected,
+          tone: AppSnackBarTone.warning,
         );
       }
       return;
@@ -268,8 +269,9 @@ class _MigrationPageState extends ConsumerState<MigrationPage> {
 
       if (!mounted) return;
       setState(() => _isImporting = false);
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(strings.migrationImported(result.entryCount))),
+      context.showAppSnackBar(
+        strings.migrationImported(result.entryCount),
+        tone: AppSnackBarTone.success,
       );
       context.go('/');
     } catch (error) {
@@ -277,8 +279,9 @@ class _MigrationPageState extends ConsumerState<MigrationPage> {
 
       if (!mounted) return;
       setState(() => _isImporting = false);
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(strings.migrationImportFailed(error))),
+      context.showAppSnackBar(
+        strings.migrationImportFailed(error),
+        tone: AppSnackBarTone.error,
       );
     }
   }

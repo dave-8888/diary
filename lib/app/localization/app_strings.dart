@@ -165,10 +165,13 @@ class AppStrings {
   String get appIdentityTitle =>
       isChinese ? '\u5e94\u7528\u6807\u8bc6' : 'App identity';
   String get appIdentityHint => isChinese
-      ? '\u81ea\u5b9a\u4e49\u5e94\u7528\u540d\u548c\u5e94\u7528\u5185\u56fe\u6807\u3002'
-      : 'Customize the app name and in-app icon.';
+      ? '\u81ea\u5b9a\u4e49\u5e94\u7528\u540d\u3001\u5e94\u7528\u5185\u56fe\u6807\u548c Windows \u5916\u5c42\u7a97\u53e3\u56fe\u6807\u3002'
+      : 'Customize the app name, in-app icon, and the Windows outer window icon.';
+  String get appNameDesktopHint => isChinese
+      ? '\u4fdd\u5b58\u540e\u4f1a\u540c\u6b65\u66f4\u65b0\u5e94\u7528\u5185\u540d\u79f0\u548c Windows \u6807\u9898\u680f\u540d\u79f0\u3002'
+      : 'Saving here updates both the in-app name and the Windows title bar name.';
   String get appIconTitle =>
-      isChinese ? '\u5e94\u7528\u56fe\u6807' : 'App icon';
+      isChinese ? '\u5e94\u7528\u5185\u56fe\u6807' : 'In-app icon';
   String get appIconHint => isChinese
       ? '\u9009\u62e9\u4e00\u4e2a\u65b0\u7684\u5e94\u7528\u5185\u56fe\u6807\uff0c\u4e5f\u53ef\u4ee5\u6062\u590d\u9ed8\u8ba4\u3002'
       : 'Choose a new in-app icon or restore the default.';
@@ -183,6 +186,33 @@ class AppStrings {
   String appIconUpdateFailed(Object error) => isChinese
       ? '\u4fdd\u5b58\u5e94\u7528\u56fe\u6807\u5931\u8d25\uff1a$error'
       : 'Failed to save app icon: $error';
+  String get windowIconTitle =>
+      isChinese ? 'Windows \u5916\u5c42\u56fe\u6807' : 'Windows outer icon';
+  String get windowIconHint => isChinese
+      ? '\u53ef\u4ee5\u9009\u62e9 PNG / JPG / WebP / BMP \u56fe\u7247\uff0c\u5e94\u7528\u4f1a\u81ea\u52a8\u88c1\u526a\u6210\u65b9\u5f62\u5e76\u7f29\u653e\u5230 256x256\uff0c\u7528\u4e8e\u6807\u9898\u680f\u548c\u4efb\u52a1\u680f\u9884\u89c8\u3002'
+      : 'Choose a PNG / JPG / WebP / BMP image. The app will crop it to a square and resize it to 256x256 for the title bar and taskbar preview.';
+  String get windowIconPlatformHint => isChinese
+      ? '\u76ee\u524d\u53ea\u6709 Windows \u684c\u9762\u7aef\u652f\u6301\u5b9e\u65f6\u66f4\u65b0\u5916\u5c42\u7a97\u53e3\u56fe\u6807\u3002'
+      : 'Live outer window icon updates are currently available on Windows desktop only.';
+  String get pickWindowIcon =>
+      isChinese ? '\u9009\u62e9\u56fe\u7247' : 'Choose image';
+  String get resetWindowIcon => isChinese
+      ? '\u6062\u590d\u9ed8\u8ba4\u5916\u5c42\u56fe\u6807'
+      : 'Reset outer icon';
+  String get currentWindowIcon =>
+      isChinese ? '\u5f53\u524d\u5916\u5c42\u56fe\u6807' : 'Current outer icon';
+  String get defaultWindowIcon => isChinese
+      ? '\u9ed8\u8ba4\u7cfb\u7edf\u56fe\u6807'
+      : 'Default system icon';
+  String get windowIconUpdated => isChinese
+      ? 'Windows \u5916\u5c42\u56fe\u6807\u5df2\u66f4\u65b0\u3002'
+      : 'Windows outer icon updated.';
+  String get windowIconReset => isChinese
+      ? '\u5df2\u6062\u590d\u9ed8\u8ba4 Windows \u5916\u5c42\u56fe\u6807\u3002'
+      : 'Windows outer icon reset to default.';
+  String windowIconUpdateFailed(Object error) => isChinese
+      ? '\u4fdd\u5b58 Windows \u5916\u5c42\u56fe\u6807\u5931\u8d25\uff1a$error'
+      : 'Failed to save the Windows outer icon: $error';
   String get transcriptionSettingsTitle =>
       isChinese ? 'AI \u8f6c\u5199' : 'AI transcription';
   String get transcriptionSettingsHint => isChinese

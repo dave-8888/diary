@@ -2,6 +2,7 @@ import 'package:diary_mvp/app/localization/app_locale.dart';
 import 'package:diary_mvp/app/localization/app_strings.dart';
 import 'package:diary_mvp/app/router.dart';
 import 'package:diary_mvp/app/theme.dart';
+import 'package:diary_mvp/app/window_identity.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -25,6 +26,11 @@ class DiaryApp extends ConsumerWidget {
         return AppStrings.resolveLocale(localeValue);
       },
       localizationsDelegates: GlobalMaterialLocalizations.delegates,
+      builder: (context, child) {
+        return WindowIdentitySync(
+          child: child ?? const SizedBox.shrink(),
+        );
+      },
       debugShowCheckedModeBanner: false,
     );
   }

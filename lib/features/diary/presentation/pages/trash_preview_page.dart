@@ -1,4 +1,5 @@
 import 'package:diary_mvp/app/localization/app_strings.dart';
+import 'package:diary_mvp/app/themed_snackbar.dart';
 import 'package:diary_mvp/features/diary/application/diary_controller.dart';
 import 'package:diary_mvp/features/diary/domain/diary_entry.dart';
 import 'package:diary_mvp/features/diary/presentation/widgets/diary_shell.dart';
@@ -68,15 +69,17 @@ class _TrashPreviewPageState extends ConsumerState<TrashPreviewPage> {
           .restoreEntries([entry]);
       if (!mounted) return;
       setState(() => _isRestoring = false);
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(strings.restoredEntries(1))),
+      context.showAppSnackBar(
+        strings.restoredEntries(1),
+        tone: AppSnackBarTone.success,
       );
       context.go('/trash');
     } catch (error) {
       if (!mounted) return;
       setState(() => _isRestoring = false);
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(strings.restoreFailed(error))),
+      context.showAppSnackBar(
+        strings.restoreFailed(error),
+        tone: AppSnackBarTone.error,
       );
     }
   }

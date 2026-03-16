@@ -1,6 +1,7 @@
 import 'dart:math';
 
 import 'package:diary_mvp/app/localization/app_strings.dart';
+import 'package:diary_mvp/app/themed_snackbar.dart';
 import 'package:diary_mvp/core/storage/local_storage_service.dart';
 import 'package:diary_mvp/features/diary/application/diary_controller.dart';
 import 'package:diary_mvp/features/diary/domain/diary_entry.dart';
@@ -645,8 +646,9 @@ class _EditorPageState extends ConsumerState<EditorPage> {
     if (!mounted) return;
     if (added.isNotEmpty) {
       setState(() => _media.addAll(added));
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(strings.importedImages(added.length))),
+      context.showAppSnackBar(
+        strings.importedImages(added.length),
+        tone: AppSnackBarTone.success,
       );
     }
   }
@@ -675,14 +677,11 @@ class _EditorPageState extends ConsumerState<EditorPage> {
       );
     });
 
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(
-          result.type == MediaType.video
-              ? strings.videoImported
-              : strings.photoImported,
-        ),
-      ),
+    context.showAppSnackBar(
+      result.type == MediaType.video
+          ? strings.videoImported
+          : strings.photoImported,
+      tone: AppSnackBarTone.success,
     );
   }
 
@@ -690,8 +689,9 @@ class _EditorPageState extends ConsumerState<EditorPage> {
     final strings = context.strings;
     if (!await _audioRecorder.hasPermission()) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(strings.microphonePermissionDenied)),
+      context.showAppSnackBar(
+        strings.microphonePermissionDenied,
+        tone: AppSnackBarTone.warning,
       );
       return;
     }
@@ -741,8 +741,9 @@ class _EditorPageState extends ConsumerState<EditorPage> {
       );
     });
 
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(strings.audioRecordingSaved)),
+    context.showAppSnackBar(
+      strings.audioRecordingSaved,
+      tone: AppSnackBarTone.success,
     );
   }
 
@@ -750,8 +751,9 @@ class _EditorPageState extends ConsumerState<EditorPage> {
     final strings = context.strings;
     final latestAudio = _findLatestAudio();
     if (latestAudio == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(strings.pleaseRecordAudioFirst)),
+      context.showAppSnackBar(
+        strings.pleaseRecordAudioFirst,
+        tone: AppSnackBarTone.warning,
       );
       return;
     }
@@ -764,8 +766,9 @@ class _EditorPageState extends ConsumerState<EditorPage> {
     setState(() => _isTranscribing = false);
 
     if (!result.ok || result.text == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(_transcriptionFailureMessage(strings, result))),
+      context.showAppSnackBar(
+        _transcriptionFailureMessage(strings, result),
+        tone: AppSnackBarTone.error,
       );
       return;
     }
@@ -775,8 +778,9 @@ class _EditorPageState extends ConsumerState<EditorPage> {
     _contentController.selection =
         TextSelection.collapsed(offset: _contentController.text.length);
 
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(strings.transcriptionInserted)),
+    context.showAppSnackBar(
+      strings.transcriptionInserted,
+      tone: AppSnackBarTone.success,
     );
   }
 
@@ -806,8 +810,9 @@ class _EditorPageState extends ConsumerState<EditorPage> {
       await ref.read(tagLibraryControllerProvider.notifier).saveTag(normalized);
       if (!mounted) return;
       setState(() => _isManagingTags = false);
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(strings.tagAdded)),
+      context.showAppSnackBar(
+        strings.tagAdded,
+        tone: AppSnackBarTone.success,
       );
     } catch (error) {
       if (!mounted) return;
@@ -819,8 +824,9 @@ class _EditorPageState extends ConsumerState<EditorPage> {
           );
         }
       });
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(strings.tagSaveFailed(error))),
+      context.showAppSnackBar(
+        strings.tagSaveFailed(error),
+        tone: AppSnackBarTone.error,
       );
     }
   }
@@ -842,14 +848,16 @@ class _EditorPageState extends ConsumerState<EditorPage> {
       _locationController.selection = TextSelection.collapsed(
         offset: _locationController.text.length,
       );
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(strings.locationUpdated)),
+      context.showAppSnackBar(
+        strings.locationUpdated,
+        tone: AppSnackBarTone.success,
       );
       return;
     }
 
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(_locationFailureMessage(strings, result))),
+    context.showAppSnackBar(
+      _locationFailureMessage(strings, result),
+      tone: AppSnackBarTone.error,
     );
   }
 
@@ -887,18 +895,18 @@ class _EditorPageState extends ConsumerState<EditorPage> {
     } catch (error) {
       if (!mounted) return;
       setState(() => _isSaving = false);
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(strings.entrySaveFailed(error))),
+      context.showAppSnackBar(
+        strings.entrySaveFailed(error),
+        tone: AppSnackBarTone.error,
       );
       return;
     }
 
     if (!mounted) return;
     setState(() => _isSaving = false);
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(_isEditing ? strings.entryUpdated : strings.entrySaved),
-      ),
+    context.showAppSnackBar(
+      _isEditing ? strings.entryUpdated : strings.entrySaved,
+      tone: AppSnackBarTone.success,
     );
     context.go('/timeline');
   }
@@ -954,16 +962,18 @@ class _EditorPageState extends ConsumerState<EditorPage> {
     } catch (error) {
       if (!mounted) return;
       setState(() => _isDeleting = false);
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(strings.deleteEntryFailed(error))),
+      context.showAppSnackBar(
+        strings.deleteEntryFailed(error),
+        tone: AppSnackBarTone.error,
       );
       return;
     }
 
     if (!mounted) return;
     setState(() => _isDeleting = false);
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(strings.entryDeleted)),
+    context.showAppSnackBar(
+      strings.entryDeleted,
+      tone: AppSnackBarTone.success,
     );
     context.go('/trash');
   }
@@ -975,8 +985,9 @@ class _EditorPageState extends ConsumerState<EditorPage> {
     );
     if (!mounted || destinationRootPath == null) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(strings.exportFolderNotSelected)),
+        context.showAppSnackBar(
+          strings.exportFolderNotSelected,
+          tone: AppSnackBarTone.warning,
         );
       }
       return;
@@ -991,14 +1002,16 @@ class _EditorPageState extends ConsumerState<EditorPage> {
           );
       if (!mounted) return;
       setState(() => _isExporting = false);
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(strings.entryExported(result.directoryPath))),
+      context.showAppSnackBar(
+        strings.entryExported(result.directoryPath),
+        tone: AppSnackBarTone.success,
       );
     } catch (error) {
       if (!mounted) return;
       setState(() => _isExporting = false);
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(strings.entryExportFailed(error))),
+      context.showAppSnackBar(
+        strings.entryExportFailed(error),
+        tone: AppSnackBarTone.error,
       );
     }
   }
@@ -1095,14 +1108,16 @@ class _EditorPageState extends ConsumerState<EditorPage> {
         _isManagingTags = false;
         _tags.removeWhere((item) => item.toLowerCase() == tag.toLowerCase());
       });
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(strings.tagDeleted)),
+      context.showAppSnackBar(
+        strings.tagDeleted,
+        tone: AppSnackBarTone.success,
       );
     } catch (error) {
       if (!mounted) return;
       setState(() => _isManagingTags = false);
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(strings.deleteTagFailed(error))),
+      context.showAppSnackBar(
+        strings.deleteTagFailed(error),
+        tone: AppSnackBarTone.error,
       );
     }
   }

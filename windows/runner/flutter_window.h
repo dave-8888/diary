@@ -2,7 +2,9 @@
 #define RUNNER_FLUTTER_WINDOW_H_
 
 #include <flutter/dart_project.h>
+#include <flutter/encodable_value.h>
 #include <flutter/flutter_view_controller.h>
+#include <flutter/method_channel.h>
 
 #include <memory>
 
@@ -23,11 +25,24 @@ class FlutterWindow : public Win32Window {
                          LPARAM const lparam) noexcept override;
 
  private:
+  void RegisterWindowIdentityChannel();
+  void ApplyWindowTitle(const std::wstring& title);
+  bool ApplyWindowIcon(const std::wstring& icon_path);
+  void RestoreDefaultWindowIcon();
+  void ClearCustomIcons();
+
   // The project to run.
   flutter::DartProject project_;
 
   // The Flutter instance hosted by this window.
   std::unique_ptr<flutter::FlutterViewController> flutter_controller_;
+
+  std::unique_ptr<flutter::MethodChannel<flutter::EncodableValue>>
+      window_identity_channel_;
+  HICON large_window_icon_ = nullptr;
+  HICON small_window_icon_ = nullptr;
+  ULONG_PTR gdiplus_token_ = 0;
+  bool gdiplus_started_ = false;
 };
 
 #endif  // RUNNER_FLUTTER_WINDOW_H_

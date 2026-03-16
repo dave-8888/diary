@@ -1,4 +1,5 @@
 import 'package:diary_mvp/app/localization/app_strings.dart';
+import 'package:diary_mvp/app/themed_snackbar.dart';
 import 'package:diary_mvp/features/diary/application/diary_controller.dart';
 import 'package:diary_mvp/features/diary/domain/diary_entry.dart';
 import 'package:diary_mvp/features/diary/presentation/widgets/diary_shell.dart';
@@ -160,14 +161,16 @@ class _TrashPageState extends ConsumerState<TrashPage> {
         _isRestoring = false;
         _selectedIds.removeAll(entries.map((entry) => entry.id));
       });
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(strings.restoredEntries(entries.length))),
+      context.showAppSnackBar(
+        strings.restoredEntries(entries.length),
+        tone: AppSnackBarTone.success,
       );
     } catch (error) {
       if (!mounted) return;
       setState(() => _isRestoring = false);
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(strings.restoreFailed(error))),
+      context.showAppSnackBar(
+        strings.restoreFailed(error),
+        tone: AppSnackBarTone.error,
       );
     }
   }
@@ -205,14 +208,16 @@ class _TrashPageState extends ConsumerState<TrashPage> {
         _isClearing = false;
         _selectedIds.clear();
       });
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(strings.trashCleared(entries.length))),
+      context.showAppSnackBar(
+        strings.trashCleared(entries.length),
+        tone: AppSnackBarTone.success,
       );
     } catch (error) {
       if (!mounted) return;
       setState(() => _isClearing = false);
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(strings.clearTrashFailed(error))),
+      context.showAppSnackBar(
+        strings.clearTrashFailed(error),
+        tone: AppSnackBarTone.error,
       );
     }
   }

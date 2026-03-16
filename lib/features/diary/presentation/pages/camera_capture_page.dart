@@ -2,6 +2,7 @@ import 'dart:typed_data';
 
 import 'package:camera/camera.dart';
 import 'package:crop_your_image/crop_your_image.dart';
+import 'package:diary_mvp/app/themed_snackbar.dart';
 import 'package:diary_mvp/app/localization/app_strings.dart';
 import 'package:diary_mvp/core/storage/local_storage_service.dart';
 import 'package:diary_mvp/features/diary/domain/diary_entry.dart';
@@ -378,8 +379,9 @@ class _CameraCapturePageState extends ConsumerState<CameraCapturePage>
             _isCropping = false;
             _isCapturing = false;
           });
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text(strings.photoCropped)),
+          context.showAppSnackBar(
+            strings.photoCropped,
+            tone: AppSnackBarTone.success,
           );
         },
       ),
@@ -634,19 +636,17 @@ class _CameraCapturePageState extends ConsumerState<CameraCapturePage>
       });
     } on CameraException catch (error) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-            error.code == 'CameraAccessDenied'
-                ? strings.cameraPermissionDenied
-                : strings.cameraCaptureFailed(error.description ?? error.code),
-          ),
-        ),
+      context.showAppSnackBar(
+        error.code == 'CameraAccessDenied'
+            ? strings.cameraPermissionDenied
+            : strings.cameraCaptureFailed(error.description ?? error.code),
+        tone: AppSnackBarTone.error,
       );
     } catch (error) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(strings.cameraCaptureFailed(error))),
+      context.showAppSnackBar(
+        strings.cameraCaptureFailed(error),
+        tone: AppSnackBarTone.error,
       );
     } finally {
       if (mounted) {
@@ -673,20 +673,18 @@ class _CameraCapturePageState extends ConsumerState<CameraCapturePage>
       });
     } on CameraException catch (error) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-            error.code == 'CameraAccessDenied'
-                ? strings.cameraPermissionDenied
-                : strings.videoRecordingFailed(error.description ?? error.code),
-          ),
-        ),
+      context.showAppSnackBar(
+        error.code == 'CameraAccessDenied'
+            ? strings.cameraPermissionDenied
+            : strings.videoRecordingFailed(error.description ?? error.code),
+        tone: AppSnackBarTone.error,
       );
       setState(() => _isCapturing = false);
     } catch (error) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(strings.videoRecordingFailed(error))),
+      context.showAppSnackBar(
+        strings.videoRecordingFailed(error),
+        tone: AppSnackBarTone.error,
       );
       setState(() => _isCapturing = false);
     }
@@ -717,8 +715,9 @@ class _CameraCapturePageState extends ConsumerState<CameraCapturePage>
         _isVideoRecording = false;
         _videoRecordingStartedAt = null;
       });
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(strings.videoRecordingSaved)),
+      context.showAppSnackBar(
+        strings.videoRecordingSaved,
+        tone: AppSnackBarTone.success,
       );
     } on CameraException catch (error) {
       if (!mounted) return;
@@ -727,10 +726,9 @@ class _CameraCapturePageState extends ConsumerState<CameraCapturePage>
         _isVideoRecording = false;
         _videoRecordingStartedAt = null;
       });
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-            content: Text(
-                strings.videoRecordingFailed(error.description ?? error.code))),
+      context.showAppSnackBar(
+        strings.videoRecordingFailed(error.description ?? error.code),
+        tone: AppSnackBarTone.error,
       );
     } catch (error) {
       if (!mounted) return;
@@ -739,8 +737,9 @@ class _CameraCapturePageState extends ConsumerState<CameraCapturePage>
         _isVideoRecording = false;
         _videoRecordingStartedAt = null;
       });
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(strings.videoRecordingFailed(error))),
+      context.showAppSnackBar(
+        strings.videoRecordingFailed(error),
+        tone: AppSnackBarTone.error,
       );
     }
   }
@@ -794,8 +793,9 @@ class _CameraCapturePageState extends ConsumerState<CameraCapturePage>
       );
     } catch (error) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(strings.cameraCaptureFailed(error))),
+      context.showAppSnackBar(
+        strings.cameraCaptureFailed(error),
+        tone: AppSnackBarTone.error,
       );
       setState(() => _isCapturing = false);
     }
@@ -821,8 +821,9 @@ class _CameraCapturePageState extends ConsumerState<CameraCapturePage>
       );
     } catch (error) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(strings.videoRecordingFailed(error))),
+      context.showAppSnackBar(
+        strings.videoRecordingFailed(error),
+        tone: AppSnackBarTone.error,
       );
       setState(() => _isCapturing = false);
     }

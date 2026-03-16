@@ -1,5 +1,6 @@
 import 'package:diary_mvp/app/app_display_name.dart';
 import 'package:diary_mvp/app/localization/app_strings.dart';
+import 'package:diary_mvp/app/themed_snackbar.dart';
 import 'package:diary_mvp/features/diary/presentation/widgets/diary_shell.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -131,15 +132,17 @@ class _AppNamePageState extends ConsumerState<AppNamePage> {
           .save(_controller.text);
       if (!mounted) return;
       setState(() => _isSaving = false);
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(strings.appNameUpdated)),
+      context.showAppSnackBar(
+        strings.appNameUpdated,
+        tone: AppSnackBarTone.success,
       );
       context.pop();
     } catch (error) {
       if (!mounted) return;
       setState(() => _isSaving = false);
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(strings.appNameUpdateFailed(error))),
+      context.showAppSnackBar(
+        strings.appNameUpdateFailed(error),
+        tone: AppSnackBarTone.error,
       );
     }
   }
@@ -152,15 +155,17 @@ class _AppNamePageState extends ConsumerState<AppNamePage> {
       await ref.read(appDisplayNameControllerProvider.notifier).reset();
       if (!mounted) return;
       setState(() => _isResetting = false);
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(strings.appNameReset)),
+      context.showAppSnackBar(
+        strings.appNameReset,
+        tone: AppSnackBarTone.success,
       );
       context.pop();
     } catch (error) {
       if (!mounted) return;
       setState(() => _isResetting = false);
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(strings.appNameUpdateFailed(error))),
+      context.showAppSnackBar(
+        strings.appNameUpdateFailed(error),
+        tone: AppSnackBarTone.error,
       );
     }
   }

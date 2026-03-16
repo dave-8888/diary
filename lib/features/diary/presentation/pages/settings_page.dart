@@ -1,12 +1,17 @@
+import 'dart:io';
+
 import 'package:diary_mvp/app/app_display_name.dart';
 import 'package:diary_mvp/app/app_icon.dart';
 import 'package:diary_mvp/app/localization/app_locale.dart';
 import 'package:diary_mvp/app/localization/app_strings.dart';
+import 'package:diary_mvp/app/themed_snackbar.dart';
 import 'package:diary_mvp/app/theme.dart';
+import 'package:diary_mvp/app/window_identity.dart';
 import 'package:diary_mvp/features/diary/application/diary_controller.dart';
 import 'package:diary_mvp/features/diary/domain/diary_entry.dart';
 import 'package:diary_mvp/features/diary/presentation/widgets/diary_shell.dart';
 import 'package:diary_mvp/features/diary/services/transcription_settings.dart';
+import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -28,6 +33,8 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
   bool _isResettingAppName = false;
   bool _isResettingApiKey = false;
   bool _isChangingIcon = false;
+  bool _isChangingWindowIcon = false;
+  bool _isResettingWindowIcon = false;
   bool _isChangingTheme = false;
   bool _isChangingLanguage = false;
   bool _isResettingMoods = false;
@@ -58,6 +65,7 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
     final apiKeyAsync = ref.watch(transcriptionApiKeyControllerProvider);
     final iconPreset =
         resolveAppIconPreset(ref.watch(appIconControllerProvider));
+    final windowIconPath = ref.watch(windowIconControllerProvider).valueOrNull;
     final selectedTheme = resolveThemePreset(
       ref.watch(appThemeControllerProvider),
     );
@@ -65,6 +73,7 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
       ref.watch(appLanguageProvider),
     );
     final moodLibraryAsync = ref.watch(moodLibraryControllerProvider);
+    final supportsWindowIdentity = supportsNativeWindowIdentityCustomization;
 
     if (!_appNameInitialized && customAppNameAsync.hasValue) {
       _appNameController.text =
@@ -154,6 +163,15 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
                       textInputAction: TextInputAction.done,
                       onSubmitted: (_) => _saveAppName(),
                     ),
+                    const SizedBox(height: 10),
+                    Text(
+                      strings.appNameDesktopHint,
+                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                            color:
+                                Theme.of(context).colorScheme.onSurfaceVariant,
+                            height: 1.4,
+                          ),
+                    ),
                     const SizedBox(height: 16),
                     Wrap(
                       spacing: 12,
@@ -229,6 +247,85 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
                           : const Icon(Icons.restart_alt_outlined),
                       label: Text(strings.resetAppIcon),
                     ),
+                    const SizedBox(height: 24),
+                    Divider(
+                      color: Theme.of(context)
+                          .colorScheme
+                          .outlineVariant
+                          .withValues(alpha: 0.72),
+                    ),
+                    const SizedBox(height: 24),
+                    Text(
+                      strings.windowIconTitle,
+                      style: Theme.of(context).textTheme.titleMedium,
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      strings.windowIconHint,
+                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                            color:
+                                Theme.of(context).colorScheme.onSurfaceVariant,
+                            height: 1.4,
+                          ),
+                    ),
+                    const SizedBox(height: 16),
+                    _WindowIconPreviewCard(
+                      iconPath: windowIconPath,
+                      title: strings.currentWindowIcon,
+                      fallbackLabel: strings.defaultWindowIcon,
+                    ),
+                    const SizedBox(height: 16),
+                    Wrap(
+                      spacing: 12,
+                      runSpacing: 12,
+                      children: [
+                        FilledButton.tonalIcon(
+                          onPressed: !supportsWindowIdentity ||
+                                  _isChangingWindowIcon ||
+                                  _isResettingWindowIcon
+                              ? null
+                              : _pickWindowIcon,
+                          icon: _isChangingWindowIcon
+                              ? const SizedBox(
+                                  width: 18,
+                                  height: 18,
+                                  child:
+                                      CircularProgressIndicator(strokeWidth: 2),
+                                )
+                              : const Icon(Icons.image_search_outlined),
+                          label: Text(strings.pickWindowIcon),
+                        ),
+                        OutlinedButton.icon(
+                          onPressed: !supportsWindowIdentity ||
+                                  windowIconPath == null ||
+                                  _isChangingWindowIcon ||
+                                  _isResettingWindowIcon
+                              ? null
+                              : _resetWindowIcon,
+                          icon: _isResettingWindowIcon
+                              ? const SizedBox(
+                                  width: 18,
+                                  height: 18,
+                                  child:
+                                      CircularProgressIndicator(strokeWidth: 2),
+                                )
+                              : const Icon(Icons.restart_alt_outlined),
+                          label: Text(strings.resetWindowIcon),
+                        ),
+                      ],
+                    ),
+                    if (!supportsWindowIdentity) ...[
+                      const SizedBox(height: 12),
+                      Text(
+                        strings.windowIconPlatformHint,
+                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                              color: Theme.of(context)
+                                  .colorScheme
+                                  .onSurfaceVariant,
+                              height: 1.4,
+                            ),
+                      ),
+                    ],
                   ],
                 ),
               ),
@@ -471,14 +568,16 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
           .save(_appNameController.text);
       if (!mounted) return;
       setState(() => _isSavingAppName = false);
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(strings.appNameUpdated)),
+      context.showAppSnackBar(
+        strings.appNameUpdated,
+        tone: AppSnackBarTone.success,
       );
     } catch (error) {
       if (!mounted) return;
       setState(() => _isSavingAppName = false);
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(strings.appNameUpdateFailed(error))),
+      context.showAppSnackBar(
+        strings.appNameUpdateFailed(error),
+        tone: AppSnackBarTone.error,
       );
     }
   }
@@ -490,14 +589,16 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
       await ref.read(appThemeControllerProvider.notifier).setTheme(preset);
       if (!mounted) return;
       setState(() => _isChangingTheme = false);
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(strings.themeUpdated)),
+      context.showAppSnackBar(
+        strings.themeUpdated,
+        tone: AppSnackBarTone.success,
       );
     } catch (error) {
       if (!mounted) return;
       setState(() => _isChangingTheme = false);
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(strings.themeUpdateFailed(error))),
+      context.showAppSnackBar(
+        strings.themeUpdateFailed(error),
+        tone: AppSnackBarTone.error,
       );
     }
   }
@@ -509,14 +610,16 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
       await ref.read(appLanguageProvider.notifier).setLanguage(language);
       if (!mounted) return;
       setState(() => _isChangingLanguage = false);
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(strings.languageUpdated)),
+      context.showAppSnackBar(
+        strings.languageUpdated,
+        tone: AppSnackBarTone.success,
       );
     } catch (error) {
       if (!mounted) return;
       setState(() => _isChangingLanguage = false);
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(strings.languageUpdateFailed(error))),
+      context.showAppSnackBar(
+        strings.languageUpdateFailed(error),
+        tone: AppSnackBarTone.error,
       );
     }
   }
@@ -529,14 +632,16 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
       _appNameController.text = strings.appTitle;
       if (!mounted) return;
       setState(() => _isResettingAppName = false);
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(strings.appNameReset)),
+      context.showAppSnackBar(
+        strings.appNameReset,
+        tone: AppSnackBarTone.success,
       );
     } catch (error) {
       if (!mounted) return;
       setState(() => _isResettingAppName = false);
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(strings.appNameUpdateFailed(error))),
+      context.showAppSnackBar(
+        strings.appNameUpdateFailed(error),
+        tone: AppSnackBarTone.error,
       );
     }
   }
@@ -550,14 +655,16 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
           .save(_apiKeyController.text);
       if (!mounted) return;
       setState(() => _isSavingApiKey = false);
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(strings.apiKeyUpdated)),
+      context.showAppSnackBar(
+        strings.apiKeyUpdated,
+        tone: AppSnackBarTone.success,
       );
     } catch (error) {
       if (!mounted) return;
       setState(() => _isSavingApiKey = false);
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(strings.apiKeyUpdateFailed(error))),
+      context.showAppSnackBar(
+        strings.apiKeyUpdateFailed(error),
+        tone: AppSnackBarTone.error,
       );
     }
   }
@@ -570,14 +677,16 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
       _apiKeyController.clear();
       if (!mounted) return;
       setState(() => _isResettingApiKey = false);
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(strings.apiKeyReset)),
+      context.showAppSnackBar(
+        strings.apiKeyReset,
+        tone: AppSnackBarTone.success,
       );
     } catch (error) {
       if (!mounted) return;
       setState(() => _isResettingApiKey = false);
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(strings.apiKeyUpdateFailed(error))),
+      context.showAppSnackBar(
+        strings.apiKeyUpdateFailed(error),
+        tone: AppSnackBarTone.error,
       );
     }
   }
@@ -589,14 +698,16 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
       await ref.read(appIconControllerProvider.notifier).setIcon(preset);
       if (!mounted) return;
       setState(() => _isChangingIcon = false);
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(strings.appIconUpdated)),
+      context.showAppSnackBar(
+        strings.appIconUpdated,
+        tone: AppSnackBarTone.success,
       );
     } catch (error) {
       if (!mounted) return;
       setState(() => _isChangingIcon = false);
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(strings.appIconUpdateFailed(error))),
+      context.showAppSnackBar(
+        strings.appIconUpdateFailed(error),
+        tone: AppSnackBarTone.error,
       );
     }
   }
@@ -608,14 +719,78 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
       await ref.read(appIconControllerProvider.notifier).reset();
       if (!mounted) return;
       setState(() => _isChangingIcon = false);
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(strings.appIconReset)),
+      context.showAppSnackBar(
+        strings.appIconReset,
+        tone: AppSnackBarTone.success,
       );
     } catch (error) {
       if (!mounted) return;
       setState(() => _isChangingIcon = false);
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(strings.appIconUpdateFailed(error))),
+      context.showAppSnackBar(
+        strings.appIconUpdateFailed(error),
+        tone: AppSnackBarTone.error,
+      );
+    }
+  }
+
+  Future<void> _pickWindowIcon() async {
+    final strings = context.strings;
+    setState(() => _isChangingWindowIcon = true);
+
+    try {
+      final result = await FilePicker.platform.pickFiles(
+        type: FileType.custom,
+        allowedExtensions: const ['png', 'jpg', 'jpeg', 'webp', 'bmp'],
+      );
+
+      if (!mounted) return;
+
+      final selectedPath = result != null && result.files.isNotEmpty
+          ? result.files.first.path
+          : null;
+      if (selectedPath == null || selectedPath.trim().isEmpty) {
+        setState(() => _isChangingWindowIcon = false);
+        return;
+      }
+
+      await ref
+          .read(windowIconControllerProvider.notifier)
+          .saveFromSource(selectedPath);
+
+      if (!mounted) return;
+      setState(() => _isChangingWindowIcon = false);
+      context.showAppSnackBar(
+        strings.windowIconUpdated,
+        tone: AppSnackBarTone.success,
+      );
+    } catch (error) {
+      if (!mounted) return;
+      setState(() => _isChangingWindowIcon = false);
+      context.showAppSnackBar(
+        strings.windowIconUpdateFailed(error),
+        tone: AppSnackBarTone.error,
+      );
+    }
+  }
+
+  Future<void> _resetWindowIcon() async {
+    final strings = context.strings;
+    setState(() => _isResettingWindowIcon = true);
+
+    try {
+      await ref.read(windowIconControllerProvider.notifier).reset();
+      if (!mounted) return;
+      setState(() => _isResettingWindowIcon = false);
+      context.showAppSnackBar(
+        strings.windowIconReset,
+        tone: AppSnackBarTone.success,
+      );
+    } catch (error) {
+      if (!mounted) return;
+      setState(() => _isResettingWindowIcon = false);
+      context.showAppSnackBar(
+        strings.windowIconUpdateFailed(error),
+        tone: AppSnackBarTone.error,
       );
     }
   }
@@ -709,16 +884,15 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
         await ref.read(moodLibraryControllerProvider.notifier).saveMood(result);
       }
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content:
-              Text(existing == null ? strings.moodCreated : strings.moodSaved),
-        ),
+      context.showAppSnackBar(
+        existing == null ? strings.moodCreated : strings.moodSaved,
+        tone: AppSnackBarTone.success,
       );
     } catch (error) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(strings.moodSaveFailed(error))),
+      context.showAppSnackBar(
+        strings.moodSaveFailed(error),
+        tone: AppSnackBarTone.error,
       );
     }
   }
@@ -750,14 +924,16 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
       await ref.read(moodLibraryControllerProvider.notifier).resetToDefaults();
       if (!mounted) return;
       setState(() => _isResettingMoods = false);
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(strings.moodsReset)),
+      context.showAppSnackBar(
+        strings.moodsReset,
+        tone: AppSnackBarTone.success,
       );
     } catch (error) {
       if (!mounted) return;
       setState(() => _isResettingMoods = false);
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(strings.moodResetFailed(error))),
+      context.showAppSnackBar(
+        strings.moodResetFailed(error),
+        tone: AppSnackBarTone.error,
       );
     }
   }
@@ -783,6 +959,122 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
       case DiaryThemePreset.spaceLines:
         return Icons.rocket_launch_outlined;
     }
+  }
+}
+
+class _WindowIconPreviewCard extends StatelessWidget {
+  const _WindowIconPreviewCard({
+    required this.iconPath,
+    required this.title,
+    required this.fallbackLabel,
+  });
+
+  final String? iconPath;
+  final String title;
+  final String fallbackLabel;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final normalizedPath = iconPath?.trim();
+    final hasCustomIcon = normalizedPath != null &&
+        normalizedPath.isNotEmpty &&
+        File(normalizedPath).existsSync();
+
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(
+          color: theme.colorScheme.outlineVariant.withValues(alpha: 0.7),
+        ),
+        color:
+            theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.28),
+      ),
+      child: Row(
+        children: [
+          Container(
+            width: 76,
+            height: 76,
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(20),
+              color: theme.colorScheme.surface,
+              border: Border.all(
+                color: theme.colorScheme.outlineVariant.withValues(alpha: 0.6),
+              ),
+            ),
+            clipBehavior: Clip.antiAlias,
+            child: hasCustomIcon
+                ? Image.file(
+                    File(normalizedPath),
+                    fit: BoxFit.cover,
+                    errorBuilder: (context, error, stackTrace) {
+                      return _WindowIconFallback(theme: theme);
+                    },
+                  )
+                : _WindowIconFallback(theme: theme),
+          ),
+          const SizedBox(width: 14),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  title,
+                  style: theme.textTheme.titleSmall?.copyWith(
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+                const SizedBox(height: 6),
+                Text(
+                  hasCustomIcon ? _fileName(normalizedPath) : fallbackLabel,
+                  style: theme.textTheme.bodyMedium?.copyWith(
+                    color: theme.colorScheme.onSurfaceVariant,
+                    height: 1.35,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  String _fileName(String path) {
+    final segments = path.split(Platform.pathSeparator);
+    return segments.isEmpty ? path : segments.last;
+  }
+}
+
+class _WindowIconFallback extends StatelessWidget {
+  const _WindowIconFallback({
+    required this.theme,
+  });
+
+  final ThemeData theme;
+
+  @override
+  Widget build(BuildContext context) {
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [
+            theme.colorScheme.primary.withValues(alpha: 0.18),
+            theme.colorScheme.secondary.withValues(alpha: 0.1),
+          ],
+        ),
+      ),
+      child: Center(
+        child: Icon(
+          Icons.apps_rounded,
+          size: 30,
+          color: theme.colorScheme.primary,
+        ),
+      ),
+    );
   }
 }
 
