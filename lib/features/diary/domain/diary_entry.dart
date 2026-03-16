@@ -1,14 +1,99 @@
-enum DiaryMood {
-  happy('Happy', '😄'),
-  calm('Calm', '😌'),
-  neutral('Neutral', '🙂'),
-  sad('Sad', '😔'),
-  angry('Angry', '😤');
+class DiaryMood {
+  const DiaryMood({
+    required this.id,
+    required this.emoji,
+    this.label = '',
+    this.isDefault = false,
+    this.sortOrder = 0,
+  });
 
-  const DiaryMood(this.label, this.emoji);
+  const DiaryMood._default({
+    required this.id,
+    required this.emoji,
+    required this.sortOrder,
+  })  : label = '',
+        isDefault = true;
 
-  final String label;
+  static const String happyId = 'happy';
+  static const String calmId = 'calm';
+  static const String neutralId = 'neutral';
+  static const String sadId = 'sad';
+  static const String angryId = 'angry';
+  static const String defaultSelectionId = calmId;
+
+  static const DiaryMood happy = DiaryMood._default(
+    id: happyId,
+    emoji: '😄',
+    sortOrder: 0,
+  );
+  static const DiaryMood calm = DiaryMood._default(
+    id: calmId,
+    emoji: '😌',
+    sortOrder: 1,
+  );
+  static const DiaryMood neutral = DiaryMood._default(
+    id: neutralId,
+    emoji: '🙂',
+    sortOrder: 2,
+  );
+  static const DiaryMood sad = DiaryMood._default(
+    id: sadId,
+    emoji: '😔',
+    sortOrder: 3,
+  );
+  static const DiaryMood angry = DiaryMood._default(
+    id: angryId,
+    emoji: '😤',
+    sortOrder: 4,
+  );
+
+  static const List<DiaryMood> values = [
+    happy,
+    calm,
+    neutral,
+    sad,
+    angry,
+  ];
+
+  final String id;
   final String emoji;
+  final String label;
+  final bool isDefault;
+  final int sortOrder;
+
+  String get name => id;
+  bool get hasCustomLabel => label.trim().isNotEmpty;
+
+  DiaryMood copyWith({
+    String? id,
+    String? emoji,
+    String? label,
+    bool? isDefault,
+    int? sortOrder,
+  }) {
+    return DiaryMood(
+      id: id ?? this.id,
+      emoji: emoji ?? this.emoji,
+      label: label ?? this.label,
+      isDefault: isDefault ?? this.isDefault,
+      sortOrder: sortOrder ?? this.sortOrder,
+    );
+  }
+
+  static DiaryMood fallback([String? rawId]) {
+    return byId(rawId) ?? neutral;
+  }
+
+  static DiaryMood? byId(String? rawId) {
+    for (final mood in values) {
+      if (mood.id == rawId) return mood;
+    }
+    return null;
+  }
+
+  static bool isDefaultId(String rawId) {
+    return values.any((mood) => mood.id == rawId);
+  }
 }
 
 enum MediaType { image, audio, video }

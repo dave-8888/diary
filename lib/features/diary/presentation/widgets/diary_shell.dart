@@ -1,3 +1,4 @@
+import 'package:diary_mvp/app/app_icon.dart';
 import 'package:diary_mvp/app/localization/app_locale.dart';
 import 'package:diary_mvp/app/localization/app_strings.dart';
 import 'package:diary_mvp/app/theme.dart';
@@ -25,6 +26,9 @@ class DiaryShell extends ConsumerWidget {
     final selectedLanguage = ref.watch(appLanguageProvider);
     final selectedTheme = resolveThemePreset(
       ref.watch(appThemeControllerProvider),
+    );
+    final selectedIcon = resolveAppIconPreset(
+      ref.watch(appIconControllerProvider),
     );
     final location = GoRouterState.of(context).uri.toString();
     final selectedIndex = _indexForLocation(location);
@@ -75,7 +79,10 @@ class DiaryShell extends ConsumerWidget {
         if (constraints.maxWidth < 860) {
           return Scaffold(
             appBar: AppBar(
-              title: Text(title),
+              title: _AppBarTitle(
+                title: title,
+                iconPreset: selectedIcon,
+              ),
               centerTitle: false,
               backgroundColor: Colors.transparent,
               actions: appBarActions,
@@ -117,7 +124,10 @@ class DiaryShell extends ConsumerWidget {
 
         return Scaffold(
           appBar: AppBar(
-            title: Text(title),
+            title: _AppBarTitle(
+              title: title,
+              iconPreset: selectedIcon,
+            ),
             centerTitle: false,
             backgroundColor: Colors.transparent,
             actions: appBarActions,
@@ -208,6 +218,35 @@ class DiaryShell extends ConsumerWidget {
       case DiaryThemePreset.spaceLines:
         return Icons.rocket_launch_outlined;
     }
+  }
+}
+
+class _AppBarTitle extends StatelessWidget {
+  const _AppBarTitle({
+    required this.title,
+    required this.iconPreset,
+  });
+
+  final String title;
+  final AppIconPreset iconPreset;
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      children: [
+        AppIconBadge(
+          preset: iconPreset,
+          size: 28,
+        ),
+        const SizedBox(width: 10),
+        Flexible(
+          child: Text(
+            title,
+            overflow: TextOverflow.ellipsis,
+          ),
+        ),
+      ],
+    );
   }
 }
 

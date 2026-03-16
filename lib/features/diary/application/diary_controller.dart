@@ -2,6 +2,7 @@ import 'package:diary_mvp/features/diary/data/diary_repository.dart';
 import 'package:diary_mvp/features/diary/domain/diary_entry.dart';
 import 'package:diary_mvp/core/storage/local_storage_service.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:uuid/uuid.dart';
 
 final diaryControllerProvider =
     AsyncNotifierProvider<DiaryController, List<DiaryEntry>>(
@@ -202,6 +203,74 @@ class TagLibraryController extends AsyncNotifier<List<String>> {
       ref.invalidate(diaryControllerProvider);
       ref.invalidate(trashDiaryControllerProvider);
       state = AsyncData(await _repository.listTagLibrary());
+    } catch (error, stackTrace) {
+      state = AsyncError(error, stackTrace);
+      rethrow;
+    }
+  }
+}
+
+final moodLibraryControllerProvider =
+    AsyncNotifierProvider<MoodLibraryController, List<DiaryMood>>(
+        MoodLibraryController.new);
+
+class MoodLibraryController extends AsyncNotifier<List<DiaryMood>> {
+  final Uuid _uuid = const Uuid();
+
+  DiaryRepository get _repository => ref.read(diaryRepositoryProvider);
+
+  @override
+  Future<List<DiaryMood>> build() async {
+    return _repository.listMoodLibrary();
+  }
+
+  Future<void> refresh() async {
+    state = const AsyncLoading();
+    state = await AsyncValue.guard(_repository.listMoodLibrary);
+  }
+
+  Future<void> createMood({
+    required String label,
+    required String emoji,
+  }) async {
+    final current = state.valueOrNull ?? await _repository.listMoodLibrary();
+    final nextSortOrder = current.isEmpty
+        ? 0
+        : current
+                .map((mood) => mood.sortOrder)
+                .reduce((value, element) => value > element ? value : element) +
+            1;
+
+    await saveMood(
+      DiaryMood(
+        id: 'custom_${_uuid.v4()}',
+        label: label.trim(),
+        emoji: emoji.trim(),
+        sortOrder: nextSortOrder,
+      ),
+    );
+  }
+
+  Future<void> saveMood(DiaryMood mood) async {
+    state = const AsyncLoading();
+    try {
+      await _repository.saveMood(mood);
+      ref.invalidate(diaryControllerProvider);
+      ref.invalidate(trashDiaryControllerProvider);
+      state = AsyncData(await _repository.listMoodLibrary());
+    } catch (error, stackTrace) {
+      state = AsyncError(error, stackTrace);
+      rethrow;
+    }
+  }
+
+  Future<void> resetToDefaults() async {
+    state = const AsyncLoading();
+    try {
+      await _repository.resetMoodLibraryToDefaults();
+      ref.invalidate(diaryControllerProvider);
+      ref.invalidate(trashDiaryControllerProvider);
+      state = AsyncData(await _repository.listMoodLibrary());
     } catch (error, stackTrace) {
       state = AsyncError(error, stackTrace);
       rethrow;

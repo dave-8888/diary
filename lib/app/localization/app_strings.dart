@@ -1,3 +1,4 @@
+import 'package:diary_mvp/app/app_icon.dart';
 import 'package:diary_mvp/app/theme.dart';
 import 'package:diary_mvp/app/localization/app_locale.dart';
 import 'package:diary_mvp/features/diary/domain/diary_entry.dart';
@@ -49,6 +50,9 @@ class AppStrings {
   String appNameUpdateFailed(Object error) => isChinese
       ? '\u4fdd\u5b58\u5e94\u7528\u540d\u5931\u8d25\uff1a$error'
       : 'Failed to save app name: $error';
+  String get settingsTitle => isChinese ? '\u8bbe\u7f6e' : 'Settings';
+  String get settingsTooltip =>
+      isChinese ? '\u6253\u5f00\u8bbe\u7f6e' : 'Open settings';
   String get language => isChinese ? '\u8bed\u8a00' : 'Language';
   String get saveAction => isChinese ? '\u4fdd\u5b58' : 'Save';
   String get systemLanguage =>
@@ -88,6 +92,21 @@ class AppStrings {
     }
   }
 
+  String titleForAppIcon(AppIconPreset preset) {
+    switch (preset) {
+      case AppIconPreset.orbital:
+        return isChinese ? '\u8f68\u9053\u65e5\u5fd7' : 'Orbital Log';
+      case AppIconPreset.sunrise:
+        return isChinese ? '\u6668\u5149\u8bb0\u4e8b' : 'Sunrise Note';
+      case AppIconPreset.neonPulse:
+        return isChinese ? '\u9727\u8679\u8109\u51b2' : 'Neon Pulse';
+      case AppIconPreset.terminalCore:
+        return isChinese ? '\u7ec8\u7aef\u6838\u5fc3' : 'Terminal Core';
+      case AppIconPreset.navigator:
+        return isChinese ? '\u661f\u822a\u6307\u9488' : 'Star Navigator';
+    }
+  }
+
   String heroLabelForTheme(DiaryThemePreset themePreset) {
     switch (themePreset) {
       case DiaryThemePreset.daylight:
@@ -107,6 +126,103 @@ class AppStrings {
   String get writeNav => isChinese ? '\u5199\u65e5\u8bb0' : 'Write';
   String get timelineNav => isChinese ? '\u65f6\u95f4\u8f74' : 'Timeline';
   String get trashNav => isChinese ? '\u5783\u573e\u6876' : 'Trash';
+  String get appIdentityTitle =>
+      isChinese ? '\u5e94\u7528\u6807\u8bc6' : 'App identity';
+  String get appIdentityHint => isChinese
+      ? '\u81ea\u5b9a\u4e49\u5e94\u7528\u540d\u548c\u5e94\u7528\u5185\u56fe\u6807\u3002'
+      : 'Customize the app name and in-app icon.';
+  String get appIconTitle =>
+      isChinese ? '\u5e94\u7528\u56fe\u6807' : 'App icon';
+  String get appIconHint => isChinese
+      ? '\u9009\u62e9\u4e00\u4e2a\u65b0\u7684\u5e94\u7528\u5185\u56fe\u6807\uff0c\u4e5f\u53ef\u4ee5\u6062\u590d\u9ed8\u8ba4\u3002'
+      : 'Choose a new in-app icon or restore the default.';
+  String get resetAppIcon =>
+      isChinese ? '\u6062\u590d\u9ed8\u8ba4\u56fe\u6807' : 'Reset icon';
+  String get appIconUpdated => isChinese
+      ? '\u5e94\u7528\u56fe\u6807\u5df2\u66f4\u65b0\u3002'
+      : 'App icon updated.';
+  String get appIconReset => isChinese
+      ? '\u5df2\u6062\u590d\u9ed8\u8ba4\u56fe\u6807\u3002'
+      : 'App icon reset to default.';
+  String appIconUpdateFailed(Object error) => isChinese
+      ? '\u4fdd\u5b58\u5e94\u7528\u56fe\u6807\u5931\u8d25\uff1a$error'
+      : 'Failed to save app icon: $error';
+  String get transcriptionSettingsTitle =>
+      isChinese ? 'AI \u8f6c\u5199' : 'AI transcription';
+  String get transcriptionSettingsHint => isChinese
+      ? '\u5728\u8fd9\u91cc\u914d\u7f6e OpenAI API Key\uff0c\u5f55\u97f3\u8f6c\u6587\u5b57\u4f1a\u4f18\u5148\u4f7f\u7528\u672c\u5730\u4fdd\u5b58\u7684 Key\u3002'
+      : 'Configure your OpenAI API key here. Audio transcription will use the saved key first.';
+  String get openAiApiKeyLabel =>
+      isChinese ? 'OpenAI API Key' : 'OpenAI API Key';
+  String get openAiApiKeyHint => isChinese
+      ? '\u8f93\u5165 sk-... \u5f62\u5f0f\u7684 Key'
+      : 'Enter a key like sk-...';
+  String get resetApiKey =>
+      isChinese ? '\u79fb\u9664\u672c\u5730 Key' : 'Remove local key';
+  String get apiKeyUpdated =>
+      isChinese ? 'API Key \u5df2\u66f4\u65b0\u3002' : 'API key updated.';
+  String get apiKeyReset => isChinese
+      ? '\u5df2\u79fb\u9664\u672c\u5730 API Key\u3002'
+      : 'Local API key removed.';
+  String apiKeyUpdateFailed(Object error) => isChinese
+      ? '\u4fdd\u5b58 API Key \u5931\u8d25\uff1a$error'
+      : 'Failed to save API key: $error';
+  String get apiKeyEnvironmentHint => isChinese
+      ? '\u5f53\u524d\u6ca1\u6709\u672c\u5730 Key\uff0c\u82e5\u542f\u52a8\u65f6\u8bbe\u7f6e\u4e86 OPENAI_API_KEY\uff0c\u4e5f\u4f1a\u81ea\u52a8\u4f7f\u7528\u3002'
+      : 'If no local key is saved, the app will still use OPENAI_API_KEY when provided at launch.';
+  String get usingEnvironmentApiKey => isChinese
+      ? '\u5f53\u524d\u6b63\u5728\u4f7f\u7528\u542f\u52a8\u53c2\u6570\u4e2d\u7684 API Key\u3002'
+      : 'Currently using the API key provided at launch.';
+  String get moodLibraryTitle =>
+      isChinese ? '\u60c5\u7eea\u5e93' : 'Mood library';
+  String get moodLibraryHint => isChinese
+      ? '\u81ea\u7531\u65b0\u589e\u548c\u7f16\u8f91\u60c5\u7eea\uff0c\u4e5f\u53ef\u4e00\u952e\u6062\u590d\u9ed8\u8ba4\u60c5\u7eea\u3002'
+      : 'Add and edit moods freely, or restore the default set with one click.';
+  String get addMood => isChinese ? '\u6dfb\u52a0\u60c5\u7eea' : 'Add mood';
+  String get editMood => isChinese ? '\u7f16\u8f91\u60c5\u7eea' : 'Edit mood';
+  String get moodNameLabel =>
+      isChinese ? '\u60c5\u7eea\u540d\u79f0' : 'Mood name';
+  String get moodNameHint => isChinese
+      ? '\u4f8b\u5982\uff1a\u5145\u6ee1\u5e0c\u671b'
+      : 'For example: Hopeful';
+  String get moodEmojiLabel => isChinese ? 'Emoji' : 'Emoji';
+  String get moodEmojiHint =>
+      isChinese ? '\u4f8b\u5982\uff1a✨ / 😌' : 'For example: ✨ / 😌';
+  String get restoreDefaultMoods => isChinese
+      ? '\u6062\u590d\u9ed8\u8ba4\u60c5\u7eea'
+      : 'Restore default moods';
+  String get restoreDefaultMoodsTitle => isChinese
+      ? '\u6062\u590d\u9ed8\u8ba4\u60c5\u7eea\uff1f'
+      : 'Restore default moods?';
+  String get restoreDefaultMoodsMessage => isChinese
+      ? '\u8fd9\u4f1a\u79fb\u9664\u6240\u6709\u81ea\u5b9a\u4e49\u60c5\u7eea\uff0c\u5e76\u5c06\u7f3a\u5931\u7684\u60c5\u7eea\u6062\u590d\u6210\u9ed8\u8ba4\u914d\u7f6e\u3002'
+      : 'This removes all custom moods and restores the default mood set.';
+  String get moodSaved =>
+      isChinese ? '\u60c5\u7eea\u5df2\u66f4\u65b0\u3002' : 'Mood updated.';
+  String get moodCreated =>
+      isChinese ? '\u5df2\u6dfb\u52a0\u65b0\u60c5\u7eea\u3002' : 'Mood added.';
+  String moodSaveFailed(Object error) => isChinese
+      ? '\u4fdd\u5b58\u60c5\u7eea\u5931\u8d25\uff1a$error'
+      : 'Failed to save mood: $error';
+  String failedToLoadMoods(Object error) => isChinese
+      ? '\u52a0\u8f7d\u60c5\u7eea\u5931\u8d25\uff1a$error'
+      : 'Failed to load moods: $error';
+  String get moodsReset => isChinese
+      ? '\u5df2\u6062\u590d\u9ed8\u8ba4\u60c5\u7eea\u3002'
+      : 'Default moods restored.';
+  String moodResetFailed(Object error) => isChinese
+      ? '\u6062\u590d\u60c5\u7eea\u5931\u8d25\uff1a$error'
+      : 'Failed to restore moods: $error';
+  String get moodLibraryEmpty => isChinese
+      ? '\u6682\u65f6\u8fd8\u6ca1\u6709\u53ef\u7528\u60c5\u7eea\u3002'
+      : 'No moods available yet.';
+  String get defaultMoodBadge =>
+      isChinese ? '\u9ed8\u8ba4\u60c5\u7eea' : 'Default mood';
+  String get customMoodBadge =>
+      isChinese ? '\u81ea\u5b9a\u4e49\u60c5\u7eea' : 'Custom mood';
+  String get openMigrationPage => isChinese
+      ? '\u6253\u5f00\u6570\u636e\u8fc1\u79fb'
+      : 'Open migration tools';
 
   String get newEntry => isChinese ? '\u65b0\u5efa\u65e5\u8bb0' : 'New Entry';
   String get editEntry => isChinese ? '\u7f16\u8f91\u65e5\u8bb0' : 'Edit entry';
@@ -504,8 +620,8 @@ class AppStrings {
       ? '\u79fb\u5165\u5783\u573e\u6876\u5931\u8d25\uff1a$error'
       : 'Move to trash failed: $error';
   String get apiKeyMissing => isChinese
-      ? '\u672a\u8bbe\u7f6e OPENAI_API_KEY\uff0c\u5df2\u8df3\u8fc7\u8f6c\u5199\u3002'
-      : 'OPENAI_API_KEY not set. Skipping transcription.';
+      ? '\u8fd8\u6ca1\u6709\u914d\u7f6e OpenAI API Key\uff0c\u5df2\u8df3\u8fc7\u8f6c\u5199\u3002'
+      : 'No OpenAI API key configured. Skipping transcription.';
   String get audioFileMissing => isChinese
       ? '\u672a\u627e\u5230\u5f55\u97f3\u6587\u4ef6\u3002'
       : 'Audio file was not found.';
@@ -516,19 +632,29 @@ class AppStrings {
       ? '\u672a\u8fd4\u56de\u8f6c\u5199\u6587\u672c\u3002'
       : 'No transcription text returned from API.';
 
-  String moodLabel(DiaryMood moodValue) {
-    switch (moodValue) {
-      case DiaryMood.happy:
+  String defaultMoodLabel(String moodId) {
+    switch (moodId) {
+      case DiaryMood.happyId:
         return isChinese ? '\u5f00\u5fc3' : 'Happy';
-      case DiaryMood.calm:
+      case DiaryMood.calmId:
         return isChinese ? '\u5e73\u9759' : 'Calm';
-      case DiaryMood.neutral:
+      case DiaryMood.neutralId:
         return isChinese ? '\u4e00\u822c' : 'Neutral';
-      case DiaryMood.sad:
+      case DiaryMood.sadId:
         return isChinese ? '\u96be\u8fc7' : 'Sad';
-      case DiaryMood.angry:
+      case DiaryMood.angryId:
         return isChinese ? '\u751f\u6c14' : 'Angry';
+      default:
+        return moodId;
     }
+  }
+
+  String moodLabel(DiaryMood moodValue) {
+    final customLabel = moodValue.label.trim();
+    if (customLabel.isNotEmpty) {
+      return customLabel;
+    }
+    return defaultMoodLabel(moodValue.id);
   }
 
   String mediaLabel(

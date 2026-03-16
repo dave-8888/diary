@@ -1,11 +1,12 @@
 import 'dart:convert';
 import 'dart:io';
 
+import 'package:diary_mvp/features/diary/services/transcription_settings.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:http/http.dart' as http;
 
 final transcriptionServiceProvider = Provider<TranscriptionService>((ref) {
-  return TranscriptionService();
+  return TranscriptionService(ref);
 });
 
 enum TranscriptionFailure {
@@ -30,12 +31,20 @@ class TranscriptionResult {
 }
 
 class TranscriptionService {
+  TranscriptionService(this._ref);
+
   static const String _apiUrl =
       'https://api.openai.com/v1/audio/transcriptions';
-  static const String _apiKey = String.fromEnvironment('OPENAI_API_KEY');
+  final Ref _ref;
 
   Future<TranscriptionResult> transcribe(String audioPath) async {
-    if (_apiKey.isEmpty) {
+    final configuredApiKey =
+        _ref.read(transcriptionApiKeyControllerProvider).valueOrNull;
+    final apiKey = (configuredApiKey?.trim().isNotEmpty == true)
+        ? configuredApiKey!.trim()
+        : transcriptionEnvironmentApiKey;
+
+    if (apiKey.isEmpty) {
       return const TranscriptionResult(
         ok: false,
         failure: TranscriptionFailure.apiKeyMissing,
@@ -51,7 +60,7 @@ class TranscriptionService {
     }
 
     final request = http.MultipartRequest('POST', Uri.parse(_apiUrl))
-      ..headers['Authorization'] = 'Bearer $_apiKey'
+      ..headers['Authorization'] = 'Bearer $apiKey'
       ..fields['model'] = 'whisper-1'
       ..fields['response_format'] = 'json'
       ..files.add(await http.MultipartFile.fromPath('file', audioPath));

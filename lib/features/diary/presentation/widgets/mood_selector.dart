@@ -5,11 +5,13 @@ import 'package:flutter/material.dart';
 class MoodSelector extends StatelessWidget {
   const MoodSelector({
     super.key,
-    required this.value,
+    required this.moods,
+    required this.valueId,
     required this.onChanged,
   });
 
-  final DiaryMood value;
+  final List<DiaryMood> moods;
+  final String valueId;
   final ValueChanged<DiaryMood> onChanged;
 
   @override
@@ -20,8 +22,8 @@ class MoodSelector extends StatelessWidget {
     return Wrap(
       spacing: 12,
       runSpacing: 12,
-      children: DiaryMood.values.map((mood) {
-        final selected = mood == value;
+      children: moods.map((mood) {
+        final selected = mood.id == valueId;
         return ChoiceChip(
           selected: selected,
           onSelected: (_) => onChanged(mood),
@@ -45,7 +47,7 @@ class MoodSelector extends StatelessWidget {
           padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 10),
           selectedColor: theme.colorScheme.secondaryContainer,
         );
-      }).toList(),
+      }).toList(growable: false),
     );
   }
 }

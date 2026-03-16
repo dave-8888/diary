@@ -37,14 +37,9 @@ class HomePage extends ConsumerWidget {
       title: appTitle,
       actions: [
         IconButton(
-          onPressed: () => context.push('/app-name'),
-          tooltip: strings.renameAppTooltip,
-          icon: const Icon(Icons.drive_file_rename_outline),
-        ),
-        IconButton(
-          onPressed: () => context.push('/migration'),
-          tooltip: strings.migrationTitle,
-          icon: const Icon(Icons.import_export_outlined),
+          onPressed: () => context.push('/settings'),
+          tooltip: strings.settingsTooltip,
+          icon: const Icon(Icons.settings_outlined),
         ),
       ],
       floatingActionButton: FloatingActionButton.extended(

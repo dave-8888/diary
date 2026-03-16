@@ -12,6 +12,7 @@ abstract class DiaryRepository {
   Future<List<DiaryEntry>> listEntries();
   Future<List<DiaryEntry>> listTrashedEntries();
   Future<List<String>> listTagLibrary();
+  Future<List<DiaryMood>> listMoodLibrary();
   Future<DiaryEntry> createEntry({
     required String title,
     required String content,
@@ -33,6 +34,8 @@ abstract class DiaryRepository {
   Future<void> deleteEntry(String id);
   Future<void> saveTag(String tag);
   Future<void> deleteTag(String tag);
+  Future<void> saveMood(DiaryMood mood);
+  Future<void> resetMoodLibraryToDefaults();
 }
 
 class DriftDiaryRepository implements DiaryRepository {
@@ -54,6 +57,11 @@ class DriftDiaryRepository implements DiaryRepository {
   @override
   Future<List<String>> listTagLibrary() {
     return _database.listTagLibrary();
+  }
+
+  @override
+  Future<List<DiaryMood>> listMoodLibrary() {
+    return _database.listMoodLibrary();
   }
 
   @override
@@ -123,6 +131,16 @@ class DriftDiaryRepository implements DiaryRepository {
   @override
   Future<void> deleteTag(String tag) {
     return _database.deleteTagFromLibrary(tag);
+  }
+
+  @override
+  Future<void> saveMood(DiaryMood mood) {
+    return _database.saveMood(mood);
+  }
+
+  @override
+  Future<void> resetMoodLibraryToDefaults() {
+    return _database.resetMoodLibraryToDefaults();
   }
 
   List<String> _normalizeTags(List<String> tags) {

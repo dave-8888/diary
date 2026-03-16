@@ -20,7 +20,7 @@ class DiaryDatabase extends GeneratedDatabase {
   bool _initialized = false;
 
   @override
-  int get schemaVersion => 3;
+  int get schemaVersion => 4;
 
   @override
   Iterable<TableInfo<Table, Object?>> get allTables => const [];
@@ -76,6 +76,16 @@ class DiaryDatabase extends GeneratedDatabase {
       );
     ''');
     await customStatement('''
+      CREATE TABLE IF NOT EXISTS mood_library (
+        id TEXT PRIMARY KEY,
+        label TEXT NOT NULL,
+        emoji TEXT NOT NULL,
+        sort_order INTEGER NOT NULL,
+        is_default INTEGER NOT NULL,
+        updated_at INTEGER NOT NULL
+      );
+    ''');
+    await customStatement('''
       CREATE INDEX IF NOT EXISTS idx_diary_entries_created_at
       ON diary_entries (created_at DESC);
     ''');
@@ -90,6 +100,7 @@ class DiaryDatabase extends GeneratedDatabase {
       ON diary_media (diary_id);
     ''');
     await _ensureTagLibrarySeeded();
+    await _ensureMoodLibrarySeeded();
     _initialized = true;
   }
 
@@ -105,6 +116,9 @@ class DiaryDatabase extends GeneratedDatabase {
     required bool trashed,
   }) async {
     await _ensureInitialized();
+    final moodLibrary = {
+      for (final mood in await listMoodLibrary()) mood.id: mood,
+    };
     final rows = await customSelect(
       '''
       SELECT
@@ -140,7 +154,7 @@ class DiaryDatabase extends GeneratedDatabase {
           id: id,
           title: row.read<String>('title'),
           content: row.read<String>('content'),
-          mood: _moodFromDb(row.read<String>('mood')),
+          mood: _moodFromDb(row.read<String>('mood'), moodLibrary),
           createdAt:
               DateTime.fromMillisecondsSinceEpoch(row.read<int>('created_at')),
           location: row.readNullable<String>('location'),
@@ -166,7 +180,7 @@ class DiaryDatabase extends GeneratedDatabase {
           entry.id,
           entry.title,
           entry.content,
-          entry.mood.name,
+          entry.mood.id,
           entry.createdAt.millisecondsSinceEpoch,
           entry.location,
           entry.trashedAt?.millisecondsSinceEpoch,
@@ -204,7 +218,7 @@ class DiaryDatabase extends GeneratedDatabase {
         [
           entry.title,
           entry.content,
-          entry.mood.name,
+          entry.mood.id,
           entry.createdAt.millisecondsSinceEpoch,
           entry.location,
           entry.trashedAt?.millisecondsSinceEpoch,
@@ -250,6 +264,86 @@ class DiaryDatabase extends GeneratedDatabase {
     ).get();
 
     return rows.map((row) => row.read<String>('name')).toList(growable: false);
+  }
+
+  Future<List<DiaryMood>> listMoodLibrary() async {
+    await _ensureInitialized();
+    final rows = await customSelect(
+      '''
+      SELECT id, label, emoji, sort_order, is_default
+      FROM mood_library
+      ORDER BY sort_order ASC, updated_at ASC, id COLLATE NOCASE ASC;
+      ''',
+    ).get();
+
+    return rows.map(_mapMoodRow).toList(growable: false);
+  }
+
+  Future<void> saveMood(DiaryMood mood) async {
+    await _ensureInitialized();
+    final normalized = _normalizeMood(mood);
+    final updatedAt = DateTime.now().millisecondsSinceEpoch;
+
+    await customStatement(
+      '''
+      INSERT INTO mood_library (id, label, emoji, sort_order, is_default, updated_at)
+      VALUES (?, ?, ?, ?, ?, ?)
+      ON CONFLICT(id) DO UPDATE SET
+        label = excluded.label,
+        emoji = excluded.emoji,
+        sort_order = excluded.sort_order,
+        is_default = excluded.is_default,
+        updated_at = excluded.updated_at;
+      ''',
+      [
+        normalized.id,
+        normalized.label,
+        normalized.emoji,
+        normalized.sortOrder,
+        normalized.isDefault ? 1 : 0,
+        updatedAt,
+      ],
+    );
+  }
+
+  Future<void> replaceMoodLibrary(Iterable<DiaryMood> moods) async {
+    await _ensureInitialized();
+    final normalized = moods.isEmpty
+        ? DiaryMood.values
+        : moods.map(_normalizeMood).toList(growable: false);
+    final allowedIds = normalized.map((mood) => "'${mood.id}'").join(', ');
+    final updatedAt = DateTime.now().millisecondsSinceEpoch;
+
+    await transaction(() async {
+      await customStatement('DELETE FROM mood_library;');
+      for (final mood in normalized) {
+        await customStatement(
+          '''
+          INSERT INTO mood_library (id, label, emoji, sort_order, is_default, updated_at)
+          VALUES (?, ?, ?, ?, ?, ?);
+          ''',
+          [
+            mood.id,
+            mood.label,
+            mood.emoji,
+            mood.sortOrder,
+            mood.isDefault ? 1 : 0,
+            updatedAt,
+          ],
+        );
+      }
+      await customStatement(
+        '''
+        UPDATE diary_entries
+        SET mood = '${DiaryMood.neutralId}'
+        WHERE mood NOT IN ($allowedIds);
+        ''',
+      );
+    });
+  }
+
+  Future<void> resetMoodLibraryToDefaults() async {
+    await replaceMoodLibrary(DiaryMood.values);
   }
 
   Future<void> upsertTagLibrary(Iterable<String> tags) async {
@@ -391,6 +485,46 @@ class DiaryDatabase extends GeneratedDatabase {
     }
   }
 
+  Future<void> _ensureMoodLibrarySeeded() async {
+    final countRow = await customSelect(
+      '''
+      SELECT COUNT(*) AS count
+      FROM mood_library;
+      ''',
+    ).getSingle();
+    if (countRow.read<int>('count') > 0) {
+      return;
+    }
+
+    final updatedAt = DateTime.now().millisecondsSinceEpoch;
+    for (final mood in DiaryMood.values) {
+      await customStatement(
+        '''
+        INSERT OR IGNORE INTO mood_library (id, label, emoji, sort_order, is_default, updated_at)
+        VALUES (?, ?, ?, ?, ?, ?);
+        ''',
+        [
+          mood.id,
+          mood.label,
+          mood.emoji,
+          mood.sortOrder,
+          1,
+          updatedAt,
+        ],
+      );
+    }
+  }
+
+  DiaryMood _mapMoodRow(QueryRow row) {
+    return DiaryMood(
+      id: row.read<String>('id'),
+      label: row.read<String>('label'),
+      emoji: row.read<String>('emoji'),
+      sortOrder: row.read<int>('sort_order'),
+      isDefault: row.read<int>('is_default') == 1,
+    );
+  }
+
   DiaryMedia _mapMediaRow(QueryRow row) {
     return DiaryMedia(
       id: row.read<String>('id'),
@@ -410,11 +544,11 @@ class DiaryDatabase extends GeneratedDatabase {
     }
   }
 
-  DiaryMood _moodFromDb(String raw) {
-    return DiaryMood.values.firstWhere(
-      (mood) => mood.name == raw,
-      orElse: () => DiaryMood.neutral,
-    );
+  DiaryMood _moodFromDb(String raw, Map<String, DiaryMood> moodLibrary) {
+    return moodLibrary[raw] ??
+        DiaryMood.byId(raw) ??
+        moodLibrary[DiaryMood.neutralId] ??
+        DiaryMood.neutral;
   }
 
   MediaType _mediaTypeFromDb(String raw) {
@@ -450,5 +584,15 @@ class DiaryDatabase extends GeneratedDatabase {
     final trimmed = rawTag.trim();
     if (trimmed.isEmpty) return null;
     return trimmed.startsWith('#') ? trimmed : '#$trimmed';
+  }
+
+  DiaryMood _normalizeMood(DiaryMood mood) {
+    final normalizedLabel = mood.label.trim();
+    final normalizedEmoji = mood.emoji.trim();
+    return mood.copyWith(
+      label: normalizedLabel,
+      emoji:
+          normalizedEmoji.isEmpty ? DiaryMood.neutral.emoji : normalizedEmoji,
+    );
   }
 }

@@ -47,6 +47,7 @@ class DiaryMigrationService {
     required List<DiaryEntry> activeEntries,
     required List<DiaryEntry> trashedEntries,
     required List<String> tagLibrary,
+    required List<DiaryMood> moodLibrary,
   }) async {
     final rootDirectory = Directory(destinationRootPath);
     await rootDirectory.create(recursive: true);
@@ -106,7 +107,7 @@ class DiaryMigrationService {
         'id': entry.id,
         'title': entry.title,
         'content': entry.content,
-        'mood': entry.mood.name,
+        'mood': entry.mood.id,
         'created_at': entry.createdAt.millisecondsSinceEpoch,
         'location': entry.location,
         'trashed_at': entry.trashedAt?.millisecondsSinceEpoch,
@@ -122,6 +123,17 @@ class DiaryMigrationService {
       'entry_count': manifestEntries.length,
       'media_count': mediaCount,
       'tag_library': tagLibrary,
+      'mood_library': moodLibrary
+          .map(
+            (mood) => {
+              'id': mood.id,
+              'label': mood.label,
+              'emoji': mood.emoji,
+              'sort_order': mood.sortOrder,
+              'is_default': mood.isDefault,
+            },
+          )
+          .toList(growable: false),
       'entries': manifestEntries,
     };
 
@@ -173,10 +185,12 @@ class DiaryMigrationService {
       );
 
       importedDatabase = DiaryDatabase();
+      await importedDatabase.replaceMoodLibrary(manifest.moodLibrary);
       var mediaCount = 0;
       for (final entry in manifest.entries) {
         mediaCount += entry.media.length;
-        await importedDatabase.insertEntry(entry.toDiaryEntry());
+        await importedDatabase
+            .insertEntry(entry.toDiaryEntry(manifest.moodMap));
       }
       await importedDatabase.upsertTagLibrary(manifest.tagLibrary);
       await importedDatabase.close();
@@ -264,9 +278,18 @@ class DiaryMigrationService {
     final tagLibrary = tagsRaw is List
         ? tagsRaw.whereType<String>().toList(growable: false)
         : const <String>[];
+    final moodLibraryRaw = raw['mood_library'];
+    final moodLibrary = moodLibraryRaw is List
+        ? moodLibraryRaw
+            .map(
+                (item) => _MigrationMood.fromJson(item as Map<String, dynamic>))
+            .map((item) => item.toDiaryMood())
+            .toList(growable: false)
+        : DiaryMood.values;
 
     return _MigrationManifest(
       tagLibrary: tagLibrary,
+      moodLibrary: moodLibrary,
       entries: entriesRaw
           .map((entry) =>
               _MigrationEntry.fromJson(entry as Map<String, dynamic>))
@@ -360,11 +383,17 @@ class DiaryMigrationService {
 class _MigrationManifest {
   const _MigrationManifest({
     required this.tagLibrary,
+    required this.moodLibrary,
     required this.entries,
   });
 
   final List<String> tagLibrary;
+  final List<DiaryMood> moodLibrary;
   final List<_MigrationEntry> entries;
+
+  Map<String, DiaryMood> get moodMap => {
+        for (final mood in moodLibrary) mood.id: mood,
+      };
 }
 
 class _MigrationEntry {
@@ -372,7 +401,7 @@ class _MigrationEntry {
     required this.id,
     required this.title,
     required this.content,
-    required this.mood,
+    required this.moodId,
     required this.createdAt,
     required this.location,
     required this.trashedAt,
@@ -386,7 +415,7 @@ class _MigrationEntry {
       id: json['id'] as String,
       title: json['title'] as String? ?? '',
       content: json['content'] as String? ?? '',
-      mood: _parseMood(json['mood'] as String?),
+      moodId: json['mood'] as String? ?? DiaryMood.neutralId,
       createdAt: DateTime.fromMillisecondsSinceEpoch(json['created_at'] as int),
       location: json['location'] as String?,
       trashedAt: json['trashed_at'] == null
@@ -404,19 +433,19 @@ class _MigrationEntry {
   final String id;
   final String title;
   final String content;
-  final DiaryMood mood;
+  final String moodId;
   final DateTime createdAt;
   final String? location;
   final DateTime? trashedAt;
   final List<String> tags;
   final List<_MigrationMedia> media;
 
-  DiaryEntry toDiaryEntry() {
+  DiaryEntry toDiaryEntry(Map<String, DiaryMood> moodLibrary) {
     return DiaryEntry(
       id: id,
       title: title,
       content: content,
-      mood: mood,
+      mood: moodLibrary[moodId] ?? DiaryMood.byId(moodId) ?? DiaryMood.neutral,
       createdAt: createdAt,
       location: location,
       trashedAt: trashedAt,
@@ -433,11 +462,40 @@ class _MigrationEntry {
           .toList(growable: false),
     );
   }
+}
 
-  static DiaryMood _parseMood(String? raw) {
-    return DiaryMood.values.firstWhere(
-      (mood) => mood.name == raw,
-      orElse: () => DiaryMood.neutral,
+class _MigrationMood {
+  const _MigrationMood({
+    required this.id,
+    required this.label,
+    required this.emoji,
+    required this.sortOrder,
+    required this.isDefault,
+  });
+
+  factory _MigrationMood.fromJson(Map<String, dynamic> json) {
+    return _MigrationMood(
+      id: json['id'] as String? ?? DiaryMood.neutralId,
+      label: json['label'] as String? ?? '',
+      emoji: json['emoji'] as String? ?? DiaryMood.neutral.emoji,
+      sortOrder: json['sort_order'] as int? ?? 0,
+      isDefault: json['is_default'] as bool? ?? false,
+    );
+  }
+
+  final String id;
+  final String label;
+  final String emoji;
+  final int sortOrder;
+  final bool isDefault;
+
+  DiaryMood toDiaryMood() {
+    return DiaryMood(
+      id: id,
+      label: label,
+      emoji: emoji,
+      sortOrder: sortOrder,
+      isDefault: isDefault,
     );
   }
 }

@@ -41,7 +41,7 @@ class _EditorPageState extends ConsumerState<EditorPage> {
   final _uuid = const Uuid();
   final AudioRecorder _audioRecorder = AudioRecorder();
 
-  DiaryMood _mood = DiaryMood.calm;
+  String _moodId = DiaryMood.defaultSelectionId;
   final List<DiaryMedia> _media = [];
   final List<String> _tags = [];
 
@@ -65,7 +65,7 @@ class _EditorPageState extends ConsumerState<EditorPage> {
     _titleController.text = entry.title;
     _contentController.text = entry.content;
     _locationController.text = entry.location ?? '';
-    _mood = entry.mood;
+    _moodId = entry.mood.id;
     _media.addAll(entry.media);
     _tags.addAll(entry.tags);
   }
@@ -84,6 +84,7 @@ class _EditorPageState extends ConsumerState<EditorPage> {
   Widget build(BuildContext context) {
     final strings = context.strings;
     final tagLibraryAsync = ref.watch(tagLibraryControllerProvider);
+    final moodLibraryAsync = ref.watch(moodLibraryControllerProvider);
     final imageMedia =
         _media.where((item) => item.type == MediaType.image).toList();
     final videoMedia =
@@ -139,6 +140,7 @@ class _EditorPageState extends ConsumerState<EditorPage> {
                 imageMedia: imageMedia,
                 audioMedia: audioMedia,
                 otherMedia: otherMedia,
+                moodLibraryAsync: moodLibraryAsync,
               );
 
               if (!showVideoSidebar) {
@@ -185,6 +187,7 @@ class _EditorPageState extends ConsumerState<EditorPage> {
     required List<DiaryMedia> imageMedia,
     required List<DiaryMedia> audioMedia,
     required List<DiaryMedia> otherMedia,
+    required AsyncValue<List<DiaryMood>> moodLibraryAsync,
   }) {
     return [
       Text(
@@ -321,9 +324,21 @@ class _EditorPageState extends ConsumerState<EditorPage> {
         style: Theme.of(context).textTheme.titleMedium,
       ),
       const SizedBox(height: 12),
-      MoodSelector(
-        value: _mood,
-        onChanged: (mood) => setState(() => _mood = mood),
+      moodLibraryAsync.when(
+        loading: () => const Padding(
+          padding: EdgeInsets.symmetric(vertical: 8),
+          child: CircularProgressIndicator(),
+        ),
+        error: (error, stack) => Text(strings.failedToLoadMoods(error)),
+        data: (moods) {
+          final availableMoods = moods.isEmpty ? DiaryMood.values : moods;
+          final currentMood = _resolveMoodFromLibrary(availableMoods);
+          return MoodSelector(
+            moods: availableMoods,
+            valueId: currentMood.id,
+            onChanged: (mood) => setState(() => _moodId = mood.id),
+          );
+        },
       ),
       const SizedBox(height: 32),
       Align(
@@ -844,6 +859,9 @@ class _EditorPageState extends ConsumerState<EditorPage> {
     final controller = ref.read(diaryControllerProvider.notifier);
     final media = List<DiaryMedia>.from(_media);
     final tags = List<String>.from(_tags);
+    final mood = _resolveMoodFromLibrary(
+      ref.read(moodLibraryControllerProvider).valueOrNull ?? DiaryMood.values,
+    );
 
     try {
       if (_isEditing) {
@@ -851,7 +869,7 @@ class _EditorPageState extends ConsumerState<EditorPage> {
           entry: widget.entry!,
           title: _titleController.text,
           content: _contentController.text,
-          mood: _mood,
+          mood: mood,
           location: _locationController.text,
           tags: tags,
           media: media,
@@ -860,7 +878,7 @@ class _EditorPageState extends ConsumerState<EditorPage> {
         await controller.addEntry(
           title: _titleController.text,
           content: _contentController.text,
-          mood: _mood,
+          mood: mood,
           location: _locationController.text,
           tags: tags,
           media: media,
@@ -1117,12 +1135,21 @@ class _EditorPageState extends ConsumerState<EditorPage> {
       id: entry?.id ?? _uuid.v4(),
       title: title,
       content: content,
-      mood: _mood,
+      mood: _resolveMoodFromLibrary(
+        ref.read(moodLibraryControllerProvider).valueOrNull ?? DiaryMood.values,
+      ),
       createdAt: entry?.createdAt ?? DateTime.now(),
       location: location.isEmpty ? null : location,
       trashedAt: entry?.trashedAt,
       tags: List<String>.unmodifiable(_tags),
       media: List<DiaryMedia>.unmodifiable(_media),
     );
+  }
+
+  DiaryMood _resolveMoodFromLibrary(List<DiaryMood> moods) {
+    for (final mood in moods) {
+      if (mood.id == _moodId) return mood;
+    }
+    return DiaryMood.byId(_moodId) ?? DiaryMood.calm;
   }
 }

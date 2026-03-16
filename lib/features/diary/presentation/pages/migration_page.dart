@@ -194,12 +194,14 @@ class _MigrationPageState extends ConsumerState<MigrationPage> {
       final activeEntries = await repository.listEntries();
       final trashedEntries = await repository.listTrashedEntries();
       final tags = await repository.listTagLibrary();
+      final moods = await repository.listMoodLibrary();
       final result =
           await ref.read(diaryMigrationServiceProvider).exportPackage(
                 destinationRootPath: destinationRootPath,
                 activeEntries: activeEntries,
                 trashedEntries: trashedEntries,
                 tagLibrary: tags,
+                moodLibrary: moods,
               );
 
       if (!mounted) return;
@@ -287,6 +289,7 @@ class _MigrationPageState extends ConsumerState<MigrationPage> {
     ref.invalidate(diaryControllerProvider);
     ref.invalidate(trashDiaryControllerProvider);
     ref.invalidate(tagLibraryControllerProvider);
+    ref.invalidate(moodLibraryControllerProvider);
     ref.read(selectedTagFilterProvider.notifier).state = null;
   }
 }
