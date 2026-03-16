@@ -81,8 +81,8 @@ class _ImageMediaTile extends StatelessWidget {
                     begin: Alignment.topCenter,
                     end: Alignment.bottomCenter,
                     colors: [
-                      Colors.black.withOpacity(0.02),
-                      Colors.black.withOpacity(0.14),
+                      Colors.black.withValues(alpha: 0.02),
+                      Colors.black.withValues(alpha: 0.14),
                     ],
                   ),
                 ),

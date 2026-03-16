@@ -523,23 +523,32 @@ class _EditorPageState extends ConsumerState<EditorPage> {
     final controller = ref.read(diaryControllerProvider.notifier);
     final media = List<DiaryMedia>.from(_media);
 
-    if (_isEditing) {
-      await controller.updateEntry(
-        entry: widget.entry!,
-        title: _titleController.text,
-        content: _contentController.text,
-        mood: _mood,
-        location: _locationController.text,
-        media: media,
+    try {
+      if (_isEditing) {
+        await controller.updateEntry(
+          entry: widget.entry!,
+          title: _titleController.text,
+          content: _contentController.text,
+          mood: _mood,
+          location: _locationController.text,
+          media: media,
+        );
+      } else {
+        await controller.addEntry(
+          title: _titleController.text,
+          content: _contentController.text,
+          mood: _mood,
+          location: _locationController.text,
+          media: media,
+        );
+      }
+    } catch (error) {
+      if (!mounted) return;
+      setState(() => _isSaving = false);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(strings.entrySaveFailed(error))),
       );
-    } else {
-      await controller.addEntry(
-        title: _titleController.text,
-        content: _contentController.text,
-        mood: _mood,
-        location: _locationController.text,
-        media: media,
-      );
+      return;
     }
 
     if (!mounted) return;
@@ -585,10 +594,23 @@ class _EditorPageState extends ConsumerState<EditorPage> {
     if (entry == null) return;
 
     final strings = context.strings;
+    final entryToTrash = entry.copyWith(
+      title: _titleController.text.trim().isEmpty
+          ? entry.title
+          : _titleController.text.trim(),
+      content: _contentController.text.trim(),
+      mood: _mood,
+      location: _locationController.text.trim().isEmpty
+          ? null
+          : _locationController.text.trim(),
+      media: List<DiaryMedia>.from(_media),
+    );
     setState(() => _isDeleting = true);
 
     try {
-      await ref.read(diaryControllerProvider.notifier).deleteEntry(entry.id);
+      await ref
+          .read(diaryControllerProvider.notifier)
+          .moveEntryToTrash(entryToTrash);
     } catch (error) {
       if (!mounted) return;
       setState(() => _isDeleting = false);
@@ -598,19 +620,12 @@ class _EditorPageState extends ConsumerState<EditorPage> {
       return;
     }
 
-    final storage = ref.read(localStorageServiceProvider);
-    try {
-      await storage.deleteMediaFiles(_media);
-    } catch (_) {
-      // Best-effort cleanup for local files after the entry is gone.
-    }
-
     if (!mounted) return;
     setState(() => _isDeleting = false);
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(content: Text(strings.entryDeleted)),
     );
-    context.go('/timeline');
+    context.go('/trash');
   }
 
   void _openVideoPreview(DiaryMedia media) {

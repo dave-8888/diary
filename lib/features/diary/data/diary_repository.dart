@@ -10,6 +10,7 @@ final diaryRepositoryProvider = Provider<DiaryRepository>((ref) {
 
 abstract class DiaryRepository {
   Future<List<DiaryEntry>> listEntries();
+  Future<List<DiaryEntry>> listTrashedEntries();
   Future<DiaryEntry> createEntry({
     required String title,
     required String content,
@@ -25,6 +26,7 @@ abstract class DiaryRepository {
     required String location,
     required List<DiaryMedia> media,
   });
+  Future<void> saveEntry(DiaryEntry entry);
   Future<void> deleteEntry(String id);
 }
 
@@ -37,6 +39,11 @@ class DriftDiaryRepository implements DiaryRepository {
   @override
   Future<List<DiaryEntry>> listEntries() {
     return _database.listEntries();
+  }
+
+  @override
+  Future<List<DiaryEntry>> listTrashedEntries() {
+    return _database.listTrashedEntries();
   }
 
   @override
@@ -63,6 +70,11 @@ class DriftDiaryRepository implements DiaryRepository {
   }
 
   @override
+  Future<void> saveEntry(DiaryEntry entry) {
+    return _database.updateEntry(entry);
+  }
+
+  @override
   Future<DiaryEntry> updateEntry({
     required DiaryEntry entry,
     required String title,
@@ -80,7 +92,7 @@ class DriftDiaryRepository implements DiaryRepository {
       tags: _buildTags(content),
     );
 
-    await _database.updateEntry(updated);
+    await saveEntry(updated);
     return updated;
   }
 

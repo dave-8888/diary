@@ -11,6 +11,16 @@ final localStorageServiceProvider = Provider<LocalStorageService>((ref) {
   return LocalStorageService();
 });
 
+class MediaFileMove {
+  const MediaFileMove({
+    required this.original,
+    required this.moved,
+  });
+
+  final DiaryMedia original;
+  final DiaryMedia moved;
+}
+
 class LocalStorageService {
   final Uuid _uuid = const Uuid();
   Directory? _baseDirectory;
@@ -41,6 +51,34 @@ class LocalStorageService {
   Future<Directory> videoDirectory() async {
     final base = await baseDirectory();
     final dir = Directory(p.join(base.path, 'diary', 'video'));
+    await dir.create(recursive: true);
+    return dir;
+  }
+
+  Future<Directory> trashDirectory() async {
+    final base = await baseDirectory();
+    final dir = Directory(p.join(base.path, 'trash'));
+    await dir.create(recursive: true);
+    return dir;
+  }
+
+  Future<Directory> trashImagesDirectory() async {
+    final base = await trashDirectory();
+    final dir = Directory(p.join(base.path, 'images'));
+    await dir.create(recursive: true);
+    return dir;
+  }
+
+  Future<Directory> trashAudioDirectory() async {
+    final base = await trashDirectory();
+    final dir = Directory(p.join(base.path, 'audio'));
+    await dir.create(recursive: true);
+    return dir;
+  }
+
+  Future<Directory> trashVideoDirectory() async {
+    final base = await trashDirectory();
+    final dir = Directory(p.join(base.path, 'video'));
     await dir.create(recursive: true);
     return dir;
   }
@@ -96,6 +134,87 @@ class LocalStorageService {
       if (await file.exists()) {
         await file.delete();
       }
+    }
+  }
+
+  Future<List<MediaFileMove>> moveMediaFilesToTrash(
+    Iterable<DiaryMedia> media,
+  ) {
+    return _moveMediaFiles(
+      media,
+      targetDirectoryForType: (type) => _directoryForType(type, useTrash: true),
+    );
+  }
+
+  Future<List<MediaFileMove>> restoreMediaFilesFromTrash(
+    Iterable<DiaryMedia> media,
+  ) {
+    return _moveMediaFiles(
+      media,
+      targetDirectoryForType: (type) =>
+          _directoryForType(type, useTrash: false, createFreshName: true),
+    );
+  }
+
+  Future<void> revertMediaMoves(Iterable<MediaFileMove> moves) async {
+    for (final move in moves) {
+      if (move.original.path == move.moved.path) continue;
+      final source = File(move.moved.path);
+      if (!await source.exists()) continue;
+      await _moveFile(source.path, move.original.path);
+    }
+  }
+
+  Future<List<MediaFileMove>> _moveMediaFiles(
+    Iterable<DiaryMedia> media, {
+    required Future<Directory> Function(MediaType type) targetDirectoryForType,
+  }) async {
+    final moves = <MediaFileMove>[];
+    for (final item in media) {
+      final source = File(item.path);
+      if (!await source.exists()) {
+        moves.add(MediaFileMove(original: item, moved: item));
+        continue;
+      }
+
+      final directory = await targetDirectoryForType(item.type);
+      final extension = p.extension(item.path).toLowerCase();
+      final targetPath = p.join(directory.path, '${_uuid.v4()}$extension');
+      await _moveFile(item.path, targetPath);
+      moves.add(
+        MediaFileMove(
+          original: item,
+          moved: item.copyWith(path: targetPath),
+        ),
+      );
+    }
+    return moves;
+  }
+
+  Future<Directory> _directoryForType(
+    MediaType type, {
+    required bool useTrash,
+    bool createFreshName = false,
+  }) {
+    switch (type) {
+      case MediaType.image:
+        return useTrash ? trashImagesDirectory() : imagesDirectory();
+      case MediaType.audio:
+        return useTrash ? trashAudioDirectory() : audioDirectory();
+      case MediaType.video:
+        return useTrash ? trashVideoDirectory() : videoDirectory();
+    }
+  }
+
+  Future<void> _moveFile(String sourcePath, String targetPath) async {
+    final source = File(sourcePath);
+    if (p.equals(sourcePath, targetPath)) return;
+    await Directory(p.dirname(targetPath)).create(recursive: true);
+    try {
+      await source.rename(targetPath);
+    } on FileSystemException {
+      await source.copy(targetPath);
+      await source.delete();
     }
   }
 }

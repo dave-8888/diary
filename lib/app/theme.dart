@@ -13,7 +13,7 @@ ThemeData buildDiaryTheme() {
       titleMedium: TextStyle(fontWeight: FontWeight.w600),
       bodyLarge: TextStyle(height: 1.5),
     ),
-    cardTheme: CardTheme(
+    cardTheme: CardThemeData(
       color: Colors.white,
       elevation: 0,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),

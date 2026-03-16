@@ -25,9 +25,25 @@ class DiaryMedia {
   final MediaType type;
   final String path;
   final String? durationLabel;
+
+  DiaryMedia copyWith({
+    String? id,
+    MediaType? type,
+    String? path,
+    String? durationLabel,
+  }) {
+    return DiaryMedia(
+      id: id ?? this.id,
+      type: type ?? this.type,
+      path: path ?? this.path,
+      durationLabel: durationLabel ?? this.durationLabel,
+    );
+  }
 }
 
 class DiaryEntry {
+  static const Object _unset = Object();
+
   const DiaryEntry({
     required this.id,
     required this.title,
@@ -35,6 +51,7 @@ class DiaryEntry {
     required this.mood,
     required this.createdAt,
     this.location,
+    this.trashedAt,
     this.tags = const [],
     this.media = const [],
   });
@@ -45,6 +62,7 @@ class DiaryEntry {
   final DiaryMood mood;
   final DateTime createdAt;
   final String? location;
+  final DateTime? trashedAt;
   final List<String> tags;
   final List<DiaryMedia> media;
 
@@ -54,7 +72,8 @@ class DiaryEntry {
     String? content,
     DiaryMood? mood,
     DateTime? createdAt,
-    String? location,
+    Object? location = _unset,
+    Object? trashedAt = _unset,
     List<String>? tags,
     List<DiaryMedia>? media,
   }) {
@@ -64,7 +83,11 @@ class DiaryEntry {
       content: content ?? this.content,
       mood: mood ?? this.mood,
       createdAt: createdAt ?? this.createdAt,
-      location: location ?? this.location,
+      location:
+          identical(location, _unset) ? this.location : location as String?,
+      trashedAt: identical(trashedAt, _unset)
+          ? this.trashedAt
+          : trashedAt as DateTime?,
       tags: tags ?? this.tags,
       media: media ?? this.media,
     );

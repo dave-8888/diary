@@ -77,6 +77,10 @@ class DiaryShell extends ConsumerWidget {
                   icon: const Icon(Icons.timeline_outlined),
                   label: strings.timelineNav,
                 ),
+                NavigationDestination(
+                  icon: const Icon(Icons.delete_outline),
+                  label: strings.trashNav,
+                ),
               ],
             ),
           );
@@ -112,6 +116,11 @@ class DiaryShell extends ConsumerWidget {
                     selectedIcon: const Icon(Icons.timeline),
                     label: Text(strings.timelineNav),
                   ),
+                  NavigationRailDestination(
+                    icon: const Icon(Icons.delete_outline),
+                    selectedIcon: const Icon(Icons.delete),
+                    label: Text(strings.trashNav),
+                  ),
                 ],
               ),
               const VerticalDivider(width: 1),
@@ -133,6 +142,7 @@ class DiaryShell extends ConsumerWidget {
   int _indexForLocation(String location) {
     if (location.startsWith('/editor')) return 1;
     if (location.startsWith('/timeline')) return 2;
+    if (location.startsWith('/trash')) return 3;
     return 0;
   }
 
@@ -146,6 +156,9 @@ class DiaryShell extends ConsumerWidget {
         break;
       case 2:
         context.go('/timeline');
+        break;
+      case 3:
+        context.go('/trash');
         break;
     }
   }

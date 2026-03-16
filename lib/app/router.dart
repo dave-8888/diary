@@ -1,6 +1,8 @@
 import 'package:diary_mvp/features/diary/presentation/pages/camera_capture_page.dart';
 import 'package:diary_mvp/features/diary/presentation/pages/editor_page.dart';
 import 'package:diary_mvp/features/diary/presentation/pages/home_page.dart';
+import 'package:diary_mvp/features/diary/presentation/pages/trash_page.dart';
+import 'package:diary_mvp/features/diary/presentation/pages/trash_preview_page.dart';
 import 'package:diary_mvp/features/diary/presentation/pages/timeline_page.dart';
 import 'package:diary_mvp/features/diary/presentation/pages/video_preview_page.dart';
 import 'package:diary_mvp/features/diary/domain/diary_entry.dart';
@@ -32,6 +34,18 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: '/timeline',
         builder: (context, state) => const TimelinePage(),
+      ),
+      GoRoute(
+        path: '/trash',
+        builder: (context, state) => const TrashPage(),
+        routes: [
+          GoRoute(
+            path: 'preview',
+            builder: (context, state) => TrashPreviewPage(
+              entry: state.extra as DiaryEntry?,
+            ),
+          ),
+        ],
       ),
       GoRoute(
         path: '/video-preview',

@@ -50,7 +50,7 @@ class _VideoAttachmentCardState extends State<VideoAttachmentCard> {
               borderRadius: BorderRadius.circular(22),
               border: Border.all(
                 color: _isHovered
-                    ? theme.colorScheme.primary.withOpacity(0.45)
+                    ? theme.colorScheme.primary.withValues(alpha: 0.45)
                     : theme.colorScheme.outlineVariant,
               ),
               gradient: LinearGradient(
@@ -64,7 +64,7 @@ class _VideoAttachmentCardState extends State<VideoAttachmentCard> {
               boxShadow: [
                 if (_isHovered)
                   BoxShadow(
-                    color: theme.colorScheme.shadow.withOpacity(0.12),
+                    color: theme.colorScheme.shadow.withValues(alpha: 0.12),
                     blurRadius: 18,
                     offset: const Offset(0, 10),
                   ),
@@ -102,8 +102,8 @@ class _VideoAttachmentCardState extends State<VideoAttachmentCard> {
                               begin: Alignment.topCenter,
                               end: Alignment.bottomCenter,
                               colors: [
-                                Colors.black.withOpacity(overlayTop),
-                                Colors.black.withOpacity(overlayBottom),
+                                Colors.black.withValues(alpha: overlayTop),
+                                Colors.black.withValues(alpha: overlayBottom),
                               ],
                             ),
                           ),
@@ -115,7 +115,7 @@ class _VideoAttachmentCardState extends State<VideoAttachmentCard> {
                           bottom: 12,
                           child: DecoratedBox(
                             decoration: BoxDecoration(
-                              color: Colors.black.withOpacity(0.68),
+                              color: Colors.black.withValues(alpha: 0.68),
                               borderRadius: BorderRadius.circular(999),
                             ),
                             child: Padding(
@@ -140,8 +140,8 @@ class _VideoAttachmentCardState extends State<VideoAttachmentCard> {
                           scale: _isHovered ? 1.08 : 1,
                           child: DecoratedBox(
                             decoration: BoxDecoration(
-                              color: Colors.black.withOpacity(
-                                _isHovered ? 0.32 : 0.22,
+                              color: Colors.black.withValues(
+                                alpha: _isHovered ? 0.32 : 0.22,
                               ),
                               shape: BoxShape.circle,
                             ),

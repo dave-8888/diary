@@ -247,7 +247,7 @@ class _CameraCapturePageState extends ConsumerState<CameraCapturePage>
                         vertical: 8,
                       ),
                       decoration: BoxDecoration(
-                        color: Colors.redAccent.withOpacity(0.92),
+                        color: Colors.redAccent.withValues(alpha: 0.92),
                         borderRadius: BorderRadius.circular(999),
                       ),
                       child: Row(
@@ -369,7 +369,7 @@ class _CameraCapturePageState extends ConsumerState<CameraCapturePage>
         image: imageBytes,
         withCircleUi: false,
         baseColor: Colors.black,
-        maskColor: Colors.black.withOpacity(0.55),
+        maskColor: Colors.black.withValues(alpha: 0.55),
         onCropped: (croppedImage) async {
           if (!mounted) return;
           setState(() {

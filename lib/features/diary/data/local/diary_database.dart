@@ -20,10 +20,19 @@ class DiaryDatabase extends GeneratedDatabase {
   bool _initialized = false;
 
   @override
-  int get schemaVersion => 1;
+  int get schemaVersion => 2;
 
   @override
   Iterable<TableInfo<Table, Object?>> get allTables => const [];
+
+  @override
+  MigrationStrategy get migration => MigrationStrategy(
+        onCreate: (_) => _ensureInitialized(),
+        onUpgrade: (_, __, ___) => _ensureInitialized(),
+        beforeOpen: (details) async {
+          await customStatement('PRAGMA foreign_keys = ON;');
+        },
+      );
 
   static QueryExecutor _openExecutor() {
     return LazyDatabase(() async {
@@ -46,6 +55,7 @@ class DiaryDatabase extends GeneratedDatabase {
         mood TEXT NOT NULL,
         created_at INTEGER NOT NULL,
         location TEXT,
+        trashed_at INTEGER,
         tags_json TEXT NOT NULL
       );
     ''');
@@ -63,6 +73,12 @@ class DiaryDatabase extends GeneratedDatabase {
       CREATE INDEX IF NOT EXISTS idx_diary_entries_created_at
       ON diary_entries (created_at DESC);
     ''');
+    await _ensureDiaryEntriesColumns();
+    await _ensureDiaryMediaColumns();
+    await customStatement('''
+      CREATE INDEX IF NOT EXISTS idx_diary_entries_trashed_at
+      ON diary_entries (trashed_at DESC);
+    ''');
     await customStatement('''
       CREATE INDEX IF NOT EXISTS idx_diary_media_diary_id
       ON diary_media (diary_id);
@@ -71,12 +87,31 @@ class DiaryDatabase extends GeneratedDatabase {
   }
 
   Future<List<DiaryEntry>> listEntries() async {
+    return _listEntries(trashed: false);
+  }
+
+  Future<List<DiaryEntry>> listTrashedEntries() async {
+    return _listEntries(trashed: true);
+  }
+
+  Future<List<DiaryEntry>> _listEntries({
+    required bool trashed,
+  }) async {
     await _ensureInitialized();
     final rows = await customSelect(
       '''
-      SELECT id, title, content, mood, created_at, location, tags_json
+      SELECT
+        id,
+        title,
+        content,
+        mood,
+        created_at,
+        location,
+        trashed_at,
+        COALESCE(tags_json, '[]') AS tags_json
       FROM diary_entries
-      ORDER BY created_at DESC;
+      WHERE trashed_at ${trashed ? 'IS NOT NULL' : 'IS NULL'}
+      ORDER BY ${trashed ? 'trashed_at DESC,' : ''} created_at DESC;
       ''',
     ).get();
 
@@ -102,6 +137,7 @@ class DiaryDatabase extends GeneratedDatabase {
           createdAt:
               DateTime.fromMillisecondsSinceEpoch(row.read<int>('created_at')),
           location: row.readNullable<String>('location'),
+          trashedAt: _trashedAtFromDb(row.readNullable<int>('trashed_at')),
           tags: _decodeTags(row.read<String>('tags_json')),
           media: mediaRows.map(_mapMediaRow).toList(growable: false),
         ),
@@ -116,8 +152,8 @@ class DiaryDatabase extends GeneratedDatabase {
     await transaction(() async {
       await customStatement(
         '''
-        INSERT INTO diary_entries (id, title, content, mood, created_at, location, tags_json)
-        VALUES (?, ?, ?, ?, ?, ?, ?);
+        INSERT INTO diary_entries (id, title, content, mood, created_at, location, trashed_at, tags_json)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?);
         ''',
         [
           entry.id,
@@ -126,6 +162,7 @@ class DiaryDatabase extends GeneratedDatabase {
           entry.mood.name,
           entry.createdAt.millisecondsSinceEpoch,
           entry.location,
+          entry.trashedAt?.millisecondsSinceEpoch,
           jsonEncode(entry.tags),
         ],
       );
@@ -154,7 +191,7 @@ class DiaryDatabase extends GeneratedDatabase {
       await customStatement(
         '''
         UPDATE diary_entries
-        SET title = ?, content = ?, mood = ?, created_at = ?, location = ?, tags_json = ?
+        SET title = ?, content = ?, mood = ?, created_at = ?, location = ?, trashed_at = ?, tags_json = ?
         WHERE id = ?;
         ''',
         [
@@ -163,6 +200,7 @@ class DiaryDatabase extends GeneratedDatabase {
           entry.mood.name,
           entry.createdAt.millisecondsSinceEpoch,
           entry.location,
+          entry.trashedAt?.millisecondsSinceEpoch,
           jsonEncode(entry.tags),
           entry.id,
         ],
@@ -205,6 +243,34 @@ class DiaryDatabase extends GeneratedDatabase {
     );
   }
 
+  Future<void> _ensureDiaryEntriesColumns() async {
+    final rows = await customSelect('PRAGMA table_info(diary_entries);').get();
+    final columns = rows.map((row) => row.read<String>('name')).toSet();
+    if (!columns.contains('trashed_at')) {
+      await customStatement(
+        'ALTER TABLE diary_entries ADD COLUMN trashed_at INTEGER;',
+      );
+    }
+    if (!columns.contains('tags_json')) {
+      await customStatement(
+        "ALTER TABLE diary_entries ADD COLUMN tags_json TEXT;",
+      );
+    }
+    await customStatement(
+      "UPDATE diary_entries SET tags_json = '[]' WHERE tags_json IS NULL OR TRIM(tags_json) = '';",
+    );
+  }
+
+  Future<void> _ensureDiaryMediaColumns() async {
+    final rows = await customSelect('PRAGMA table_info(diary_media);').get();
+    final columns = rows.map((row) => row.read<String>('name')).toSet();
+    if (!columns.contains('duration_label')) {
+      await customStatement(
+        'ALTER TABLE diary_media ADD COLUMN duration_label TEXT;',
+      );
+    }
+  }
+
   DiaryMedia _mapMediaRow(QueryRow row) {
     return DiaryMedia(
       id: row.read<String>('id'),
@@ -215,9 +281,13 @@ class DiaryDatabase extends GeneratedDatabase {
   }
 
   List<String> _decodeTags(String rawJson) {
-    final decoded = jsonDecode(rawJson);
-    if (decoded is! List) return const [];
-    return decoded.whereType<String>().toList(growable: false);
+    try {
+      final decoded = jsonDecode(rawJson);
+      if (decoded is! List) return const [];
+      return decoded.whereType<String>().toList(growable: false);
+    } on FormatException {
+      return const [];
+    }
   }
 
   DiaryMood _moodFromDb(String raw) {
@@ -232,5 +302,10 @@ class DiaryDatabase extends GeneratedDatabase {
       (type) => type.name == raw,
       orElse: () => MediaType.image,
     );
+  }
+
+  DateTime? _trashedAtFromDb(int? raw) {
+    if (raw == null) return null;
+    return DateTime.fromMillisecondsSinceEpoch(raw);
   }
 }

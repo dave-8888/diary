@@ -48,15 +48,60 @@ class AppStrings {
   String get homeNav => isChinese ? '\u9996\u9875' : 'Home';
   String get writeNav => isChinese ? '\u5199\u65e5\u8bb0' : 'Write';
   String get timelineNav => isChinese ? '\u65f6\u95f4\u8f74' : 'Timeline';
+  String get trashNav => isChinese ? '\u5783\u573e\u6876' : 'Trash';
 
   String get newEntry => isChinese ? '\u65b0\u5efa\u65e5\u8bb0' : 'New Entry';
-  String get editEntry => isChinese ? '\u7f16\u8f91\u65e5\u8bb0' : 'Edit Entry';
+  String get editEntry => isChinese ? '\u7f16\u8f91\u65e5\u8bb0' : 'Edit entry';
   String get deleteEntry =>
-      isChinese ? '\u5220\u9664\u65e5\u8bb0' : 'Delete entry';
+      isChinese ? '\u79fb\u5230\u5783\u573e\u6876' : 'Move to trash';
   String get today => isChinese ? '\u4eca\u5929' : 'Today';
   String get recentEntries =>
       isChinese ? '\u6700\u8fd1\u65e5\u8bb0' : 'Recent entries';
   String get viewAll => isChinese ? '\u67e5\u770b\u5168\u90e8' : 'View all';
+  String get previewEntry =>
+      isChinese ? '\u9884\u89c8\u65e5\u8bb0' : 'Preview entry';
+  String get restoreEntry =>
+      isChinese ? '\u6062\u590d\u65e5\u8bb0' : 'Restore entry';
+  String get restoreSelected =>
+      isChinese ? '\u6279\u91cf\u6062\u590d' : 'Restore selected';
+  String get clearTrash =>
+      isChinese ? '\u6c38\u4e45\u6e05\u7a7a' : 'Empty trash';
+  String get restoreFromTrash =>
+      isChinese ? '\u4ece\u5783\u573e\u6876\u6062\u590d' : 'Restore from trash';
+  String get selectAll => isChinese ? '\u5168\u9009' : 'Select all';
+  String get clearSelection =>
+      isChinese ? '\u53d6\u6d88\u9009\u62e9' : 'Clear selection';
+  String get trashEmpty => isChinese
+      ? '\u5783\u573e\u6876\u91cc\u8fd8\u6ca1\u6709\u65e5\u8bb0\u3002'
+      : 'Trash is empty.';
+  String get trashedEntryHint => isChinese
+      ? '\u53ef\u4ee5\u6253\u5f00\u9884\u89c8\uff0c\u4f46\u4e0d\u53ef\u7f16\u8f91\u3002'
+      : 'You can preview trashed entries, but not edit them.';
+  String selectedEntries(int count) =>
+      isChinese ? '\u5df2\u9009\u4e2d $count \u7bc7' : '$count selected';
+  String restoredEntries(int count) => isChinese
+      ? '\u5df2\u6062\u590d $count \u7bc7\u65e5\u8bb0\u3002'
+      : 'Restored $count entr${count == 1 ? 'y' : 'ies'}.';
+  String restoreFailed(Object error) => isChinese
+      ? '\u6062\u590d\u5931\u8d25\uff1a$error'
+      : 'Restore failed: $error';
+  String get clearTrashConfirmTitle => isChinese
+      ? '\u786e\u8ba4\u6c38\u4e45\u6e05\u7a7a\u5783\u573e\u6876\uff1f'
+      : 'Permanently empty trash?';
+  String clearTrashConfirmMessage(int count) => isChinese
+      ? '\u8fd9\u4f1a\u6c38\u4e45\u5220\u9664 $count \u7bc7\u65e5\u8bb0\u53ca\u5176\u56fe\u7247\u3001\u5f55\u97f3\u548c\u89c6\u9891\u6587\u4ef6\uff0c\u4e14\u65e0\u6cd5\u6062\u590d\u3002'
+      : 'This permanently deletes $count entr${count == 1 ? 'y' : 'ies'} and all linked images, audio, and video files.';
+  String get confirmClearTrash =>
+      isChinese ? '\u6c38\u4e45\u6e05\u7a7a' : 'Empty trash';
+  String trashCleared(int count) => isChinese
+      ? '\u5df2\u6c38\u4e45\u5220\u9664 $count \u7bc7\u65e5\u8bb0\u3002'
+      : 'Permanently deleted $count entr${count == 1 ? 'y' : 'ies'}.';
+  String clearTrashFailed(Object error) => isChinese
+      ? '\u6e05\u7a7a\u5783\u573e\u6876\u5931\u8d25\uff1a$error'
+      : 'Empty trash failed: $error';
+  String trashedAtLabel(DateTime date) => isChinese
+      ? '\u5220\u9664\u65f6\u95f4\uff1a${formatDateTime(date)}'
+      : 'Moved to trash: ${formatDateTime(date)}';
   String get startCapturingToday => isChinese
       ? '\u5f00\u59cb\u8bb0\u5f55\u4eca\u5929\u5427\uff0c\u628a\u6587\u5b57\u3001\u5fc3\u60c5\u548c\u58f0\u97f3\u90fd\u7559\u4e0b\u6765\u3002'
       : 'Start capturing today with words, mood, and voice.';
@@ -69,6 +114,9 @@ class AppStrings {
   String failedToLoadTimeline(Object error) => isChinese
       ? '\u52a0\u8f7d\u65f6\u95f4\u8f74\u5931\u8d25\uff1a$error'
       : 'Failed to load timeline: $error';
+  String failedToLoadTrash(Object error) => isChinese
+      ? '\u52a0\u8f7d\u5783\u573e\u6876\u5931\u8d25\uff1a$error'
+      : 'Failed to load trash: $error';
   String get noEntriesYet => isChinese
       ? '\u8fd8\u6ca1\u6709\u65e5\u8bb0\uff0c\u5148\u4ece\u7b2c\u4e00\u7bc7\u5f00\u59cb\u5427\u3002'
       : 'No entries yet. Start with your first note.';
@@ -193,7 +241,9 @@ class AppStrings {
       ? '\u64ad\u653e\u5931\u8d25\uff1a$error'
       : 'Playback failed: $error';
   String get saving => isChinese ? '\u4fdd\u5b58\u4e2d...' : 'Saving...';
-  String get deleting => isChinese ? '\u5220\u9664\u4e2d...' : 'Deleting...';
+  String get deleting => isChinese
+      ? '\u79fb\u5165\u5783\u573e\u6876\u4e2d...'
+      : 'Moving to trash...';
   String get saveEntry => isChinese ? '\u4fdd\u5b58\u65e5\u8bb0' : 'Save entry';
   String get updateEntry =>
       isChinese ? '\u66f4\u65b0\u65e5\u8bb0' : 'Update entry';
@@ -217,19 +267,24 @@ class AppStrings {
       : 'Entry saved to local SQLite.';
   String get entryUpdated =>
       isChinese ? '\u65e5\u8bb0\u5df2\u66f4\u65b0\u3002' : 'Entry updated.';
-  String get entryDeleted =>
-      isChinese ? '\u65e5\u8bb0\u5df2\u5220\u9664\u3002' : 'Entry deleted.';
+  String entrySaveFailed(Object error) => isChinese
+      ? '\u4fdd\u5b58\u65e5\u8bb0\u5931\u8d25\uff1a$error'
+      : 'Save failed: $error';
+  String get entryDeleted => isChinese
+      ? '\u65e5\u8bb0\u5df2\u79fb\u5165\u5783\u573e\u6876\u3002'
+      : 'Entry moved to trash.';
   String get deleteEntryConfirmTitle => isChinese
-      ? '\u786e\u8ba4\u5220\u9664\u8fd9\u7bc7\u65e5\u8bb0\uff1f'
-      : 'Delete this entry?';
+      ? '\u786e\u8ba4\u5c06\u8fd9\u7bc7\u65e5\u8bb0\u79fb\u5165\u5783\u573e\u6876\uff1f'
+      : 'Move this entry to trash?';
   String deleteEntryConfirmMessage(String title) => isChinese
-      ? '\u5220\u9664\u540e\u65e0\u6cd5\u6062\u590d\uff1a$title'
-      : 'This cannot be undone: $title';
+      ? '\u4f60\u4ecd\u53ef\u4ee5\u4ece\u5783\u573e\u6876\u6062\u590d\uff1a$title'
+      : 'You can restore it later from trash: $title';
   String get cancelAction => isChinese ? '\u53d6\u6d88' : 'Cancel';
-  String get confirmDelete => isChinese ? '\u786e\u8ba4\u5220\u9664' : 'Delete';
+  String get confirmDelete =>
+      isChinese ? '\u79fb\u5165\u5783\u573e\u6876' : 'Move to trash';
   String deleteEntryFailed(Object error) => isChinese
-      ? '\u5220\u9664\u5931\u8d25\uff1a$error'
-      : 'Delete failed: $error';
+      ? '\u79fb\u5165\u5783\u573e\u6876\u5931\u8d25\uff1a$error'
+      : 'Move to trash failed: $error';
   String get apiKeyMissing => isChinese
       ? '\u672a\u8bbe\u7f6e OPENAI_API_KEY\uff0c\u5df2\u8df3\u8fc7\u8f6c\u5199\u3002'
       : 'OPENAI_API_KEY not set. Skipping transcription.';
