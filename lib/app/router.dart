@@ -1,3 +1,4 @@
+import 'package:diary_mvp/features/diary/presentation/pages/app_name_page.dart';
 import 'package:diary_mvp/features/diary/presentation/pages/camera_capture_page.dart';
 import 'package:diary_mvp/features/diary/presentation/pages/editor_page.dart';
 import 'package:diary_mvp/features/diary/presentation/pages/home_page.dart';
@@ -23,6 +24,10 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         builder: (context, state) => EditorPage(
           entry: state.extra as DiaryEntry?,
         ),
+      ),
+      GoRoute(
+        path: '/app-name',
+        builder: (context, state) => const AppNamePage(),
       ),
       GoRoute(
         path: '/migration',
