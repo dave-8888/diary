@@ -1,9 +1,9 @@
 enum DiaryMood {
-  happy('Happy', ':)'),
-  calm('Calm', ':|'),
-  neutral('Neutral', ':]'),
-  sad('Sad', ':('),
-  angry('Angry', '>:(');
+  happy('Happy', '😄'),
+  calm('Calm', '😌'),
+  neutral('Neutral', '🙂'),
+  sad('Sad', '😔'),
+  angry('Angry', '😤');
 
   const DiaryMood(this.label, this.emoji);
 

@@ -15,6 +15,7 @@ class MoodSelector extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final strings = context.strings;
+    final theme = Theme.of(context);
 
     return Wrap(
       spacing: 12,
@@ -24,7 +25,25 @@ class MoodSelector extends StatelessWidget {
         return ChoiceChip(
           selected: selected,
           onSelected: (_) => onChanged(mood),
-          label: Text('${mood.emoji} ${strings.moodLabel(mood)}'),
+          showCheckmark: false,
+          label: Row(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              Text(
+                mood.emoji,
+                textAlign: TextAlign.center,
+                style: const TextStyle(
+                  fontSize: 18,
+                  height: 1,
+                ),
+              ),
+              const SizedBox(width: 8),
+              Text(strings.moodLabel(mood)),
+            ],
+          ),
+          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 10),
+          selectedColor: theme.colorScheme.secondaryContainer,
         );
       }).toList(),
     );
