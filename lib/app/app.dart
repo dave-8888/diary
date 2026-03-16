@@ -13,10 +13,11 @@ class DiaryApp extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final router = ref.watch(appRouterProvider);
     final locale = ref.watch(appLocaleProvider);
+    final themeAsync = ref.watch(appThemeControllerProvider);
 
     return MaterialApp.router(
       onGenerateTitle: (context) => AppStrings.of(context).appTitle,
-      theme: buildDiaryTheme(),
+      theme: buildDiaryTheme(resolveThemePreset(themeAsync)),
       routerConfig: router,
       locale: locale,
       supportedLocales: AppStrings.supportedLocales,

@@ -1,3 +1,4 @@
+import 'package:diary_mvp/app/theme.dart';
 import 'package:diary_mvp/app/localization/app_locale.dart';
 import 'package:diary_mvp/features/diary/domain/diary_entry.dart';
 import 'package:flutter/material.dart';
@@ -28,6 +29,7 @@ class AppStrings {
   bool get isChinese => locale.languageCode == 'zh';
 
   String get appTitle => '\u65e5\u8bb0';
+  String get theme => isChinese ? '\u4e3b\u9898' : 'Theme';
   String get renameAppTitle =>
       isChinese ? '\u81ea\u5b9a\u4e49\u5e94\u7528\u540d' : 'Customize app name';
   String get renameAppTooltip =>
@@ -62,6 +64,42 @@ class AppStrings {
         return englishLanguage;
       case AppLanguage.chinese:
         return chineseLanguage;
+    }
+  }
+
+  String titleForTheme(DiaryThemePreset themePreset) {
+    switch (themePreset) {
+      case DiaryThemePreset.daylight:
+        return isChinese
+            ? '\u767d\u5929\u4e3b\u9898\uff08\u9ed8\u8ba4\uff09'
+            : 'Day Theme (Default)';
+      case DiaryThemePreset.night:
+        return isChinese ? '\u591c\u95f4\u4e3b\u9898' : 'Night Theme';
+      case DiaryThemePreset.cyberpunk:
+        return isChinese
+            ? '\u8d5b\u535a\u670b\u514b\u4e3b\u9898'
+            : 'Cyberpunk Theme';
+      case DiaryThemePreset.hacker:
+        return isChinese ? '\u9ed1\u5ba2\u4e3b\u9898' : 'Hacker Theme';
+      case DiaryThemePreset.spaceLines:
+        return isChinese
+            ? '\u6781\u81f4\u7ebf\u6761\uff08\u592a\u7a7a\u4eba\u65e5\u5fd7\u7248\uff09'
+            : 'Extreme Lines (Astronaut Log)';
+    }
+  }
+
+  String heroLabelForTheme(DiaryThemePreset themePreset) {
+    switch (themePreset) {
+      case DiaryThemePreset.daylight:
+        return isChinese ? '\u6668\u5149\u8bb0\u5f55' : 'DAYLIGHT LOG';
+      case DiaryThemePreset.night:
+        return isChinese ? '\u591c\u822a\u6a21\u5f0f' : 'NIGHT WATCH';
+      case DiaryThemePreset.cyberpunk:
+        return isChinese ? '\u9727\u8679\u56de\u8def' : 'NEON CIRCUIT';
+      case DiaryThemePreset.hacker:
+        return isChinese ? '\u7ec8\u7aef\u8bb0\u5f55' : 'TERMINAL LOG';
+      case DiaryThemePreset.spaceLines:
+        return spaceLogLabel;
     }
   }
 
@@ -197,6 +235,8 @@ class AppStrings {
   String get startCapturingToday => isChinese
       ? '\u5f00\u59cb\u8bb0\u5f55\u4eca\u5929\u5427\uff0c\u628a\u6587\u5b57\u3001\u5fc3\u60c5\u548c\u58f0\u97f3\u90fd\u7559\u4e0b\u6765\u3002'
       : 'Start capturing today with words, mood, and voice.';
+  String get spaceLogLabel =>
+      isChinese ? '\u4efb\u52a1\u65e5\u5fd7' : 'MISSION LOG';
   String get firstEntryPrompt => isChinese
       ? '\u5f00\u59cb\u5199\u7b2c\u4e00\u7bc7\u65e5\u8bb0\u5427\u3002'
       : 'Start with your first diary entry.';
@@ -217,6 +257,14 @@ class AppStrings {
   String noEntriesForTag(String tag) => isChinese
       ? '\u8fd8\u6ca1\u6709\u5e26\u6709 $tag \u7684\u65e5\u8bb0\u3002'
       : 'No diary entries tagged with $tag yet.';
+  String entryCountLabel(int count) => isChinese
+      ? '\u65e5\u8bb0 $count \u7bc7'
+      : '$count entr${count == 1 ? 'y' : 'ies'}';
+  String tagStatusLabel(String? tag) => isChinese
+      ? '\u6807\u7b7e\uff1a${tag ?? '\u5168\u90e8'}'
+      : 'Tag: ${tag ?? 'All'}';
+  String moodStatusLabel(DiaryMood moodValue) =>
+      '${isChinese ? '\u60c5\u7eea' : 'Mood'}: ${moodLabel(moodValue)}';
 
   String dayHeading(DateTime date) => '$today - ${formatDay(date)}';
 
