@@ -1,5 +1,5 @@
 import 'package:diary_mvp/app/app_icon.dart';
-import 'package:diary_mvp/app/localization/app_locale.dart';
+import 'package:diary_mvp/app/app_display_name.dart';
 import 'package:diary_mvp/app/localization/app_strings.dart';
 import 'package:diary_mvp/app/theme.dart';
 import 'package:flutter/material.dart';
@@ -23,55 +23,26 @@ class DiaryShell extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final strings = context.strings;
-    final selectedLanguage = ref.watch(appLanguageProvider);
     final selectedTheme = resolveThemePreset(
       ref.watch(appThemeControllerProvider),
     );
     final selectedIcon = resolveAppIconPreset(
       ref.watch(appIconControllerProvider),
     );
+    final appName = resolveAppDisplayName(
+      strings: strings,
+      customNameAsync: ref.watch(appDisplayNameControllerProvider),
+    );
     final location = GoRouterState.of(context).uri.toString();
     final selectedIndex = _indexForLocation(location);
     final appBarActions = [
       ...actions,
-      PopupMenuButton<DiaryThemePreset>(
-        tooltip: strings.theme,
-        initialValue: selectedTheme,
-        icon: const Icon(Icons.palette_outlined),
-        onSelected: (theme) {
-          ref.read(appThemeControllerProvider.notifier).setTheme(theme);
-        },
-        itemBuilder: (context) => DiaryThemePreset.values
-            .map(
-              (theme) => PopupMenuItem<DiaryThemePreset>(
-                value: theme,
-                child: Row(
-                  children: [
-                    Icon(_iconForTheme(theme), size: 18),
-                    const SizedBox(width: 10),
-                    Expanded(child: Text(strings.titleForTheme(theme))),
-                  ],
-                ),
-              ),
-            )
-            .toList(),
-      ),
-      PopupMenuButton<AppLanguage>(
-        tooltip: strings.language,
-        initialValue: selectedLanguage,
-        icon: const Icon(Icons.language),
-        onSelected: (language) {
-          ref.read(appLanguageProvider.notifier).setLanguage(language);
-        },
-        itemBuilder: (context) => AppLanguage.values
-            .map(
-              (language) => PopupMenuItem<AppLanguage>(
-                value: language,
-                child: Text(strings.titleForLanguage(language)),
-              ),
-            )
-            .toList(),
-      ),
+      if (!location.startsWith('/settings'))
+        IconButton(
+          onPressed: () => context.push('/settings'),
+          tooltip: strings.settingsTooltip,
+          icon: const Icon(Icons.settings_outlined),
+        ),
     ];
 
     return LayoutBuilder(
@@ -80,7 +51,8 @@ class DiaryShell extends ConsumerWidget {
           return Scaffold(
             appBar: AppBar(
               title: _AppBarTitle(
-                title: title,
+                appName: appName,
+                pageTitle: title,
                 iconPreset: selectedIcon,
               ),
               centerTitle: false,
@@ -125,7 +97,8 @@ class DiaryShell extends ConsumerWidget {
         return Scaffold(
           appBar: AppBar(
             title: _AppBarTitle(
-              title: title,
+              appName: appName,
+              pageTitle: title,
               iconPreset: selectedIcon,
             ),
             centerTitle: false,
@@ -141,6 +114,16 @@ class DiaryShell extends ConsumerWidget {
                   selectedIndex: selectedIndex,
                   onDestinationSelected: (index) => _goToIndex(context, index),
                   labelType: NavigationRailLabelType.all,
+                  leading: SizedBox(
+                    width: 108,
+                    child: Padding(
+                      padding: const EdgeInsets.fromLTRB(12, 12, 12, 18),
+                      child: _NavigationBrandHeader(
+                        appName: appName,
+                        iconPreset: selectedIcon,
+                      ),
+                    ),
+                  ),
                   destinations: [
                     NavigationRailDestination(
                       icon: const Icon(Icons.home_outlined),
@@ -204,34 +187,24 @@ class DiaryShell extends ConsumerWidget {
         break;
     }
   }
-
-  IconData _iconForTheme(DiaryThemePreset theme) {
-    switch (theme) {
-      case DiaryThemePreset.daylight:
-        return Icons.wb_sunny_outlined;
-      case DiaryThemePreset.night:
-        return Icons.dark_mode_outlined;
-      case DiaryThemePreset.cyberpunk:
-        return Icons.bolt_outlined;
-      case DiaryThemePreset.hacker:
-        return Icons.memory_outlined;
-      case DiaryThemePreset.spaceLines:
-        return Icons.rocket_launch_outlined;
-    }
-  }
 }
 
 class _AppBarTitle extends StatelessWidget {
   const _AppBarTitle({
-    required this.title,
+    required this.appName,
+    required this.pageTitle,
     required this.iconPreset,
   });
 
-  final String title;
+  final String appName;
+  final String pageTitle;
   final AppIconPreset iconPreset;
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final showSubtitle = pageTitle.trim() != appName.trim();
+
     return Row(
       children: [
         AppIconBadge(
@@ -240,12 +213,75 @@ class _AppBarTitle extends StatelessWidget {
         ),
         const SizedBox(width: 10),
         Flexible(
-          child: Text(
-            title,
-            overflow: TextOverflow.ellipsis,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                appName,
+                overflow: TextOverflow.ellipsis,
+                style: theme.textTheme.titleMedium?.copyWith(
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+              if (showSubtitle)
+                Text(
+                  pageTitle,
+                  overflow: TextOverflow.ellipsis,
+                  style: theme.textTheme.bodySmall?.copyWith(
+                    color: theme.colorScheme.onSurfaceVariant,
+                  ),
+                ),
+            ],
           ),
         ),
       ],
+    );
+  }
+}
+
+class _NavigationBrandHeader extends StatelessWidget {
+  const _NavigationBrandHeader({
+    required this.appName,
+    required this.iconPreset,
+  });
+
+  final String appName;
+  final AppIconPreset iconPreset;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: theme.cardTheme.color?.withValues(alpha: 0.92) ??
+            theme.colorScheme.surface,
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(
+          color: theme.colorScheme.outlineVariant.withValues(alpha: 0.72),
+        ),
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          AppIconBadge(
+            preset: iconPreset,
+            size: 42,
+          ),
+          const SizedBox(height: 10),
+          Text(
+            appName,
+            maxLines: 2,
+            textAlign: TextAlign.center,
+            overflow: TextOverflow.ellipsis,
+            style: theme.textTheme.titleSmall?.copyWith(
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+        ],
+      ),
     );
   }
 }
@@ -294,6 +330,54 @@ class _ThemedShellBackground extends StatelessWidget {
               theme.scaffoldBackgroundColor,
             ],
             stops: const [0, 0.38, 1],
+          ),
+        );
+      case DiaryThemePreset.girlPink:
+        return const BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: [
+              Color(0xFFFFF6FB),
+              Color(0xFFFFE8F3),
+              Color(0xFFFFFBFE),
+            ],
+          ),
+        );
+      case DiaryThemePreset.barbieShockPink:
+        return const BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: [
+              Color(0xFFFFE8F6),
+              Color(0xFFFFD2EC),
+              Color(0xFFFFF6FB),
+            ],
+          ),
+        );
+      case DiaryThemePreset.kidPink:
+        return const BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+            colors: [
+              Color(0xFFFFF9EF),
+              Color(0xFFFFF1F7),
+              Color(0xFFFFFEFB),
+            ],
+          ),
+        );
+      case DiaryThemePreset.happyBoy:
+        return const BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: [
+              Color(0xFFF4FBFF),
+              Color(0xFFE9F5FF),
+              Color(0xFFFFFCF2),
+            ],
           ),
         );
       case DiaryThemePreset.night:
@@ -357,6 +441,30 @@ class _ThemedShellBackground extends StatelessWidget {
           primary: colorScheme.primary.withValues(alpha: 0.1),
           secondary: colorScheme.secondary.withValues(alpha: 0.12),
           line: colorScheme.outlineVariant.withValues(alpha: 0.3),
+        );
+      case DiaryThemePreset.girlPink:
+        return _GirlPinkBackgroundPainter(
+          primary: colorScheme.primary.withValues(alpha: 0.16),
+          secondary: colorScheme.secondary.withValues(alpha: 0.26),
+          line: colorScheme.outlineVariant.withValues(alpha: 0.36),
+        );
+      case DiaryThemePreset.barbieShockPink:
+        return _BarbieShockBackgroundPainter(
+          primary: colorScheme.primary.withValues(alpha: 0.28),
+          secondary: colorScheme.secondary.withValues(alpha: 0.24),
+          line: colorScheme.primary.withValues(alpha: 0.12),
+        );
+      case DiaryThemePreset.kidPink:
+        return _KidPinkBackgroundPainter(
+          primary: colorScheme.primary.withValues(alpha: 0.18),
+          secondary: colorScheme.secondary.withValues(alpha: 0.24),
+          line: colorScheme.outlineVariant.withValues(alpha: 0.28),
+        );
+      case DiaryThemePreset.happyBoy:
+        return _HappyBoyBackgroundPainter(
+          primary: colorScheme.primary.withValues(alpha: 0.2),
+          secondary: colorScheme.secondary.withValues(alpha: 0.24),
+          line: colorScheme.outlineVariant.withValues(alpha: 0.28),
         );
       case DiaryThemePreset.night:
         return _NightBackgroundPainter(
@@ -436,6 +544,324 @@ class _DaylightBackgroundPainter extends CustomPainter {
 
   @override
   bool shouldRepaint(covariant _DaylightBackgroundPainter oldDelegate) {
+    return oldDelegate.primary != primary ||
+        oldDelegate.secondary != secondary ||
+        oldDelegate.line != line;
+  }
+}
+
+class _GirlPinkBackgroundPainter extends CustomPainter {
+  const _GirlPinkBackgroundPainter({
+    required this.primary,
+    required this.secondary,
+    required this.line,
+  });
+
+  final Color primary;
+  final Color secondary;
+  final Color line;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final bloomPaint = Paint()..color = secondary;
+    canvas.drawCircle(
+      Offset(size.width - 92, 84),
+      92,
+      bloomPaint,
+    );
+    canvas.drawCircle(
+      Offset(size.width - 128, 66),
+      44,
+      Paint()..color = primary.withValues(alpha: 0.58),
+    );
+
+    final ribbonPaint = Paint()
+      ..color = line
+      ..strokeWidth = 1.4
+      ..style = PaintingStyle.stroke;
+    final ribbon = Path()
+      ..moveTo(-24, size.height * 0.34)
+      ..quadraticBezierTo(
+        size.width * 0.16,
+        size.height * 0.22,
+        size.width * 0.3,
+        size.height * 0.3,
+      )
+      ..quadraticBezierTo(
+        size.width * 0.46,
+        size.height * 0.38,
+        size.width * 0.62,
+        size.height * 0.28,
+      )
+      ..quadraticBezierTo(
+        size.width * 0.82,
+        size.height * 0.16,
+        size.width + 24,
+        size.height * 0.25,
+      );
+    canvas.drawPath(ribbon, ribbonPaint);
+
+    final lowerRibbon = Path()
+      ..moveTo(size.width * 0.12, size.height)
+      ..quadraticBezierTo(
+        size.width * 0.3,
+        size.height * 0.82,
+        size.width * 0.48,
+        size.height * 0.9,
+      )
+      ..quadraticBezierTo(
+        size.width * 0.7,
+        size.height * 0.98,
+        size.width * 0.92,
+        size.height * 0.82,
+      );
+    canvas.drawPath(lowerRibbon, ribbonPaint);
+
+    for (final point in <Offset>[
+      const Offset(42, 54),
+      const Offset(96, 96),
+      Offset(size.width * 0.78, size.height * 0.62),
+      Offset(size.width * 0.56, size.height * 0.78),
+    ]) {
+      _drawSparkle(
+        canvas,
+        point,
+        Paint()
+          ..color = primary.withValues(alpha: 0.5)
+          ..strokeWidth = 1.1
+          ..strokeCap = StrokeCap.round,
+      );
+    }
+  }
+
+  void _drawSparkle(Canvas canvas, Offset center, Paint paint) {
+    canvas.drawLine(
+      center.translate(-5, 0),
+      center.translate(5, 0),
+      paint,
+    );
+    canvas.drawLine(
+      center.translate(0, -5),
+      center.translate(0, 5),
+      paint,
+    );
+  }
+
+  @override
+  bool shouldRepaint(covariant _GirlPinkBackgroundPainter oldDelegate) {
+    return oldDelegate.primary != primary ||
+        oldDelegate.secondary != secondary ||
+        oldDelegate.line != line;
+  }
+}
+
+class _BarbieShockBackgroundPainter extends CustomPainter {
+  const _BarbieShockBackgroundPainter({
+    required this.primary,
+    required this.secondary,
+    required this.line,
+  });
+
+  final Color primary;
+  final Color secondary;
+  final Color line;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    canvas.drawRect(
+      Rect.fromLTWH(size.width * 0.56, -10, size.width * 0.32, size.height),
+      Paint()
+        ..shader = LinearGradient(
+          begin: Alignment.topCenter,
+          end: Alignment.bottomCenter,
+          colors: [
+            primary.withValues(alpha: 0),
+            primary.withValues(alpha: 0.42),
+            primary.withValues(alpha: 0),
+          ],
+        ).createShader(
+          Rect.fromLTWH(size.width * 0.56, -10, size.width * 0.32, size.height),
+        ),
+    );
+
+    final slashPaint = Paint()
+      ..color = secondary
+      ..strokeWidth = 2.2
+      ..strokeCap = StrokeCap.round;
+    for (double offset = -120; offset < size.width + 120; offset += 58) {
+      canvas.drawLine(
+        Offset(offset, size.height * 0.18),
+        Offset(offset + 88, size.height * 0.02),
+        slashPaint,
+      );
+    }
+
+    final framePaint = Paint()
+      ..color = line
+      ..strokeWidth = 1.6
+      ..style = PaintingStyle.stroke;
+    canvas.drawRRect(
+      RRect.fromRectAndRadius(
+        Rect.fromLTWH(18, 18, size.width - 36, size.height - 36),
+        const Radius.circular(24),
+      ),
+      framePaint,
+    );
+
+    canvas.drawCircle(
+      Offset(size.width - 54, 44),
+      9,
+      Paint()..color = primary.withValues(alpha: 0.6),
+    );
+    canvas.drawCircle(
+      Offset(size.width - 82, 44),
+      5,
+      Paint()..color = secondary.withValues(alpha: 0.72),
+    );
+  }
+
+  @override
+  bool shouldRepaint(covariant _BarbieShockBackgroundPainter oldDelegate) {
+    return oldDelegate.primary != primary ||
+        oldDelegate.secondary != secondary ||
+        oldDelegate.line != line;
+  }
+}
+
+class _KidPinkBackgroundPainter extends CustomPainter {
+  const _KidPinkBackgroundPainter({
+    required this.primary,
+    required this.secondary,
+    required this.line,
+  });
+
+  final Color primary;
+  final Color secondary;
+  final Color line;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final bubblePaint = Paint()..color = primary;
+    for (final circle in <(Offset, double)>[
+      (const Offset(58, 66), 34),
+      (Offset(size.width - 92, 84), 48),
+      (Offset(size.width * 0.78, size.height * 0.74), 26),
+    ]) {
+      canvas.drawCircle(circle.$1, circle.$2, bubblePaint);
+    }
+
+    final confettiPaint = Paint()
+      ..color = secondary
+      ..strokeWidth = 4
+      ..strokeCap = StrokeCap.round;
+    for (final point in <Offset>[
+      const Offset(124, 54),
+      Offset(size.width * 0.28, 94),
+      Offset(size.width * 0.58, 52),
+      Offset(size.width * 0.86, 132),
+      Offset(size.width * 0.34, size.height * 0.76),
+      Offset(size.width * 0.7, size.height * 0.88),
+    ]) {
+      canvas.drawLine(
+        point.translate(-6, -3),
+        point.translate(6, 3),
+        confettiPaint,
+      );
+    }
+
+    final doodlePaint = Paint()
+      ..color = line
+      ..strokeWidth = 1.2
+      ..style = PaintingStyle.stroke;
+    final doodle = Path()
+      ..moveTo(18, size.height * 0.58)
+      ..quadraticBezierTo(
+        size.width * 0.22,
+        size.height * 0.48,
+        size.width * 0.34,
+        size.height * 0.6,
+      )
+      ..quadraticBezierTo(
+        size.width * 0.48,
+        size.height * 0.72,
+        size.width * 0.68,
+        size.height * 0.54,
+      )
+      ..quadraticBezierTo(
+        size.width * 0.84,
+        size.height * 0.42,
+        size.width - 18,
+        size.height * 0.5,
+      );
+    canvas.drawPath(doodle, doodlePaint);
+  }
+
+  @override
+  bool shouldRepaint(covariant _KidPinkBackgroundPainter oldDelegate) {
+    return oldDelegate.primary != primary ||
+        oldDelegate.secondary != secondary ||
+        oldDelegate.line != line;
+  }
+}
+
+class _HappyBoyBackgroundPainter extends CustomPainter {
+  const _HappyBoyBackgroundPainter({
+    required this.primary,
+    required this.secondary,
+    required this.line,
+  });
+
+  final Color primary;
+  final Color secondary;
+  final Color line;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final stripePaint = Paint()
+      ..color = primary
+      ..strokeWidth = 20;
+    for (double x = -60; x < size.width + 60; x += 86) {
+      canvas.drawLine(
+        Offset(x, size.height),
+        Offset(x + 54, size.height * 0.42),
+        stripePaint,
+      );
+    }
+
+    canvas.drawCircle(
+      const Offset(74, 78),
+      42,
+      Paint()..color = secondary.withValues(alpha: 0.72),
+    );
+
+    final orbitPaint = Paint()
+      ..color = line
+      ..strokeWidth = 1.4
+      ..style = PaintingStyle.stroke;
+    canvas.drawArc(
+      Rect.fromCircle(
+        center: Offset(size.width * 0.82, size.height * 0.2),
+        radius: size.shortestSide * 0.18,
+      ),
+      2.8,
+      2.2,
+      false,
+      orbitPaint,
+    );
+    canvas.drawArc(
+      Rect.fromCircle(
+        center: Offset(size.width * 0.22, size.height * 0.84),
+        radius: size.shortestSide * 0.24,
+      ),
+      5.1,
+      1.7,
+      false,
+      orbitPaint,
+    );
+  }
+
+  @override
+  bool shouldRepaint(covariant _HappyBoyBackgroundPainter oldDelegate) {
     return oldDelegate.primary != primary ||
         oldDelegate.secondary != secondary ||
         oldDelegate.line != line;

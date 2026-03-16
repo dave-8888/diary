@@ -1,6 +1,8 @@
 import 'package:diary_mvp/app/app_display_name.dart';
 import 'package:diary_mvp/app/app_icon.dart';
+import 'package:diary_mvp/app/localization/app_locale.dart';
 import 'package:diary_mvp/app/localization/app_strings.dart';
+import 'package:diary_mvp/app/theme.dart';
 import 'package:diary_mvp/features/diary/application/diary_controller.dart';
 import 'package:diary_mvp/features/diary/domain/diary_entry.dart';
 import 'package:diary_mvp/features/diary/presentation/widgets/diary_shell.dart';
@@ -26,6 +28,8 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
   bool _isResettingAppName = false;
   bool _isResettingApiKey = false;
   bool _isChangingIcon = false;
+  bool _isChangingTheme = false;
+  bool _isChangingLanguage = false;
   bool _isResettingMoods = false;
   bool _showApiKey = false;
 
@@ -54,6 +58,12 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
     final apiKeyAsync = ref.watch(transcriptionApiKeyControllerProvider);
     final iconPreset =
         resolveAppIconPreset(ref.watch(appIconControllerProvider));
+    final selectedTheme = resolveThemePreset(
+      ref.watch(appThemeControllerProvider),
+    );
+    final selectedLanguage = resolveAppLanguage(
+      ref.watch(appLanguageProvider),
+    );
     final moodLibraryAsync = ref.watch(moodLibraryControllerProvider);
 
     if (!_appNameInitialized && customAppNameAsync.hasValue) {
@@ -79,6 +89,54 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
           constraints: const BoxConstraints(maxWidth: 980),
           child: ListView(
             children: [
+              _buildSectionCard(
+                context: context,
+                icon: Icons.palette_outlined,
+                title: strings.theme,
+                subtitle: strings.themeSettingsHint,
+                child: Wrap(
+                  spacing: 12,
+                  runSpacing: 12,
+                  children: DiaryThemePreset.values
+                      .map(
+                        (themePreset) => ChoiceChip(
+                          selected: themePreset == selectedTheme,
+                          onSelected: _isChangingTheme
+                              ? null
+                              : (_) => _changeTheme(themePreset),
+                          avatar: Icon(
+                            _themeIcon(themePreset),
+                            size: 18,
+                          ),
+                          label: Text(strings.titleForTheme(themePreset)),
+                        ),
+                      )
+                      .toList(growable: false),
+                ),
+              ),
+              const SizedBox(height: 18),
+              _buildSectionCard(
+                context: context,
+                icon: Icons.language_outlined,
+                title: strings.language,
+                subtitle: strings.languageSettingsHint,
+                child: Wrap(
+                  spacing: 12,
+                  runSpacing: 12,
+                  children: AppLanguage.values
+                      .map(
+                        (language) => ChoiceChip(
+                          selected: language == selectedLanguage,
+                          onSelected: _isChangingLanguage
+                              ? null
+                              : (_) => _changeLanguage(language),
+                          label: Text(strings.titleForLanguage(language)),
+                        ),
+                      )
+                      .toList(growable: false),
+                ),
+              ),
+              const SizedBox(height: 18),
               _buildSectionCard(
                 context: context,
                 icon: Icons.badge_outlined,
@@ -425,6 +483,44 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
     }
   }
 
+  Future<void> _changeTheme(DiaryThemePreset preset) async {
+    final strings = context.strings;
+    setState(() => _isChangingTheme = true);
+    try {
+      await ref.read(appThemeControllerProvider.notifier).setTheme(preset);
+      if (!mounted) return;
+      setState(() => _isChangingTheme = false);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(strings.themeUpdated)),
+      );
+    } catch (error) {
+      if (!mounted) return;
+      setState(() => _isChangingTheme = false);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(strings.themeUpdateFailed(error))),
+      );
+    }
+  }
+
+  Future<void> _changeLanguage(AppLanguage language) async {
+    final strings = context.strings;
+    setState(() => _isChangingLanguage = true);
+    try {
+      await ref.read(appLanguageProvider.notifier).setLanguage(language);
+      if (!mounted) return;
+      setState(() => _isChangingLanguage = false);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(strings.languageUpdated)),
+      );
+    } catch (error) {
+      if (!mounted) return;
+      setState(() => _isChangingLanguage = false);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(strings.languageUpdateFailed(error))),
+      );
+    }
+  }
+
   Future<void> _resetAppName() async {
     final strings = context.strings;
     setState(() => _isResettingAppName = true);
@@ -663,6 +759,29 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text(strings.moodResetFailed(error))),
       );
+    }
+  }
+
+  IconData _themeIcon(DiaryThemePreset theme) {
+    switch (theme) {
+      case DiaryThemePreset.daylight:
+        return Icons.wb_sunny_outlined;
+      case DiaryThemePreset.girlPink:
+        return Icons.favorite_border;
+      case DiaryThemePreset.barbieShockPink:
+        return Icons.auto_awesome;
+      case DiaryThemePreset.kidPink:
+        return Icons.toys_outlined;
+      case DiaryThemePreset.happyBoy:
+        return Icons.sports_basketball_outlined;
+      case DiaryThemePreset.night:
+        return Icons.dark_mode_outlined;
+      case DiaryThemePreset.cyberpunk:
+        return Icons.bolt_outlined;
+      case DiaryThemePreset.hacker:
+        return Icons.memory_outlined;
+      case DiaryThemePreset.spaceLines:
+        return Icons.rocket_launch_outlined;
     }
   }
 }

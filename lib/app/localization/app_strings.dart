@@ -54,6 +54,22 @@ class AppStrings {
   String get settingsTooltip =>
       isChinese ? '\u6253\u5f00\u8bbe\u7f6e' : 'Open settings';
   String get language => isChinese ? '\u8bed\u8a00' : 'Language';
+  String get themeSettingsHint => isChinese
+      ? '\u5207\u6362\u5e94\u7528\u4e3b\u9898\uff0c\u4e0d\u540c\u4e3b\u9898\u4f1a\u6709\u4e0d\u540c\u7684\u9996\u9875\u5934\u56fe\u548c\u80cc\u666f\u98ce\u683c\u3002'
+      : 'Switch the app theme. Each theme comes with its own home hero and background style.';
+  String get themeUpdated =>
+      isChinese ? '\u4e3b\u9898\u5df2\u66f4\u65b0\u3002' : 'Theme updated.';
+  String themeUpdateFailed(Object error) => isChinese
+      ? '\u4fdd\u5b58\u4e3b\u9898\u5931\u8d25\uff1a$error'
+      : 'Failed to save theme: $error';
+  String get languageSettingsHint => isChinese
+      ? '\u9009\u62e9\u5e94\u7528\u754c\u9762\u8bed\u8a00\uff0c\u4e5f\u53ef\u4ee5\u8ddf\u968f\u7cfb\u7edf\u3002'
+      : 'Choose the app language or follow the system setting.';
+  String get languageUpdated =>
+      isChinese ? '\u8bed\u8a00\u5df2\u66f4\u65b0\u3002' : 'Language updated.';
+  String languageUpdateFailed(Object error) => isChinese
+      ? '\u4fdd\u5b58\u8bed\u8a00\u5931\u8d25\uff1a$error'
+      : 'Failed to save language: $error';
   String get saveAction => isChinese ? '\u4fdd\u5b58' : 'Save';
   String get systemLanguage =>
       isChinese ? '\u8ddf\u968f\u7cfb\u7edf' : 'System';
@@ -77,6 +93,18 @@ class AppStrings {
         return isChinese
             ? '\u767d\u5929\u4e3b\u9898\uff08\u9ed8\u8ba4\uff09'
             : 'Day Theme (Default)';
+      case DiaryThemePreset.girlPink:
+        return isChinese ? '\u5c11\u5973\u7c89' : 'Girl Pink';
+      case DiaryThemePreset.barbieShockPink:
+        return isChinese
+            ? '\u6b7b\u4ea1\u82ad\u6bd4\u7c89'
+            : 'Barbie Shock Pink';
+      case DiaryThemePreset.kidPink:
+        return isChinese
+            ? '\u5feb\u4e50\u7684\u5c0f\u5b69\u7c89'
+            : 'Happy Kid Pink';
+      case DiaryThemePreset.happyBoy:
+        return isChinese ? '\u5feb\u4e50\u7684\u7537\u5b69' : 'Happy Boy';
       case DiaryThemePreset.night:
         return isChinese ? '\u591c\u95f4\u4e3b\u9898' : 'Night Theme';
       case DiaryThemePreset.cyberpunk:
@@ -111,6 +139,14 @@ class AppStrings {
     switch (themePreset) {
       case DiaryThemePreset.daylight:
         return isChinese ? '\u6668\u5149\u8bb0\u5f55' : 'DAYLIGHT LOG';
+      case DiaryThemePreset.girlPink:
+        return isChinese ? '\u7c89\u8272\u5fc3\u4e8b' : 'ROSE LETTER';
+      case DiaryThemePreset.barbieShockPink:
+        return isChinese ? '\u70ed\u7c89\u5931\u63a7' : 'HOT PINK ALERT';
+      case DiaryThemePreset.kidPink:
+        return isChinese ? '\u7cd6\u679c\u5192\u9669' : 'CANDY PLAY';
+      case DiaryThemePreset.happyBoy:
+        return isChinese ? '\u84dd\u5929\u4ff1\u4e50\u90e8' : 'SUNNY CLUB';
       case DiaryThemePreset.night:
         return isChinese ? '\u591c\u822a\u6a21\u5f0f' : 'NIGHT WATCH';
       case DiaryThemePreset.cyberpunk:

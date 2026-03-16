@@ -35,13 +35,6 @@ class HomePage extends ConsumerWidget {
 
     return DiaryShell(
       title: appTitle,
-      actions: [
-        IconButton(
-          onPressed: () => context.push('/settings'),
-          tooltip: strings.settingsTooltip,
-          icon: const Icon(Icons.settings_outlined),
-        ),
-      ],
       floatingActionButton: FloatingActionButton.extended(
         onPressed: () => context.go('/editor'),
         icon: const Icon(Icons.add),
@@ -177,6 +170,38 @@ class _OverviewHero extends StatelessWidget {
     switch (themePreset) {
       case DiaryThemePreset.daylight:
         return _DaylightHero(
+          latest: latest,
+          entryCount: entryCount,
+          selectedTag: selectedTag,
+          summaryText: summaryText,
+          detailText: detailText,
+        );
+      case DiaryThemePreset.girlPink:
+        return _GirlPinkHero(
+          latest: latest,
+          entryCount: entryCount,
+          selectedTag: selectedTag,
+          summaryText: summaryText,
+          detailText: detailText,
+        );
+      case DiaryThemePreset.barbieShockPink:
+        return _BarbieShockHero(
+          latest: latest,
+          entryCount: entryCount,
+          selectedTag: selectedTag,
+          summaryText: summaryText,
+          detailText: detailText,
+        );
+      case DiaryThemePreset.kidPink:
+        return _KidPinkHero(
+          latest: latest,
+          entryCount: entryCount,
+          selectedTag: selectedTag,
+          summaryText: summaryText,
+          detailText: detailText,
+        );
+      case DiaryThemePreset.happyBoy:
+        return _HappyBoyHero(
           latest: latest,
           entryCount: entryCount,
           selectedTag: selectedTag,
@@ -483,6 +508,534 @@ class _DaylightHero extends StatelessWidget {
                   chipBackground: Colors.white.withValues(alpha: 0.82),
                   chipBorder:
                       colorScheme.outlineVariant.withValues(alpha: 0.68),
+                  chipIcon: colorScheme.primary,
+                  chipText: colorScheme.onSurface,
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _GirlPinkHero extends StatelessWidget {
+  const _GirlPinkHero({
+    required this.latest,
+    required this.entryCount,
+    required this.selectedTag,
+    required this.summaryText,
+    required this.detailText,
+  });
+
+  final DiaryEntry? latest;
+  final int entryCount;
+  final String? selectedTag;
+  final String summaryText;
+  final String detailText;
+
+  @override
+  Widget build(BuildContext context) {
+    final strings = context.strings;
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+
+    return Container(
+      constraints: const BoxConstraints(minHeight: 228),
+      decoration: BoxDecoration(
+        gradient: const LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [
+            Color(0xFFFFF9FD),
+            Color(0xFFFFE6F2),
+            Color(0xFFFFFCFE),
+          ],
+        ),
+        borderRadius: BorderRadius.circular(30),
+        border: Border.all(
+          color: colorScheme.primary.withValues(alpha: 0.18),
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: colorScheme.primary.withValues(alpha: 0.08),
+            blurRadius: 26,
+            offset: const Offset(0, 16),
+          ),
+        ],
+      ),
+      child: Stack(
+        children: [
+          Positioned.fill(
+            child: CustomPaint(
+              painter: _GirlPinkHeroPainter(
+                primary: colorScheme.primary.withValues(alpha: 0.18),
+                secondary: colorScheme.secondary.withValues(alpha: 0.24),
+                line: colorScheme.primary.withValues(alpha: 0.12),
+              ),
+            ),
+          ),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(24, 22, 24, 22),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    _HeroHeaderBadge(
+                      label:
+                          strings.heroLabelForTheme(DiaryThemePreset.girlPink),
+                      icon: Icons.favorite_border,
+                      backgroundColor: Colors.white.withValues(alpha: 0.78),
+                      borderColor: colorScheme.primary.withValues(alpha: 0.18),
+                      textColor: colorScheme.primary,
+                      iconColor: colorScheme.primary,
+                    ),
+                    const Spacer(),
+                    Icon(
+                      Icons.auto_awesome_outlined,
+                      size: 18,
+                      color: colorScheme.primary.withValues(alpha: 0.78),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 18),
+                Text(
+                  strings.dayHeading(DateTime.now()),
+                  style: theme.textTheme.titleLarge?.copyWith(
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+                const SizedBox(height: 10),
+                Text(
+                  summaryText,
+                  style: theme.textTheme.headlineMedium?.copyWith(
+                    fontWeight: FontWeight.w800,
+                    height: 1.12,
+                    color: colorScheme.onSurface,
+                  ),
+                ),
+                const SizedBox(height: 12),
+                ConstrainedBox(
+                  constraints: const BoxConstraints(maxWidth: 760),
+                  child: Text(
+                    detailText,
+                    maxLines: 3,
+                    overflow: TextOverflow.ellipsis,
+                    style: theme.textTheme.bodyLarge?.copyWith(
+                      color: colorScheme.onSurface.withValues(alpha: 0.82),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 18),
+                _HeroMetricWrap(
+                  latest: latest,
+                  entryCount: entryCount,
+                  selectedTag: selectedTag,
+                  chipBackground: Colors.white.withValues(alpha: 0.82),
+                  chipBorder: colorScheme.primary.withValues(alpha: 0.16),
+                  chipIcon: colorScheme.primary,
+                  chipText: colorScheme.onSurface,
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _BarbieShockHero extends StatelessWidget {
+  const _BarbieShockHero({
+    required this.latest,
+    required this.entryCount,
+    required this.selectedTag,
+    required this.summaryText,
+    required this.detailText,
+  });
+
+  final DiaryEntry? latest;
+  final int entryCount;
+  final String? selectedTag;
+  final String summaryText;
+  final String detailText;
+
+  @override
+  Widget build(BuildContext context) {
+    final strings = context.strings;
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+
+    return Container(
+      constraints: const BoxConstraints(minHeight: 228),
+      decoration: BoxDecoration(
+        gradient: const LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [
+            Color(0xFFFF2D9B),
+            Color(0xFFFF1493),
+            Color(0xFFFF72C8),
+          ],
+        ),
+        borderRadius: BorderRadius.circular(24),
+        border: Border.all(
+          color: Colors.white.withValues(alpha: 0.28),
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: colorScheme.primary.withValues(alpha: 0.22),
+            blurRadius: 28,
+            offset: const Offset(0, 18),
+          ),
+        ],
+      ),
+      child: Stack(
+        children: [
+          Positioned.fill(
+            child: CustomPaint(
+              painter: _BarbieShockHeroPainter(
+                primary: Colors.white.withValues(alpha: 0.16),
+                secondary: colorScheme.secondary.withValues(alpha: 0.34),
+                line: Colors.black.withValues(alpha: 0.08),
+              ),
+            ),
+          ),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(24, 22, 24, 22),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    _HeroHeaderBadge(
+                      label: strings.heroLabelForTheme(
+                        DiaryThemePreset.barbieShockPink,
+                      ),
+                      icon: Icons.auto_awesome,
+                      backgroundColor: Colors.white.withValues(alpha: 0.16),
+                      borderColor: Colors.white.withValues(alpha: 0.28),
+                      textColor: Colors.white,
+                      iconColor: Colors.white,
+                    ),
+                    const Spacer(),
+                    Text(
+                      'GLOSS',
+                      style: theme.textTheme.labelLarge?.copyWith(
+                        color: Colors.white.withValues(alpha: 0.86),
+                        fontWeight: FontWeight.w700,
+                        letterSpacing: 1.4,
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 18),
+                Text(
+                  strings.dayHeading(DateTime.now()),
+                  style: theme.textTheme.titleLarge?.copyWith(
+                    color: Colors.white,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+                const SizedBox(height: 10),
+                Text(
+                  summaryText,
+                  style: theme.textTheme.headlineMedium?.copyWith(
+                    color: Colors.white,
+                    fontWeight: FontWeight.w900,
+                    height: 1.06,
+                  ),
+                ),
+                const SizedBox(height: 12),
+                ConstrainedBox(
+                  constraints: const BoxConstraints(maxWidth: 760),
+                  child: Text(
+                    detailText,
+                    maxLines: 3,
+                    overflow: TextOverflow.ellipsis,
+                    style: theme.textTheme.bodyLarge?.copyWith(
+                      color: Colors.white.withValues(alpha: 0.92),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 18),
+                _HeroMetricWrap(
+                  latest: latest,
+                  entryCount: entryCount,
+                  selectedTag: selectedTag,
+                  chipBackground: Colors.white.withValues(alpha: 0.14),
+                  chipBorder: Colors.white.withValues(alpha: 0.28),
+                  chipIcon: Colors.white,
+                  chipText: Colors.white,
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _KidPinkHero extends StatelessWidget {
+  const _KidPinkHero({
+    required this.latest,
+    required this.entryCount,
+    required this.selectedTag,
+    required this.summaryText,
+    required this.detailText,
+  });
+
+  final DiaryEntry? latest;
+  final int entryCount;
+  final String? selectedTag;
+  final String summaryText;
+  final String detailText;
+
+  @override
+  Widget build(BuildContext context) {
+    final strings = context.strings;
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+
+    return Container(
+      constraints: const BoxConstraints(minHeight: 228),
+      decoration: BoxDecoration(
+        gradient: const LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [
+            Color(0xFFFFFCF3),
+            Color(0xFFFFE8F5),
+            Color(0xFFFFF8E1),
+          ],
+        ),
+        borderRadius: BorderRadius.circular(32),
+        border: Border.all(
+          color: colorScheme.primary.withValues(alpha: 0.14),
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: colorScheme.primary.withValues(alpha: 0.08),
+            blurRadius: 24,
+            offset: const Offset(0, 16),
+          ),
+        ],
+      ),
+      child: Stack(
+        children: [
+          Positioned.fill(
+            child: CustomPaint(
+              painter: _KidPinkHeroPainter(
+                primary: colorScheme.primary.withValues(alpha: 0.18),
+                secondary: colorScheme.secondary.withValues(alpha: 0.3),
+                line: colorScheme.primary.withValues(alpha: 0.1),
+              ),
+            ),
+          ),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(24, 22, 24, 22),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    _HeroHeaderBadge(
+                      label:
+                          strings.heroLabelForTheme(DiaryThemePreset.kidPink),
+                      icon: Icons.toys_outlined,
+                      backgroundColor: Colors.white.withValues(alpha: 0.82),
+                      borderColor:
+                          colorScheme.secondary.withValues(alpha: 0.34),
+                      textColor: colorScheme.primary,
+                      iconColor: colorScheme.secondary,
+                    ),
+                    const Spacer(),
+                    Icon(
+                      Icons.celebration_outlined,
+                      size: 18,
+                      color: colorScheme.secondary,
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 18),
+                Text(
+                  strings.dayHeading(DateTime.now()),
+                  style: theme.textTheme.titleLarge?.copyWith(
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+                const SizedBox(height: 10),
+                Text(
+                  summaryText,
+                  style: theme.textTheme.headlineMedium?.copyWith(
+                    fontWeight: FontWeight.w800,
+                    height: 1.1,
+                  ),
+                ),
+                const SizedBox(height: 12),
+                ConstrainedBox(
+                  constraints: const BoxConstraints(maxWidth: 760),
+                  child: Text(
+                    detailText,
+                    maxLines: 3,
+                    overflow: TextOverflow.ellipsis,
+                    style: theme.textTheme.bodyLarge?.copyWith(
+                      color: colorScheme.onSurface.withValues(alpha: 0.82),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 18),
+                _HeroMetricWrap(
+                  latest: latest,
+                  entryCount: entryCount,
+                  selectedTag: selectedTag,
+                  chipBackground: Colors.white.withValues(alpha: 0.84),
+                  chipBorder:
+                      colorScheme.outlineVariant.withValues(alpha: 0.52),
+                  chipIcon: colorScheme.primary,
+                  chipText: colorScheme.onSurface,
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _HappyBoyHero extends StatelessWidget {
+  const _HappyBoyHero({
+    required this.latest,
+    required this.entryCount,
+    required this.selectedTag,
+    required this.summaryText,
+    required this.detailText,
+  });
+
+  final DiaryEntry? latest;
+  final int entryCount;
+  final String? selectedTag;
+  final String summaryText;
+  final String detailText;
+
+  @override
+  Widget build(BuildContext context) {
+    final strings = context.strings;
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+
+    return Container(
+      constraints: const BoxConstraints(minHeight: 228),
+      decoration: BoxDecoration(
+        gradient: const LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [
+            Color(0xFFF4FBFF),
+            Color(0xFFDDF1FF),
+            Color(0xFFFFF3CF),
+          ],
+        ),
+        borderRadius: BorderRadius.circular(26),
+        border: Border.all(
+          color: colorScheme.primary.withValues(alpha: 0.16),
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: colorScheme.primary.withValues(alpha: 0.1),
+            blurRadius: 24,
+            offset: const Offset(0, 16),
+          ),
+        ],
+      ),
+      child: Stack(
+        children: [
+          Positioned.fill(
+            child: CustomPaint(
+              painter: _HappyBoyHeroPainter(
+                primary: colorScheme.primary.withValues(alpha: 0.16),
+                secondary: colorScheme.secondary.withValues(alpha: 0.28),
+                line: colorScheme.primary.withValues(alpha: 0.1),
+              ),
+            ),
+          ),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(24, 22, 24, 22),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    _HeroHeaderBadge(
+                      label:
+                          strings.heroLabelForTheme(DiaryThemePreset.happyBoy),
+                      icon: Icons.sports_basketball_outlined,
+                      backgroundColor: Colors.white.withValues(alpha: 0.82),
+                      borderColor: colorScheme.primary.withValues(alpha: 0.18),
+                      textColor: colorScheme.primary,
+                      iconColor: colorScheme.primary,
+                    ),
+                    const Spacer(),
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 10,
+                        vertical: 6,
+                      ),
+                      decoration: BoxDecoration(
+                        color: colorScheme.secondary.withValues(alpha: 0.18),
+                        borderRadius: BorderRadius.circular(999),
+                      ),
+                      child: Text(
+                        'GO',
+                        style: theme.textTheme.labelLarge?.copyWith(
+                          color: colorScheme.primary,
+                          fontWeight: FontWeight.w800,
+                          letterSpacing: 1.1,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 18),
+                Text(
+                  strings.dayHeading(DateTime.now()),
+                  style: theme.textTheme.titleLarge?.copyWith(
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+                const SizedBox(height: 10),
+                Text(
+                  summaryText,
+                  style: theme.textTheme.headlineMedium?.copyWith(
+                    fontWeight: FontWeight.w900,
+                    height: 1.08,
+                    color: colorScheme.onSurface,
+                  ),
+                ),
+                const SizedBox(height: 12),
+                ConstrainedBox(
+                  constraints: const BoxConstraints(maxWidth: 760),
+                  child: Text(
+                    detailText,
+                    maxLines: 3,
+                    overflow: TextOverflow.ellipsis,
+                    style: theme.textTheme.bodyLarge?.copyWith(
+                      color: colorScheme.onSurface.withValues(alpha: 0.84),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 18),
+                _HeroMetricWrap(
+                  latest: latest,
+                  entryCount: entryCount,
+                  selectedTag: selectedTag,
+                  chipBackground: Colors.white.withValues(alpha: 0.84),
+                  chipBorder:
+                      colorScheme.outlineVariant.withValues(alpha: 0.54),
                   chipIcon: colorScheme.primary,
                   chipText: colorScheme.onSurface,
                 ),
@@ -1055,6 +1608,264 @@ class _SpaceMetricChip extends StatelessWidget {
         ],
       ),
     );
+  }
+}
+
+class _GirlPinkHeroPainter extends CustomPainter {
+  const _GirlPinkHeroPainter({
+    required this.primary,
+    required this.secondary,
+    required this.line,
+  });
+
+  final Color primary;
+  final Color secondary;
+  final Color line;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    canvas.drawCircle(
+      Offset(size.width - 70, 56),
+      46,
+      Paint()..color = secondary,
+    );
+
+    final ribbonPaint = Paint()
+      ..color = line
+      ..strokeWidth = 1.2
+      ..style = PaintingStyle.stroke;
+    final ribbon = Path()
+      ..moveTo(18, size.height * 0.36)
+      ..quadraticBezierTo(
+        size.width * 0.2,
+        size.height * 0.22,
+        size.width * 0.36,
+        size.height * 0.34,
+      )
+      ..quadraticBezierTo(
+        size.width * 0.52,
+        size.height * 0.46,
+        size.width * 0.74,
+        size.height * 0.28,
+      )
+      ..quadraticBezierTo(
+        size.width * 0.88,
+        size.height * 0.18,
+        size.width - 20,
+        size.height * 0.26,
+      );
+    canvas.drawPath(ribbon, ribbonPaint);
+
+    for (final point in <Offset>[
+      const Offset(58, 54),
+      Offset(size.width * 0.26, 76),
+      Offset(size.width * 0.7, 88),
+    ]) {
+      final sparklePaint = Paint()
+        ..color = primary.withValues(alpha: 0.56)
+        ..strokeWidth = 1
+        ..strokeCap = StrokeCap.round;
+      canvas.drawLine(
+        point.translate(-4, 0),
+        point.translate(4, 0),
+        sparklePaint,
+      );
+      canvas.drawLine(
+        point.translate(0, -4),
+        point.translate(0, 4),
+        sparklePaint,
+      );
+    }
+  }
+
+  @override
+  bool shouldRepaint(covariant _GirlPinkHeroPainter oldDelegate) {
+    return oldDelegate.primary != primary ||
+        oldDelegate.secondary != secondary ||
+        oldDelegate.line != line;
+  }
+}
+
+class _BarbieShockHeroPainter extends CustomPainter {
+  const _BarbieShockHeroPainter({
+    required this.primary,
+    required this.secondary,
+    required this.line,
+  });
+
+  final Color primary;
+  final Color secondary;
+  final Color line;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    canvas.drawRect(
+      Rect.fromLTWH(size.width * 0.58, 0, size.width * 0.32, size.height),
+      Paint()
+        ..shader = LinearGradient(
+          begin: Alignment.topCenter,
+          end: Alignment.bottomCenter,
+          colors: [
+            primary.withValues(alpha: 0),
+            primary,
+            primary.withValues(alpha: 0),
+          ],
+        ).createShader(
+          Rect.fromLTWH(size.width * 0.58, 0, size.width * 0.32, size.height),
+        ),
+    );
+
+    final slashPaint = Paint()
+      ..color = secondary
+      ..strokeWidth = 2.1
+      ..strokeCap = StrokeCap.round;
+    for (double offset = -40; offset < size.width + 80; offset += 52) {
+      canvas.drawLine(
+        Offset(offset, size.height * 0.22),
+        Offset(offset + 70, 0),
+        slashPaint,
+      );
+    }
+
+    canvas.drawRRect(
+      RRect.fromRectAndRadius(
+        Rect.fromLTWH(16, 16, size.width - 32, size.height - 32),
+        const Radius.circular(20),
+      ),
+      Paint()
+        ..color = line
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 1.2,
+    );
+  }
+
+  @override
+  bool shouldRepaint(covariant _BarbieShockHeroPainter oldDelegate) {
+    return oldDelegate.primary != primary ||
+        oldDelegate.secondary != secondary ||
+        oldDelegate.line != line;
+  }
+}
+
+class _KidPinkHeroPainter extends CustomPainter {
+  const _KidPinkHeroPainter({
+    required this.primary,
+    required this.secondary,
+    required this.line,
+  });
+
+  final Color primary;
+  final Color secondary;
+  final Color line;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    for (final circle in <(Offset, double, Color)>[
+      (const Offset(62, 56), 18, secondary),
+      (Offset(size.width - 70, 68), 26, primary),
+      (Offset(size.width * 0.74, size.height * 0.78), 14, secondary),
+    ]) {
+      canvas.drawCircle(circle.$1, circle.$2, Paint()..color = circle.$3);
+    }
+
+    final confettiPaint = Paint()
+      ..color = line
+      ..strokeWidth = 1.1
+      ..strokeCap = StrokeCap.round;
+    for (final point in <Offset>[
+      const Offset(118, 44),
+      Offset(size.width * 0.36, 58),
+      Offset(size.width * 0.58, 44),
+      Offset(size.width * 0.84, 98),
+    ]) {
+      canvas.drawLine(
+        point.translate(-4, -2),
+        point.translate(4, 2),
+        confettiPaint,
+      );
+    }
+
+    final wave = Path()
+      ..moveTo(20, size.height * 0.64)
+      ..quadraticBezierTo(
+        size.width * 0.24,
+        size.height * 0.52,
+        size.width * 0.4,
+        size.height * 0.68,
+      )
+      ..quadraticBezierTo(
+        size.width * 0.58,
+        size.height * 0.82,
+        size.width * 0.82,
+        size.height * 0.62,
+      );
+    canvas.drawPath(
+      wave,
+      Paint()
+        ..color = primary.withValues(alpha: 0.5)
+        ..strokeWidth = 1.4
+        ..style = PaintingStyle.stroke,
+    );
+  }
+
+  @override
+  bool shouldRepaint(covariant _KidPinkHeroPainter oldDelegate) {
+    return oldDelegate.primary != primary ||
+        oldDelegate.secondary != secondary ||
+        oldDelegate.line != line;
+  }
+}
+
+class _HappyBoyHeroPainter extends CustomPainter {
+  const _HappyBoyHeroPainter({
+    required this.primary,
+    required this.secondary,
+    required this.line,
+  });
+
+  final Color primary;
+  final Color secondary;
+  final Color line;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final stripePaint = Paint()
+      ..color = primary
+      ..strokeWidth = 14;
+    for (double x = -20; x < size.width + 40; x += 66) {
+      canvas.drawLine(
+        Offset(x, size.height),
+        Offset(x + 42, size.height * 0.5),
+        stripePaint,
+      );
+    }
+
+    canvas.drawCircle(
+      const Offset(74, 64),
+      28,
+      Paint()..color = secondary,
+    );
+
+    canvas.drawArc(
+      Rect.fromCircle(
+        center: Offset(size.width * 0.86, size.height * 0.18),
+        radius: size.shortestSide * 0.18,
+      ),
+      2.8,
+      2.2,
+      false,
+      Paint()
+        ..color = line
+        ..strokeWidth = 1.4
+        ..style = PaintingStyle.stroke,
+    );
+  }
+
+  @override
+  bool shouldRepaint(covariant _HappyBoyHeroPainter oldDelegate) {
+    return oldDelegate.primary != primary ||
+        oldDelegate.secondary != secondary ||
+        oldDelegate.line != line;
   }
 }
 

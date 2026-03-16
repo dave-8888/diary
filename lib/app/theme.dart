@@ -8,6 +8,10 @@ import 'package:path_provider/path_provider.dart';
 
 enum DiaryThemePreset {
   daylight,
+  girlPink,
+  barbieShockPink,
+  kidPink,
+  happyBoy,
   night,
   cyberpunk,
   hacker,
@@ -103,6 +107,82 @@ ThemeData buildDiaryTheme(DiaryThemePreset preset) {
         scaffoldColor: const Color(0xFFF6F3EE),
         cardColor: Colors.white,
         inputFillColor: Colors.white,
+        cardRadius: 24,
+      );
+    case DiaryThemePreset.girlPink:
+      return _buildTheme(
+        colorScheme: const ColorScheme(
+          brightness: Brightness.light,
+          primary: Color(0xFFD46BA7),
+          onPrimary: Colors.white,
+          secondary: Color(0xFFF4B5CC),
+          onSecondary: Color(0xFF482137),
+          error: Color(0xFFCE3D5C),
+          onError: Colors.white,
+          surface: Color(0xFFFFFBFE),
+          onSurface: Color(0xFF3A2430),
+        ),
+        scaffoldColor: const Color(0xFFFFF5FA),
+        cardColor: const Color(0xFFFFFCFE),
+        inputFillColor: Colors.white,
+        outlineColor: const Color(0xFFE8C2D6),
+        cardRadius: 28,
+      );
+    case DiaryThemePreset.barbieShockPink:
+      return _buildTheme(
+        colorScheme: const ColorScheme(
+          brightness: Brightness.light,
+          primary: Color(0xFFFF1493),
+          onPrimary: Colors.white,
+          secondary: Color(0xFFFF72C8),
+          onSecondary: Color(0xFF420926),
+          error: Color(0xFFCF2354),
+          onError: Colors.white,
+          surface: Color(0xFFFFF6FB),
+          onSurface: Color(0xFF2D0C1D),
+        ),
+        scaffoldColor: const Color(0xFFFFEEF7),
+        cardColor: const Color(0xFFFFFBFE),
+        inputFillColor: Colors.white,
+        outlineColor: const Color(0xFFFF7BC4),
+        cardRadius: 22,
+      );
+    case DiaryThemePreset.kidPink:
+      return _buildTheme(
+        colorScheme: const ColorScheme(
+          brightness: Brightness.light,
+          primary: Color(0xFFFF7DB8),
+          onPrimary: Colors.white,
+          secondary: Color(0xFFFFD35B),
+          onSecondary: Color(0xFF4A3500),
+          error: Color(0xFFD94868),
+          onError: Colors.white,
+          surface: Color(0xFFFFFDFA),
+          onSurface: Color(0xFF472B37),
+        ),
+        scaffoldColor: const Color(0xFFFFF9EF),
+        cardColor: const Color(0xFFFFFEFC),
+        inputFillColor: Colors.white,
+        outlineColor: const Color(0xFFF3C4D7),
+        cardRadius: 30,
+      );
+    case DiaryThemePreset.happyBoy:
+      return _buildTheme(
+        colorScheme: const ColorScheme(
+          brightness: Brightness.light,
+          primary: Color(0xFF2395FF),
+          onPrimary: Colors.white,
+          secondary: Color(0xFFFFB530),
+          onSecondary: Color(0xFF4A2D00),
+          error: Color(0xFFD94F40),
+          onError: Colors.white,
+          surface: Color(0xFFFFFEFB),
+          onSurface: Color(0xFF15314A),
+        ),
+        scaffoldColor: const Color(0xFFF3FAFF),
+        cardColor: const Color(0xFFFFFFFF),
+        inputFillColor: Colors.white,
+        outlineColor: const Color(0xFFBDD8F3),
         cardRadius: 24,
       );
     case DiaryThemePreset.night:
