@@ -162,7 +162,7 @@ class DiaryCard extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         if (imageMedia.isNotEmpty) ...[
-          ImageMediaGrid(media: imageMedia),
+          _buildCompactImageGrid(imageMedia),
           const SizedBox(height: 16),
         ],
         if (hasContent)
@@ -196,6 +196,23 @@ class DiaryCard extends StatelessWidget {
           ),
         ],
       ],
+    );
+  }
+
+  Widget _buildCompactImageGrid(List<DiaryMedia> imageMedia) {
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final maxWidth =
+            constraints.maxWidth >= 720 ? 360.0 : constraints.maxWidth;
+
+        return Align(
+          alignment: Alignment.centerLeft,
+          child: ConstrainedBox(
+            constraints: BoxConstraints(maxWidth: maxWidth),
+            child: ImageMediaGrid(media: imageMedia),
+          ),
+        );
+      },
     );
   }
 
