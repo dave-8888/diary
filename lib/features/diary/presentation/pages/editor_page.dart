@@ -36,17 +36,20 @@ class _EditorPageState extends ConsumerState<EditorPage> {
   final _titleController = TextEditingController();
   final _contentController = TextEditingController();
   final _locationController = TextEditingController();
+  final _tagController = TextEditingController();
   final _uuid = const Uuid();
   final AudioRecorder _audioRecorder = AudioRecorder();
 
   DiaryMood _mood = DiaryMood.calm;
   final List<DiaryMedia> _media = [];
+  final List<String> _tags = [];
 
   bool _isSaving = false;
   bool _isDeleting = false;
   bool _isRecording = false;
   bool _isTranscribing = false;
   bool _isLocating = false;
+  bool _isManagingTags = false;
   DateTime? _recordingStartedAt;
 
   bool get _isEditing => widget.entry != null;
@@ -62,6 +65,7 @@ class _EditorPageState extends ConsumerState<EditorPage> {
     _locationController.text = entry.location ?? '';
     _mood = entry.mood;
     _media.addAll(entry.media);
+    _tags.addAll(entry.tags);
   }
 
   @override
@@ -69,6 +73,7 @@ class _EditorPageState extends ConsumerState<EditorPage> {
     _titleController.dispose();
     _contentController.dispose();
     _locationController.dispose();
+    _tagController.dispose();
     _audioRecorder.dispose();
     super.dispose();
   }
@@ -76,6 +81,7 @@ class _EditorPageState extends ConsumerState<EditorPage> {
   @override
   Widget build(BuildContext context) {
     final strings = context.strings;
+    final tagLibraryAsync = ref.watch(tagLibraryControllerProvider);
     final imageMedia =
         _media.where((item) => item.type == MediaType.image).toList();
     final videoMedia =
@@ -124,6 +130,8 @@ class _EditorPageState extends ConsumerState<EditorPage> {
                   children: [
                     ...mainSections,
                     const SizedBox(height: 24),
+                    _buildTagSection(context, strings, tagLibraryAsync),
+                    const SizedBox(height: 24),
                     _buildVideoSection(context, strings, videoMedia),
                   ],
                 );
@@ -140,6 +148,8 @@ class _EditorPageState extends ConsumerState<EditorPage> {
                     width: 320,
                     child: ListView(
                       children: [
+                        _buildTagSection(context, strings, tagLibraryAsync),
+                        const SizedBox(height: 16),
                         _buildVideoSection(context, strings, videoMedia),
                       ],
                     ),
@@ -317,46 +327,259 @@ class _EditorPageState extends ConsumerState<EditorPage> {
     ];
   }
 
+  Widget _buildTagSection(
+    BuildContext context,
+    AppStrings strings,
+    AsyncValue<List<String>> tagLibraryAsync,
+  ) {
+    return _buildSidebarCard(
+      context: context,
+      icon: Icons.sell_outlined,
+      title: strings.tagsLabel,
+      subtitle: strings.tagSidebarHint,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Expanded(
+                child: TextField(
+                  controller: _tagController,
+                  textInputAction: TextInputAction.done,
+                  onSubmitted: (_) => _createTagFromInput(),
+                  decoration: InputDecoration(
+                    labelText: strings.tagsLabel,
+                    hintText: strings.tagHint,
+                  ),
+                ),
+              ),
+              const SizedBox(width: 12),
+              FilledButton.tonalIcon(
+                onPressed: _isManagingTags ? null : _createTagFromInput,
+                icon: _isManagingTags
+                    ? const SizedBox(
+                        width: 18,
+                        height: 18,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      )
+                    : const Icon(Icons.add_rounded),
+                label: Text(strings.addTag),
+              ),
+            ],
+          ),
+          const SizedBox(height: 18),
+          Text(
+            strings.selectedTagsLabel,
+            style: Theme.of(context).textTheme.bodyMedium,
+          ),
+          const SizedBox(height: 12),
+          if (_tags.isNotEmpty)
+            Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              children: _tags
+                  .map(
+                    (tag) => Chip(
+                      label: Text(tag),
+                      onDeleted: () => setState(() => _tags.remove(tag)),
+                    ),
+                  )
+                  .toList(),
+            )
+          else
+            _buildSidebarEmptyState(
+              context,
+              icon: Icons.label_outline,
+              message: strings.noSelectedTags,
+            ),
+          const SizedBox(height: 18),
+          Text(
+            strings.tagLibraryLabel,
+            style: Theme.of(context).textTheme.bodyMedium,
+          ),
+          const SizedBox(height: 12),
+          tagLibraryAsync.when(
+            loading: () => const Align(
+              alignment: Alignment.centerLeft,
+              child: SizedBox(
+                width: 24,
+                height: 24,
+                child: CircularProgressIndicator(strokeWidth: 2),
+              ),
+            ),
+            error: (error, stack) => Text(strings.failedToLoadTags(error)),
+            data: (tags) {
+              if (tags.isEmpty) {
+                return _buildSidebarEmptyState(
+                  context,
+                  icon: Icons.inventory_2_outlined,
+                  message: strings.noTagsYet,
+                );
+              }
+
+              return Wrap(
+                spacing: 8,
+                runSpacing: 8,
+                children: tags
+                    .map(
+                      (tag) => InputChip(
+                        selected: _hasTag(tag),
+                        onSelected: _isManagingTags
+                            ? null
+                            : (_) => setState(() => _toggleTag(tag)),
+                        onDeleted: _isManagingTags
+                            ? null
+                            : () => _confirmDeleteLibraryTag(tag),
+                        deleteIcon: const Icon(Icons.delete_outline, size: 18),
+                        deleteButtonTooltipMessage:
+                            strings.removeTagFromLibrary,
+                        label: Text(tag),
+                      ),
+                    )
+                    .toList(),
+              );
+            },
+          ),
+        ],
+      ),
+    );
+  }
+
   Widget _buildVideoSection(
     BuildContext context,
     AppStrings strings,
     List<DiaryMedia> videoMedia,
   ) {
+    return _buildSidebarCard(
+      context: context,
+      icon: Icons.video_library_outlined,
+      title: strings.videoSidebarTitle,
+      subtitle: strings.videoSidebarHint,
+      child: videoMedia.isEmpty
+          ? _buildSidebarEmptyState(
+              context,
+              icon: Icons.videocam_outlined,
+              message: strings.recordVideo,
+            )
+          : Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: videoMedia
+                  .map(
+                    (media) => Padding(
+                      padding: const EdgeInsets.only(bottom: 12),
+                      child: VideoAttachmentCard(
+                        media: media,
+                        onTap: () => _openVideoPreview(media),
+                        onDeleted: () => setState(() => _media.remove(media)),
+                      ),
+                    ),
+                  )
+                  .toList(),
+            ),
+    );
+  }
+
+  Widget _buildSidebarCard({
+    required BuildContext context,
+    required IconData icon,
+    required String title,
+    required String subtitle,
+    required Widget child,
+  }) {
+    final theme = Theme.of(context);
+
     return Card(
+      clipBehavior: Clip.antiAlias,
       child: Padding(
         padding: const EdgeInsets.all(18),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(
-              strings.videoSidebarTitle,
-              style: Theme.of(context).textTheme.titleLarge,
-            ),
-            const SizedBox(height: 8),
-            Text(
-              strings.videoSidebarHint,
-              style: Theme.of(context).textTheme.bodySmall,
-            ),
-            if (videoMedia.isNotEmpty) const SizedBox(height: 16),
-            if (videoMedia.isEmpty)
-              Padding(
-                padding: const EdgeInsets.only(top: 18),
-                child: Text(
-                  strings.recordVideo,
-                  style: Theme.of(context).textTheme.titleMedium,
-                ),
-              )
-            else
-              ...videoMedia.map(
-                (media) => Padding(
-                  padding: const EdgeInsets.only(bottom: 12),
-                  child: VideoAttachmentCard(
-                    media: media,
-                    onTap: () => _openVideoPreview(media),
-                    onDeleted: () => setState(() => _media.remove(media)),
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Container(
+                  width: 40,
+                  height: 40,
+                  decoration: BoxDecoration(
+                    color: theme.colorScheme.secondaryContainer,
+                    borderRadius: BorderRadius.circular(14),
+                  ),
+                  alignment: Alignment.center,
+                  child: Icon(
+                    icon,
+                    color: theme.colorScheme.onSecondaryContainer,
                   ),
                 ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        title,
+                        style: theme.textTheme.titleLarge,
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        subtitle,
+                        style: theme.textTheme.bodySmall?.copyWith(
+                          color: theme.colorScheme.onSurfaceVariant,
+                          height: 1.35,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 16),
+            Divider(
+              height: 1,
+              color: theme.colorScheme.outlineVariant,
+            ),
+            const SizedBox(height: 16),
+            child,
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildSidebarEmptyState(
+    BuildContext context, {
+    required IconData icon,
+    required String message,
+  }) {
+    final theme = Theme.of(context);
+
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        color:
+            theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.55),
+        borderRadius: BorderRadius.circular(18),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 16),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Icon(
+              icon,
+              size: 20,
+              color: theme.colorScheme.onSurfaceVariant,
+            ),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Text(
+                message,
+                style: theme.textTheme.bodySmall?.copyWith(
+                  color: theme.colorScheme.onSurfaceVariant,
+                  height: 1.35,
+                ),
               ),
+            ),
           ],
         ),
       ),
@@ -534,6 +757,43 @@ class _EditorPageState extends ConsumerState<EditorPage> {
     return null;
   }
 
+  Future<void> _createTagFromInput() async {
+    final normalized = _normalizeTag(_tagController.text);
+    _tagController.clear();
+    if (normalized == null) return;
+    final alreadySelected = _hasTag(normalized);
+
+    setState(() {
+      _isManagingTags = true;
+      if (!alreadySelected) {
+        _tags.add(normalized);
+      }
+    });
+
+    final strings = context.strings;
+    try {
+      await ref.read(tagLibraryControllerProvider.notifier).saveTag(normalized);
+      if (!mounted) return;
+      setState(() => _isManagingTags = false);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(strings.tagAdded)),
+      );
+    } catch (error) {
+      if (!mounted) return;
+      setState(() {
+        _isManagingTags = false;
+        if (!alreadySelected) {
+          _tags.removeWhere(
+            (tag) => tag.toLowerCase() == normalized.toLowerCase(),
+          );
+        }
+      });
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(strings.tagSaveFailed(error))),
+      );
+    }
+  }
+
   Future<void> _fillCurrentLocation() async {
     final strings = context.strings;
     setState(() => _isLocating = true);
@@ -567,6 +827,7 @@ class _EditorPageState extends ConsumerState<EditorPage> {
     setState(() => _isSaving = true);
     final controller = ref.read(diaryControllerProvider.notifier);
     final media = List<DiaryMedia>.from(_media);
+    final tags = List<String>.from(_tags);
 
     try {
       if (_isEditing) {
@@ -576,6 +837,7 @@ class _EditorPageState extends ConsumerState<EditorPage> {
           content: _contentController.text,
           mood: _mood,
           location: _locationController.text,
+          tags: tags,
           media: media,
         );
       } else {
@@ -584,6 +846,7 @@ class _EditorPageState extends ConsumerState<EditorPage> {
           content: _contentController.text,
           mood: _mood,
           location: _locationController.text,
+          tags: tags,
           media: media,
         );
       }
@@ -648,6 +911,7 @@ class _EditorPageState extends ConsumerState<EditorPage> {
       location: _locationController.text.trim().isEmpty
           ? null
           : _locationController.text.trim(),
+      tags: List<String>.from(_tags),
       media: List<DiaryMedia>.from(_media),
     );
     setState(() => _isDeleting = true);
@@ -732,5 +996,66 @@ class _EditorPageState extends ConsumerState<EditorPage> {
       case null:
         return strings.locationLookupFailed(result.error);
     }
+  }
+
+  Future<void> _confirmDeleteLibraryTag(String tag) async {
+    final strings = context.strings;
+    final confirmed = await showDialog<bool>(
+          context: context,
+          builder: (dialogContext) => AlertDialog(
+            title: Text(strings.deleteTagConfirmTitle),
+            content: Text(strings.deleteTagConfirmMessage(tag)),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.of(dialogContext).pop(false),
+                child: Text(strings.cancelAction),
+              ),
+              FilledButton(
+                onPressed: () => Navigator.of(dialogContext).pop(true),
+                child: Text(strings.confirmDeleteTag),
+              ),
+            ],
+          ),
+        ) ??
+        false;
+
+    if (!confirmed || !mounted) return;
+
+    setState(() => _isManagingTags = true);
+    try {
+      await ref.read(tagLibraryControllerProvider.notifier).deleteTag(tag);
+      if (!mounted) return;
+      setState(() {
+        _isManagingTags = false;
+        _tags.removeWhere((item) => item.toLowerCase() == tag.toLowerCase());
+      });
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(strings.tagDeleted)),
+      );
+    } catch (error) {
+      if (!mounted) return;
+      setState(() => _isManagingTags = false);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(strings.deleteTagFailed(error))),
+      );
+    }
+  }
+
+  bool _hasTag(String tag) {
+    return _tags.any((item) => item.toLowerCase() == tag.toLowerCase());
+  }
+
+  void _toggleTag(String tag) {
+    if (_hasTag(tag)) {
+      _tags.removeWhere((item) => item.toLowerCase() == tag.toLowerCase());
+    } else {
+      _tags.add(tag);
+    }
+  }
+
+  String? _normalizeTag(String rawTag) {
+    final trimmed = rawTag.trim();
+    if (trimmed.isEmpty) return null;
+    return trimmed.startsWith('#') ? trimmed : '#$trimmed';
   }
 }

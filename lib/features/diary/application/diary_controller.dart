@@ -6,6 +6,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 final diaryControllerProvider =
     AsyncNotifierProvider<DiaryController, List<DiaryEntry>>(
         DiaryController.new);
+final selectedTagFilterProvider = StateProvider<String?>((ref) => null);
 
 class DiaryController extends AsyncNotifier<List<DiaryEntry>> {
   DiaryRepository get _repository => ref.read(diaryRepositoryProvider);
@@ -25,6 +26,7 @@ class DiaryController extends AsyncNotifier<List<DiaryEntry>> {
     required String content,
     required DiaryMood mood,
     required String location,
+    required List<String> tags,
     required List<DiaryMedia> media,
   }) async {
     await _runMutation(() async {
@@ -33,8 +35,10 @@ class DiaryController extends AsyncNotifier<List<DiaryEntry>> {
         content: content,
         mood: mood,
         location: location,
+        tags: tags,
         media: media,
       );
+      ref.invalidate(tagLibraryControllerProvider);
     });
   }
 
@@ -44,6 +48,7 @@ class DiaryController extends AsyncNotifier<List<DiaryEntry>> {
     required String content,
     required DiaryMood mood,
     required String location,
+    required List<String> tags,
     required List<DiaryMedia> media,
   }) async {
     await _runMutation(() async {
@@ -53,8 +58,10 @@ class DiaryController extends AsyncNotifier<List<DiaryEntry>> {
         content: content,
         mood: mood,
         location: location,
+        tags: tags,
         media: media,
       );
+      ref.invalidate(tagLibraryControllerProvider);
     });
   }
 
@@ -149,6 +156,52 @@ class TrashDiaryController extends AsyncNotifier<List<DiaryEntry>> {
         await _repository.deleteEntry(entry.id);
       }
       state = AsyncData(await _repository.listTrashedEntries());
+    } catch (error, stackTrace) {
+      state = AsyncError(error, stackTrace);
+      rethrow;
+    }
+  }
+}
+
+final tagLibraryControllerProvider =
+    AsyncNotifierProvider<TagLibraryController, List<String>>(
+        TagLibraryController.new);
+
+class TagLibraryController extends AsyncNotifier<List<String>> {
+  DiaryRepository get _repository => ref.read(diaryRepositoryProvider);
+
+  @override
+  Future<List<String>> build() async {
+    return _repository.listTagLibrary();
+  }
+
+  Future<void> refresh() async {
+    state = const AsyncLoading();
+    state = await AsyncValue.guard(_repository.listTagLibrary);
+  }
+
+  Future<void> saveTag(String tag) async {
+    state = const AsyncLoading();
+    try {
+      await _repository.saveTag(tag);
+      state = AsyncData(await _repository.listTagLibrary());
+    } catch (error, stackTrace) {
+      state = AsyncError(error, stackTrace);
+      rethrow;
+    }
+  }
+
+  Future<void> deleteTag(String tag) async {
+    state = const AsyncLoading();
+    try {
+      await _repository.deleteTag(tag);
+      final selectedTag = ref.read(selectedTagFilterProvider);
+      if (selectedTag?.toLowerCase() == tag.toLowerCase()) {
+        ref.read(selectedTagFilterProvider.notifier).state = null;
+      }
+      ref.invalidate(diaryControllerProvider);
+      ref.invalidate(trashDiaryControllerProvider);
+      state = AsyncData(await _repository.listTagLibrary());
     } catch (error, stackTrace) {
       state = AsyncError(error, stackTrace);
       rethrow;

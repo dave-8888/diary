@@ -11,11 +11,13 @@ final diaryRepositoryProvider = Provider<DiaryRepository>((ref) {
 abstract class DiaryRepository {
   Future<List<DiaryEntry>> listEntries();
   Future<List<DiaryEntry>> listTrashedEntries();
+  Future<List<String>> listTagLibrary();
   Future<DiaryEntry> createEntry({
     required String title,
     required String content,
     required DiaryMood mood,
     required String location,
+    required List<String> tags,
     required List<DiaryMedia> media,
   });
   Future<DiaryEntry> updateEntry({
@@ -24,10 +26,13 @@ abstract class DiaryRepository {
     required String content,
     required DiaryMood mood,
     required String location,
+    required List<String> tags,
     required List<DiaryMedia> media,
   });
   Future<void> saveEntry(DiaryEntry entry);
   Future<void> deleteEntry(String id);
+  Future<void> saveTag(String tag);
+  Future<void> deleteTag(String tag);
 }
 
 class DriftDiaryRepository implements DiaryRepository {
@@ -47,11 +52,17 @@ class DriftDiaryRepository implements DiaryRepository {
   }
 
   @override
+  Future<List<String>> listTagLibrary() {
+    return _database.listTagLibrary();
+  }
+
+  @override
   Future<DiaryEntry> createEntry({
     required String title,
     required String content,
     required DiaryMood mood,
     required String location,
+    required List<String> tags,
     required List<DiaryMedia> media,
   }) async {
     final entry = DiaryEntry(
@@ -62,16 +73,18 @@ class DriftDiaryRepository implements DiaryRepository {
       createdAt: DateTime.now(),
       location: location.trim().isEmpty ? null : location.trim(),
       media: media,
-      tags: _buildTags(content),
+      tags: _normalizeTags(tags),
     );
 
     await _database.insertEntry(entry);
+    await _database.upsertTagLibrary(entry.tags);
     return entry;
   }
 
   @override
-  Future<void> saveEntry(DiaryEntry entry) {
-    return _database.updateEntry(entry);
+  Future<void> saveEntry(DiaryEntry entry) async {
+    await _database.updateEntry(entry);
+    await _database.upsertTagLibrary(entry.tags);
   }
 
   @override
@@ -81,6 +94,7 @@ class DriftDiaryRepository implements DiaryRepository {
     required String content,
     required DiaryMood mood,
     required String location,
+    required List<String> tags,
     required List<DiaryMedia> media,
   }) async {
     final updated = entry.copyWith(
@@ -89,7 +103,7 @@ class DriftDiaryRepository implements DiaryRepository {
       mood: mood,
       location: location.trim().isEmpty ? null : location.trim(),
       media: media,
-      tags: _buildTags(content),
+      tags: _normalizeTags(tags),
     );
 
     await saveEntry(updated);
@@ -101,14 +115,31 @@ class DriftDiaryRepository implements DiaryRepository {
     return _database.deleteEntry(id);
   }
 
-  List<String> _buildTags(String content) {
-    final lower = content.toLowerCase();
-    if (lower.contains('work')) {
-      return const ['#work'];
+  @override
+  Future<void> saveTag(String tag) {
+    return _database.upsertTagLibrary([tag]);
+  }
+
+  @override
+  Future<void> deleteTag(String tag) {
+    return _database.deleteTagFromLibrary(tag);
+  }
+
+  List<String> _normalizeTags(List<String> tags) {
+    final normalized = <String>[];
+    final seen = <String>{};
+
+    for (final rawTag in tags) {
+      final trimmed = rawTag.trim();
+      if (trimmed.isEmpty) continue;
+
+      final tag = trimmed.startsWith('#') ? trimmed : '#$trimmed';
+      final key = tag.toLowerCase();
+      if (seen.add(key)) {
+        normalized.add(tag);
+      }
     }
-    if (lower.contains('travel') || lower.contains('park')) {
-      return const ['#life'];
-    }
-    return const ['#journal'];
+
+    return List.unmodifiable(normalized);
   }
 }

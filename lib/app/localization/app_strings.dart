@@ -57,6 +57,9 @@ class AppStrings {
   String get today => isChinese ? '\u4eca\u5929' : 'Today';
   String get recentEntries =>
       isChinese ? '\u6700\u8fd1\u65e5\u8bb0' : 'Recent entries';
+  String get allTags => isChinese ? '\u5168\u90e8\u6807\u7b7e' : 'All tags';
+  String get filterByTag =>
+      isChinese ? '\u6309\u6807\u7b7e\u7b5b\u9009' : 'Filter by tag';
   String get viewAll => isChinese ? '\u67e5\u770b\u5168\u90e8' : 'View all';
   String get previewEntry =>
       isChinese ? '\u9884\u89c8\u65e5\u8bb0' : 'Preview entry';
@@ -120,6 +123,11 @@ class AppStrings {
   String get noEntriesYet => isChinese
       ? '\u8fd8\u6ca1\u6709\u65e5\u8bb0\uff0c\u5148\u4ece\u7b2c\u4e00\u7bc7\u5f00\u59cb\u5427\u3002'
       : 'No entries yet. Start with your first note.';
+  String filteredByTag(String tag) =>
+      isChinese ? '\u6b63\u5728\u67e5\u770b $tag' : 'Viewing $tag';
+  String noEntriesForTag(String tag) => isChinese
+      ? '\u8fd8\u6ca1\u6709\u5e26\u6709 $tag \u7684\u65e5\u8bb0\u3002'
+      : 'No diary entries tagged with $tag yet.';
 
   String dayHeading(DateTime date) => '$today - ${formatDay(date)}';
 
@@ -161,6 +169,50 @@ class AppStrings {
   String locationLookupFailed(Object? error) => isChinese
       ? '\u83b7\u53d6\u4f4d\u7f6e\u5931\u8d25${error == null ? '' : '\uff1a$error'}'
       : 'Could not get location${error == null ? '' : ': $error'}';
+  String get tagsLabel => isChinese ? '\u6807\u7b7e' : 'Tags';
+  String get selectedTagsLabel =>
+      isChinese ? '\u5f53\u524d\u65e5\u8bb0\u6807\u7b7e' : 'Selected tags';
+  String get tagLibraryLabel =>
+      isChinese ? '\u53ef\u590d\u7528\u6807\u7b7e' : 'Tag library';
+  String get tagSidebarHint => isChinese
+      ? '\u53ef\u4ee5\u65b0\u5efa\u53ef\u590d\u7528\u6807\u7b7e\uff0c\u4e5f\u53ef\u76f4\u63a5\u7ed9\u5f53\u524d\u65e5\u8bb0\u52fe\u9009\u3002'
+      : 'Create reusable tags or quickly apply them to this entry.';
+  String get tagHint => isChinese
+      ? '\u4f8b\u5982\uff1a#\u751f\u6d3b / \u5de5\u4f5c / \u65c5\u884c'
+      : 'For example: #life / work / travel';
+  String get addTag => isChinese ? '\u6dfb\u52a0\u6807\u7b7e' : 'Add tag';
+  String get noTagsYet => isChinese
+      ? '\u8fd8\u6ca1\u6709\u53ef\u590d\u7528\u6807\u7b7e\u3002'
+      : 'No reusable tags yet.';
+  String get noSelectedTags => isChinese
+      ? '\u5f53\u524d\u65e5\u8bb0\u6682\u65e0\u6807\u7b7e\u3002'
+      : 'This entry has no tags yet.';
+  String get tagAdded => isChinese
+      ? '\u6807\u7b7e\u5df2\u52a0\u5165\u6807\u7b7e\u5e93\u3002'
+      : 'Tag added to the library.';
+  String tagSaveFailed(Object error) => isChinese
+      ? '\u4fdd\u5b58\u6807\u7b7e\u5931\u8d25\uff1a$error'
+      : 'Failed to save tag: $error';
+  String get removeTagFromLibrary => isChinese
+      ? '\u4ece\u6807\u7b7e\u5e93\u5220\u9664'
+      : 'Remove from tag library';
+  String get deleteTagConfirmTitle => isChinese
+      ? '\u786e\u8ba4\u5220\u9664\u8fd9\u4e2a\u6807\u7b7e\uff1f'
+      : 'Delete this tag?';
+  String deleteTagConfirmMessage(String tag) => isChinese
+      ? '\u8fd9\u4f1a\u628a $tag \u4ece\u6807\u7b7e\u5e93\u79fb\u9664\uff0c\u5e76\u4ece\u6240\u6709\u65e5\u8bb0\u4e2d\u5220\u9664\u3002'
+      : 'This removes $tag from the tag library and from all diary entries.';
+  String get confirmDeleteTag =>
+      isChinese ? '\u5220\u9664\u6807\u7b7e' : 'Delete tag';
+  String get tagDeleted => isChinese
+      ? '\u6807\u7b7e\u5df2\u4ece\u6807\u7b7e\u5e93\u79fb\u9664\u3002'
+      : 'Tag removed from the library.';
+  String deleteTagFailed(Object error) => isChinese
+      ? '\u5220\u9664\u6807\u7b7e\u5931\u8d25\uff1a$error'
+      : 'Failed to delete tag: $error';
+  String failedToLoadTags(Object error) => isChinese
+      ? '\u52a0\u8f7d\u6807\u7b7e\u5931\u8d25\uff1a$error'
+      : 'Failed to load tags: $error';
   String get mood => isChinese ? '\u5fc3\u60c5' : 'Mood';
   String get mediaToolbar =>
       isChinese ? '\u5a92\u4f53\u5de5\u5177\u680f' : 'Media toolbar';

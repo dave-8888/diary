@@ -3,6 +3,7 @@ import 'package:diary_mvp/features/diary/application/diary_controller.dart';
 import 'package:diary_mvp/features/diary/domain/diary_entry.dart';
 import 'package:diary_mvp/features/diary/presentation/widgets/diary_card.dart';
 import 'package:diary_mvp/features/diary/presentation/widgets/diary_shell.dart';
+import 'package:diary_mvp/features/diary/presentation/widgets/tag_filter_bar.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -14,6 +15,13 @@ class HomePage extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final strings = context.strings;
     final entriesAsync = ref.watch(diaryControllerProvider);
+    final selectedTag = ref.watch(selectedTagFilterProvider);
+    final showTagFilters = ref.watch(tagLibraryControllerProvider).maybeWhen(
+          data: (tags) => tags.isNotEmpty,
+          loading: () => true,
+          error: (_, __) => true,
+          orElse: () => false,
+        );
 
     return DiaryShell(
       title: strings.appTitle,
@@ -27,21 +35,47 @@ class HomePage extends ConsumerWidget {
         error: (error, stack) => Center(
           child: Text(strings.failedToLoadEntries(error)),
         ),
-        data: (entries) => _HomeList(entries: entries),
+        data: (entries) => _HomeList(
+          entries: entries,
+          selectedTag: selectedTag,
+          showTagFilters: showTagFilters,
+        ),
       ),
     );
   }
 }
 
 class _HomeList extends StatelessWidget {
-  const _HomeList({required this.entries});
+  const _HomeList({
+    required this.entries,
+    required this.selectedTag,
+    required this.showTagFilters,
+  });
 
   final List<DiaryEntry> entries;
+  final String? selectedTag;
+  final bool showTagFilters;
 
   @override
   Widget build(BuildContext context) {
     final strings = context.strings;
-    final latest = entries.isNotEmpty ? entries.first : null;
+    final filteredEntries = selectedTag == null
+        ? entries
+        : entries
+            .where(
+              (entry) => entry.tags.any(
+                (tag) => tag.toLowerCase() == selectedTag!.toLowerCase(),
+              ),
+            )
+            .toList(growable: false);
+    final latest = filteredEntries.isNotEmpty ? filteredEntries.first : null;
+    final summaryText = selectedTag == null
+        ? strings.latestSummary(latest)
+        : strings.filteredByTag(selectedTag!);
+    final detailText = latest?.content ??
+        (selectedTag == null
+            ? strings.firstEntryPrompt
+            : strings.noEntriesForTag(selectedTag!));
 
     return ListView(
       children: [
@@ -60,12 +94,12 @@ class _HomeList extends StatelessWidget {
               ),
               const SizedBox(height: 12),
               Text(
-                strings.latestSummary(latest),
+                summaryText,
                 style: Theme.of(context).textTheme.headlineMedium,
               ),
               const SizedBox(height: 12),
               Text(
-                latest?.content ?? strings.firstEntryPrompt,
+                detailText,
                 maxLines: 3,
                 overflow: TextOverflow.ellipsis,
               ),
@@ -73,6 +107,10 @@ class _HomeList extends StatelessWidget {
           ),
         ),
         const SizedBox(height: 24),
+        if (showTagFilters) ...[
+          const TagFilterBar(),
+          const SizedBox(height: 20),
+        ],
         Row(
           children: [
             Text(
@@ -87,16 +125,26 @@ class _HomeList extends StatelessWidget {
           ],
         ),
         const SizedBox(height: 12),
-        ...entries.take(3).map(
-              (entry) => Padding(
-                padding: const EdgeInsets.only(bottom: 16),
-                child: DiaryCard(
-                  entry: entry,
-                  onEdit: () => _openEditor(context, entry),
-                  onTap: () => _openEditor(context, entry),
+        if (filteredEntries.isEmpty)
+          Padding(
+            padding: const EdgeInsets.only(top: 8),
+            child: Text(
+              selectedTag == null
+                  ? strings.noEntriesYet
+                  : strings.noEntriesForTag(selectedTag!),
+            ),
+          )
+        else
+          ...filteredEntries.take(3).map(
+                (entry) => Padding(
+                  padding: const EdgeInsets.only(bottom: 16),
+                  child: DiaryCard(
+                    entry: entry,
+                    onEdit: () => _openEditor(context, entry),
+                    onTap: () => _openEditor(context, entry),
+                  ),
                 ),
               ),
-            ),
       ],
     );
   }

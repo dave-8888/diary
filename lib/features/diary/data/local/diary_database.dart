@@ -20,7 +20,7 @@ class DiaryDatabase extends GeneratedDatabase {
   bool _initialized = false;
 
   @override
-  int get schemaVersion => 2;
+  int get schemaVersion => 3;
 
   @override
   Iterable<TableInfo<Table, Object?>> get allTables => const [];
@@ -70,6 +70,12 @@ class DiaryDatabase extends GeneratedDatabase {
       );
     ''');
     await customStatement('''
+      CREATE TABLE IF NOT EXISTS diary_tags (
+        name TEXT PRIMARY KEY COLLATE NOCASE,
+        created_at INTEGER NOT NULL
+      );
+    ''');
+    await customStatement('''
       CREATE INDEX IF NOT EXISTS idx_diary_entries_created_at
       ON diary_entries (created_at DESC);
     ''');
@@ -83,6 +89,7 @@ class DiaryDatabase extends GeneratedDatabase {
       CREATE INDEX IF NOT EXISTS idx_diary_media_diary_id
       ON diary_media (diary_id);
     ''');
+    await _ensureTagLibrarySeeded();
     _initialized = true;
   }
 
@@ -232,6 +239,81 @@ class DiaryDatabase extends GeneratedDatabase {
     });
   }
 
+  Future<List<String>> listTagLibrary() async {
+    await _ensureInitialized();
+    final rows = await customSelect(
+      '''
+      SELECT name
+      FROM diary_tags
+      ORDER BY created_at DESC, name COLLATE NOCASE ASC;
+      ''',
+    ).get();
+
+    return rows.map((row) => row.read<String>('name')).toList(growable: false);
+  }
+
+  Future<void> upsertTagLibrary(Iterable<String> tags) async {
+    await _ensureInitialized();
+    final normalized = _normalizeTags(tags);
+    if (normalized.isEmpty) return;
+
+    final timestamp = DateTime.now().millisecondsSinceEpoch;
+    await transaction(() async {
+      for (final tag in normalized) {
+        await customStatement(
+          '''
+          INSERT OR IGNORE INTO diary_tags (name, created_at)
+          VALUES (?, ?);
+          ''',
+          [tag, timestamp],
+        );
+      }
+    });
+  }
+
+  Future<void> deleteTagFromLibrary(String tag) async {
+    await _ensureInitialized();
+    final normalizedTag = _normalizeTag(tag);
+    if (normalizedTag == null) return;
+
+    final rows = await customSelect(
+      '''
+      SELECT id, COALESCE(tags_json, '[]') AS tags_json
+      FROM diary_entries;
+      ''',
+    ).get();
+
+    await transaction(() async {
+      await customStatement(
+        '''
+        DELETE FROM diary_tags
+        WHERE name = ?;
+        ''',
+        [normalizedTag],
+      );
+
+      for (final row in rows) {
+        final tags = _decodeTags(row.read<String>('tags_json'))
+            .where(
+              (item) => item.toLowerCase() != normalizedTag.toLowerCase(),
+            )
+            .toList(growable: false);
+
+        await customStatement(
+          '''
+          UPDATE diary_entries
+          SET tags_json = ?
+          WHERE id = ?;
+          ''',
+          [
+            jsonEncode(tags),
+            row.read<String>('id'),
+          ],
+        );
+      }
+    });
+  }
+
   Future<void> deleteEntry(String id) async {
     await _ensureInitialized();
     await customStatement(
@@ -267,6 +349,44 @@ class DiaryDatabase extends GeneratedDatabase {
     if (!columns.contains('duration_label')) {
       await customStatement(
         'ALTER TABLE diary_media ADD COLUMN duration_label TEXT;',
+      );
+    }
+  }
+
+  Future<void> _ensureTagLibrarySeeded() async {
+    final countRow = await customSelect(
+      '''
+      SELECT COUNT(*) AS count
+      FROM diary_tags;
+      ''',
+    ).getSingle();
+    if (countRow.read<int>('count') > 0) {
+      return;
+    }
+
+    final entryRows = await customSelect(
+      '''
+      SELECT COALESCE(tags_json, '[]') AS tags_json
+      FROM diary_entries;
+      ''',
+    ).get();
+
+    final tags = <String>[];
+    for (final row in entryRows) {
+      tags.addAll(_decodeTags(row.read<String>('tags_json')));
+    }
+
+    final normalized = _normalizeTags(tags);
+    if (normalized.isEmpty) return;
+
+    final timestamp = DateTime.now().millisecondsSinceEpoch;
+    for (final tag in normalized) {
+      await customStatement(
+        '''
+        INSERT OR IGNORE INTO diary_tags (name, created_at)
+        VALUES (?, ?);
+        ''',
+        [tag, timestamp],
       );
     }
   }
@@ -307,5 +427,28 @@ class DiaryDatabase extends GeneratedDatabase {
   DateTime? _trashedAtFromDb(int? raw) {
     if (raw == null) return null;
     return DateTime.fromMillisecondsSinceEpoch(raw);
+  }
+
+  List<String> _normalizeTags(Iterable<String> tags) {
+    final normalized = <String>[];
+    final seen = <String>{};
+
+    for (final tag in tags) {
+      final normalizedTag = _normalizeTag(tag);
+      if (normalizedTag == null) continue;
+
+      final key = normalizedTag.toLowerCase();
+      if (seen.add(key)) {
+        normalized.add(normalizedTag);
+      }
+    }
+
+    return normalized;
+  }
+
+  String? _normalizeTag(String rawTag) {
+    final trimmed = rawTag.trim();
+    if (trimmed.isEmpty) return null;
+    return trimmed.startsWith('#') ? trimmed : '#$trimmed';
   }
 }
