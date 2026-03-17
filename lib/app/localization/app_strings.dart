@@ -235,6 +235,27 @@ class AppStrings {
   String buildWindowIconFailed(Object error) => isChinese
       ? '\u540c\u6b65 Windows \u6784\u5efa\u56fe\u6807\u5931\u8d25\uff1a$error'
       : 'Failed to sync the Windows build icon: $error';
+  String get diaryAiSettingsTitle => isChinese ? '日记 AI' : 'Diary AI';
+  String get diaryAiSettingsHint => isChinese
+      ? '在这里配置阿里云百炼 API Key，用于日记总结、情绪识别、标签提取和标题生成。'
+      : 'Configure your Alibaba Cloud DashScope API key here for diary summaries, mood detection, tag extraction, and title generation.';
+  String get aliyunApiKeyLabel =>
+      isChinese ? '阿里云百炼 API Key' : 'Alibaba Cloud DashScope API Key';
+  String get aliyunApiKeyHint =>
+      isChinese ? '输入 sk-... 形式的 Key' : 'Enter a key like sk-...';
+  String get diaryAiApiKeyUpdated =>
+      isChinese ? '阿里云 AI Key 已更新。' : 'Alibaba Cloud AI key updated.';
+  String get diaryAiApiKeyReset =>
+      isChinese ? '已移除本地阿里云 AI Key。' : 'Local Alibaba Cloud AI key removed.';
+  String diaryAiApiKeyUpdateFailed(Object error) => isChinese
+      ? '保存阿里云 AI Key 失败：$error'
+      : 'Failed to save the Alibaba Cloud AI key: $error';
+  String get diaryAiApiKeyEnvironmentHint => isChinese
+      ? '当前没有本地 Key；如果启动时提供了 DASHSCOPE_API_KEY，也会自动使用。'
+      : 'If no local key is saved, the app will still use DASHSCOPE_API_KEY when provided at launch.';
+  String get usingDiaryAiEnvironmentApiKey => isChinese
+      ? '当前正在使用启动参数中的阿里云 AI Key。'
+      : 'Currently using the Alibaba Cloud AI key provided at launch.';
   String get transcriptionSettingsTitle =>
       isChinese ? 'AI \u8f6c\u5199' : 'AI transcription';
   String get transcriptionSettingsHint => isChinese
@@ -480,6 +501,37 @@ class AppStrings {
   String get whatHappenedToday => isChinese
       ? '\u4eca\u5929\u53d1\u751f\u4e86\u4ec0\u4e48\uff1f'
       : 'What happened today?';
+  String get diaryAiToolsTitle => isChinese ? 'AI 日记助手' : 'AI diary assistant';
+  String get diaryAiToolsHint => isChinese
+      ? '一键生成日记总结、识别情绪、提取标签，并推荐标题。'
+      : 'Generate a diary summary, detect mood, extract tags, and suggest a title in one step.';
+  String get analyzeDiaryWithAi => isChinese ? 'AI 分析日记' : 'Analyze with AI';
+  String get analyzingDiaryWithAi => isChinese ? 'AI 分析中...' : 'Analyzing...';
+  String get aiSummaryLabel => isChinese ? '日记总结' : 'Summary';
+  String get aiGeneratedTitleLabel => isChinese ? '推荐标题' : 'Suggested title';
+  String get aiDetectedMoodLabel => isChinese ? '识别情绪' : 'Detected mood';
+  String get aiSuggestedTagsLabel => isChinese ? '推荐标签' : 'Suggested tags';
+  String get noAiSuggestionYet => isChinese
+      ? '先写下一些标题、正文、地点或标签，再点击 AI 分析即可生成建议。'
+      : 'Write a bit of title, content, location, or tags first, then run AI analysis.';
+  String get aiAnalysisReady =>
+      isChinese ? 'AI 建议已生成。' : 'AI suggestions are ready.';
+  String get applyAllAiSuggestions => isChinese ? '全部应用' : 'Apply all';
+  String get applyAiTitle => isChinese ? '应用标题' : 'Apply title';
+  String get applyAiMood => isChinese ? '应用情绪' : 'Apply mood';
+  String get applyAiTags => isChinese ? '应用标签' : 'Apply tags';
+  String get aiSuggestionsApplied =>
+      isChinese ? '已应用 AI 标题、情绪和标签。' : 'Applied the AI title, mood, and tags.';
+  String get aiTitleApplied =>
+      isChinese ? '已应用 AI 标题。' : 'Applied the AI title.';
+  String get aiMoodApplied => isChinese ? '已应用 AI 情绪。' : 'Applied the AI mood.';
+  String get aiTagsApplied => isChinese ? '已应用 AI 标签。' : 'Applied the AI tags.';
+  String get aiSummaryEmpty =>
+      isChinese ? 'AI 这次没有生成总结。' : 'AI did not return a summary this time.';
+  String get aiGeneratedTitleEmpty =>
+      isChinese ? 'AI 这次没有给出标题建议。' : 'AI did not suggest a title this time.';
+  String get aiNoTagsSuggested =>
+      isChinese ? 'AI 这次没有提取到明显标签。' : 'AI did not find clear tags this time.';
   String get untitledEntry =>
       isChinese ? '\u65e0\u6807\u9898\u65e5\u8bb0' : 'Untitled entry';
   String get titleLabel => isChinese ? '\u6807\u9898' : 'Title';
@@ -710,6 +762,18 @@ class AppStrings {
   String get apiKeyMissing => isChinese
       ? '\u8fd8\u6ca1\u6709\u914d\u7f6e OpenAI API Key\uff0c\u5df2\u8df3\u8fc7\u8f6c\u5199\u3002'
       : 'No OpenAI API key configured. Skipping transcription.';
+  String get diaryAiApiKeyMissing => isChinese
+      ? '还没有配置阿里云 AI Key，暂时无法进行 AI 分析。'
+      : 'No Alibaba Cloud AI key configured. Cannot run diary AI analysis.';
+  String get diaryAiInputRequired => isChinese
+      ? '请先输入标题、正文、地点或标签中的任意一项。'
+      : 'Please enter at least a title, content, location, or tags first.';
+  String diaryAiRequestFailed(int? statusCode) => isChinese
+      ? 'AI 分析请求失败${statusCode == null ? '' : '（$statusCode）'}。'
+      : 'Diary AI request failed${statusCode == null ? '' : ' ($statusCode)'}.';
+  String get diaryAiInvalidResponse => isChinese
+      ? 'AI 返回结果无法识别，请重试。'
+      : 'The AI response could not be understood. Please try again.';
   String get audioFileMissing => isChinese
       ? '\u672a\u627e\u5230\u5f55\u97f3\u6587\u4ef6\u3002'
       : 'Audio file was not found.';

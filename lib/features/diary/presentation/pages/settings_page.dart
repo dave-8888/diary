@@ -9,6 +9,7 @@ import 'package:diary_mvp/app/windows_build_identity_service.dart';
 import 'package:diary_mvp/features/diary/application/diary_controller.dart';
 import 'package:diary_mvp/features/diary/domain/diary_entry.dart';
 import 'package:diary_mvp/features/diary/presentation/widgets/diary_shell.dart';
+import 'package:diary_mvp/features/diary/services/diary_ai_settings.dart';
 import 'package:diary_mvp/features/diary/services/transcription_settings.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
@@ -25,12 +26,16 @@ class SettingsPage extends ConsumerStatefulWidget {
 
 class _SettingsPageState extends ConsumerState<SettingsPage> {
   late final TextEditingController _appNameController;
+  late final TextEditingController _diaryAiApiKeyController;
   late final TextEditingController _apiKeyController;
   bool _appNameInitialized = false;
+  bool _diaryAiApiKeyInitialized = false;
   bool _apiKeyInitialized = false;
   bool _isSavingAppName = false;
+  bool _isSavingDiaryAiApiKey = false;
   bool _isSavingApiKey = false;
   bool _isResettingAppName = false;
+  bool _isResettingDiaryAiApiKey = false;
   bool _isResettingApiKey = false;
   bool _isChangingIcon = false;
   bool _isSyncingBuildWindowIcon = false;
@@ -38,18 +43,21 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
   bool _isChangingTheme = false;
   bool _isChangingLanguage = false;
   bool _isResettingMoods = false;
+  bool _showDiaryAiApiKey = false;
   bool _showApiKey = false;
 
   @override
   void initState() {
     super.initState();
     _appNameController = TextEditingController();
+    _diaryAiApiKeyController = TextEditingController();
     _apiKeyController = TextEditingController();
   }
 
   @override
   void dispose() {
     _appNameController.dispose();
+    _diaryAiApiKeyController.dispose();
     _apiKeyController.dispose();
     super.dispose();
   }
@@ -62,6 +70,7 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
       strings: strings,
       customNameAsync: customAppNameAsync,
     );
+    final diaryAiApiKeyAsync = ref.watch(diaryAiApiKeyControllerProvider);
     final apiKeyAsync = ref.watch(transcriptionApiKeyControllerProvider);
     final iconSelection =
         resolveAppIconSelection(ref.watch(appIconControllerProvider));
@@ -84,6 +93,13 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
         offset: _appNameController.text.length,
       );
       _appNameInitialized = true;
+    }
+    if (!_diaryAiApiKeyInitialized && diaryAiApiKeyAsync.hasValue) {
+      _diaryAiApiKeyController.text = diaryAiApiKeyAsync.valueOrNull ?? '';
+      _diaryAiApiKeyController.selection = TextSelection.collapsed(
+        offset: _diaryAiApiKeyController.text.length,
+      );
+      _diaryAiApiKeyInitialized = true;
     }
     if (!_apiKeyInitialized && apiKeyAsync.hasValue) {
       _apiKeyController.text = apiKeyAsync.valueOrNull ?? '';
@@ -343,6 +359,82 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
                             ),
                       ),
                     ],
+                  ],
+                ),
+              ),
+              const SizedBox(height: 18),
+              _buildSectionCard(
+                context: context,
+                icon: Icons.auto_awesome_outlined,
+                title: strings.diaryAiSettingsTitle,
+                subtitle: strings.diaryAiSettingsHint,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    TextField(
+                      controller: _diaryAiApiKeyController,
+                      obscureText: !_showDiaryAiApiKey,
+                      decoration: InputDecoration(
+                        labelText: strings.aliyunApiKeyLabel,
+                        hintText: strings.aliyunApiKeyHint,
+                        suffixIcon: IconButton(
+                          onPressed: () {
+                            setState(
+                              () => _showDiaryAiApiKey = !_showDiaryAiApiKey,
+                            );
+                          },
+                          icon: Icon(
+                            _showDiaryAiApiKey
+                                ? Icons.visibility_off_outlined
+                                : Icons.visibility_outlined,
+                          ),
+                        ),
+                      ),
+                      textInputAction: TextInputAction.done,
+                      onSubmitted: (_) => _saveDiaryAiApiKey(),
+                    ),
+                    const SizedBox(height: 12),
+                    Text(
+                      diaryAiEnvironmentApiKey.isNotEmpty
+                          ? strings.usingDiaryAiEnvironmentApiKey
+                          : strings.diaryAiApiKeyEnvironmentHint,
+                      style: Theme.of(context).textTheme.bodySmall,
+                    ),
+                    const SizedBox(height: 16),
+                    Wrap(
+                      spacing: 12,
+                      runSpacing: 12,
+                      children: [
+                        OutlinedButton(
+                          onPressed: _isSavingDiaryAiApiKey ||
+                                  _isResettingDiaryAiApiKey
+                              ? null
+                              : _resetDiaryAiApiKey,
+                          child: _isResettingDiaryAiApiKey
+                              ? const SizedBox(
+                                  width: 18,
+                                  height: 18,
+                                  child:
+                                      CircularProgressIndicator(strokeWidth: 2),
+                                )
+                              : Text(strings.resetApiKey),
+                        ),
+                        FilledButton(
+                          onPressed: _isSavingDiaryAiApiKey ||
+                                  _isResettingDiaryAiApiKey
+                              ? null
+                              : _saveDiaryAiApiKey,
+                          child: _isSavingDiaryAiApiKey
+                              ? const SizedBox(
+                                  width: 18,
+                                  height: 18,
+                                  child:
+                                      CircularProgressIndicator(strokeWidth: 2),
+                                )
+                              : Text(strings.saveAction),
+                        ),
+                      ],
+                    ),
                   ],
                 ),
               ),
@@ -658,6 +750,51 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
       setState(() => _isResettingAppName = false);
       context.showAppSnackBar(
         strings.appNameUpdateFailed(error),
+        tone: AppSnackBarTone.error,
+      );
+    }
+  }
+
+  Future<void> _saveDiaryAiApiKey() async {
+    final strings = context.strings;
+    setState(() => _isSavingDiaryAiApiKey = true);
+    try {
+      await ref
+          .read(diaryAiApiKeyControllerProvider.notifier)
+          .save(_diaryAiApiKeyController.text);
+      if (!mounted) return;
+      setState(() => _isSavingDiaryAiApiKey = false);
+      context.showAppSnackBar(
+        strings.diaryAiApiKeyUpdated,
+        tone: AppSnackBarTone.success,
+      );
+    } catch (error) {
+      if (!mounted) return;
+      setState(() => _isSavingDiaryAiApiKey = false);
+      context.showAppSnackBar(
+        strings.diaryAiApiKeyUpdateFailed(error),
+        tone: AppSnackBarTone.error,
+      );
+    }
+  }
+
+  Future<void> _resetDiaryAiApiKey() async {
+    final strings = context.strings;
+    setState(() => _isResettingDiaryAiApiKey = true);
+    try {
+      await ref.read(diaryAiApiKeyControllerProvider.notifier).reset();
+      _diaryAiApiKeyController.clear();
+      if (!mounted) return;
+      setState(() => _isResettingDiaryAiApiKey = false);
+      context.showAppSnackBar(
+        strings.diaryAiApiKeyReset,
+        tone: AppSnackBarTone.success,
+      );
+    } catch (error) {
+      if (!mounted) return;
+      setState(() => _isResettingDiaryAiApiKey = false);
+      context.showAppSnackBar(
+        strings.diaryAiApiKeyUpdateFailed(error),
         tone: AppSnackBarTone.error,
       );
     }
