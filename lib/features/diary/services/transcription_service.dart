@@ -38,11 +38,7 @@ class TranscriptionService {
   final Ref _ref;
 
   Future<TranscriptionResult> transcribe(String audioPath) async {
-    final configuredApiKey =
-        _ref.read(transcriptionApiKeyControllerProvider).valueOrNull;
-    final apiKey = (configuredApiKey?.trim().isNotEmpty == true)
-        ? configuredApiKey!.trim()
-        : transcriptionEnvironmentApiKey;
+    final apiKey = await _resolveApiKey();
 
     if (apiKey.isEmpty) {
       return const TranscriptionResult(
@@ -91,5 +87,27 @@ class TranscriptionService {
       ok: false,
       failure: TranscriptionFailure.emptyResponse,
     );
+  }
+
+  Future<String> _resolveApiKey() async {
+    final configuredApiKey =
+        _ref.read(transcriptionApiKeyControllerProvider).valueOrNull;
+    final inMemory = configuredApiKey?.trim();
+    if (inMemory != null && inMemory.isNotEmpty) {
+      return inMemory;
+    }
+
+    try {
+      final persisted =
+          await _ref.read(transcriptionApiKeyStorageProvider).read();
+      final normalized = persisted?.trim();
+      if (normalized != null && normalized.isNotEmpty) {
+        return normalized;
+      }
+    } catch (_) {
+      // Fall through to the environment fallback below.
+    }
+
+    return transcriptionEnvironmentApiKey.trim();
   }
 }

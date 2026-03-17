@@ -88,11 +88,7 @@ class DiaryAiService {
     required bool includeEmotionalCompanion,
     required bool includeProblemSuggestions,
   }) async {
-    final configuredApiKey =
-        _ref.read(diaryAiApiKeyControllerProvider).valueOrNull;
-    final apiKey = (configuredApiKey?.trim().isNotEmpty == true)
-        ? configuredApiKey!.trim()
-        : diaryAiEnvironmentApiKey;
+    final apiKey = await _resolveApiKey();
 
     if (apiKey.isEmpty) {
       return const DiaryAiResult(
@@ -181,6 +177,27 @@ class DiaryAiService {
       ok: true,
       suggestion: suggestion,
     );
+  }
+
+  Future<String> _resolveApiKey() async {
+    final configuredApiKey =
+        _ref.read(diaryAiApiKeyControllerProvider).valueOrNull;
+    final inMemory = configuredApiKey?.trim();
+    if (inMemory != null && inMemory.isNotEmpty) {
+      return inMemory;
+    }
+
+    try {
+      final persisted = await _ref.read(diaryAiSettingsStorageProvider).read();
+      final normalized = persisted?.trim();
+      if (normalized != null && normalized.isNotEmpty) {
+        return normalized;
+      }
+    } catch (_) {
+      // Fall through to the environment fallback below.
+    }
+
+    return diaryAiEnvironmentApiKey.trim();
   }
 
   bool _isInputEmpty(DiaryEntry draft) {

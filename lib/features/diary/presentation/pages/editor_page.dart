@@ -108,22 +108,6 @@ class _EditorPageState extends ConsumerState<EditorPage> {
     return DiaryShell(
       title: _isEditing ? strings.editEntry : strings.newEntry,
       showAppBarTitle: false,
-      actions: [
-        if (_isEditing)
-          IconButton(
-            onPressed: _isSaving || _isDeleting || _isExporting
-                ? null
-                : _confirmDelete,
-            tooltip: strings.deleteEntry,
-            icon: _isDeleting
-                ? const SizedBox(
-                    width: 18,
-                    height: 18,
-                    child: CircularProgressIndicator(strokeWidth: 2),
-                  )
-                : const Icon(Icons.delete_outline),
-          ),
-      ],
       child: Center(
         child: ConstrainedBox(
           constraints: const BoxConstraints(maxWidth: 1240),
@@ -396,37 +380,48 @@ class _EditorPageState extends ConsumerState<EditorPage> {
 
   Widget _buildHeaderActionButtons(BuildContext context, AppStrings strings) {
     final colorScheme = Theme.of(context).colorScheme;
+    final isBusy = _isSaving || _isDeleting || _isExporting;
 
     return Wrap(
-      spacing: 12,
-      runSpacing: 12,
+      spacing: 8,
+      runSpacing: 8,
       alignment: WrapAlignment.end,
       crossAxisAlignment: WrapCrossAlignment.center,
       children: [
-        FilledButton.tonalIcon(
-          onPressed:
-              _isSaving || _isDeleting || _isExporting ? null : _exportEntry,
+        IconButton.filledTonal(
+          onPressed: isBusy ? null : _exportEntry,
+          tooltip: _isExporting ? strings.exportingEntry : strings.exportEntry,
+          visualDensity: VisualDensity.compact,
           icon: _isExporting
               ? _buttonProgressIndicator(
                   color: colorScheme.onSecondaryContainer,
                 )
               : const Icon(Icons.file_download_outlined),
-          label: Text(
-            _isExporting ? strings.exportingEntry : strings.exportEntry,
-          ),
         ),
-        FilledButton.icon(
-          onPressed: _isSaving || _isDeleting || _isExporting ? null : _save,
-          icon: _isSaving || _isDeleting
+        if (_isEditing)
+          IconButton.outlined(
+            onPressed: isBusy ? null : _confirmDelete,
+            tooltip: _isDeleting ? strings.deleting : strings.deleteEntry,
+            visualDensity: VisualDensity.compact,
+            style: IconButton.styleFrom(
+              foregroundColor: colorScheme.error,
+              side: BorderSide(
+                color: colorScheme.error.withValues(alpha: 0.45),
+              ),
+            ),
+            icon: _isDeleting
+                ? _buttonProgressIndicator(color: colorScheme.error)
+                : const Icon(Icons.delete_outline),
+          ),
+        IconButton.filled(
+          onPressed: isBusy ? null : _save,
+          tooltip: _isSaving
+              ? strings.saving
+              : (_isEditing ? strings.updateEntry : strings.saveEntry),
+          visualDensity: VisualDensity.compact,
+          icon: _isSaving
               ? _buttonProgressIndicator(color: colorScheme.onPrimary)
               : const Icon(Icons.save_outlined),
-          label: Text(
-            _isDeleting
-                ? strings.deleting
-                : _isSaving
-                    ? strings.saving
-                    : (_isEditing ? strings.updateEntry : strings.saveEntry),
-          ),
         ),
       ],
     );
