@@ -2,7 +2,6 @@ import 'package:diary_mvp/app/localization/app_strings.dart';
 import 'package:diary_mvp/features/diary/domain/diary_entry.dart';
 import 'package:diary_mvp/features/diary/presentation/widgets/local_video_player.dart';
 import 'package:flutter/material.dart';
-import 'package:path/path.dart' as p;
 
 class VideoPreviewPage extends StatelessWidget {
   const VideoPreviewPage({
@@ -16,6 +15,9 @@ class VideoPreviewPage extends StatelessWidget {
   Widget build(BuildContext context) {
     final strings = context.strings;
     final video = media;
+    final capturedAtText = video?.capturedAt == null
+        ? null
+        : strings.formatDateTime(video!.capturedAt!);
 
     return Scaffold(
       appBar: AppBar(
@@ -37,14 +39,13 @@ class VideoPreviewPage extends StatelessWidget {
                             strings.previewVideo,
                             style: Theme.of(context).textTheme.titleLarge,
                           ),
-                          const SizedBox(height: 12),
-                          Text(
-                            strings.mediaLabel(
-                              video,
-                              baseName: p.basename(video.path),
+                          if (capturedAtText != null) ...[
+                            const SizedBox(height: 12),
+                            Text(
+                              capturedAtText,
+                              style: Theme.of(context).textTheme.bodyLarge,
                             ),
-                            style: Theme.of(context).textTheme.bodyLarge,
-                          ),
+                          ],
                           if (video.durationLabel != null) ...[
                             const SizedBox(height: 8),
                             Text(

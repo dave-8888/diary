@@ -199,6 +199,12 @@ class DiaryExportService {
           ? strings.emptyContentValue
           : entry.content.trim());
 
+    _appendMarkdownAiAnalysis(
+      buffer: buffer,
+      entry: entry,
+      strings: strings,
+    );
+
     _appendMarkdownMediaSection(
       buffer: buffer,
       title: strings.imagesSectionTitle,
@@ -255,6 +261,12 @@ class DiaryExportService {
           ? strings.emptyContentValue
           : entry.content.trim());
 
+    _appendPlainTextAiAnalysis(
+      buffer: buffer,
+      entry: entry,
+      strings: strings,
+    );
+
     _appendPlainTextMediaSection(
       buffer: buffer,
       title: strings.imagesSectionTitle,
@@ -299,6 +311,52 @@ class DiaryExportService {
     }
   }
 
+  void _appendMarkdownAiAnalysis({
+    required StringBuffer buffer,
+    required DiaryEntry entry,
+    required AppStrings strings,
+  }) {
+    final analysis = entry.aiAnalysis;
+    if (analysis == null || analysis.isEmpty) return;
+
+    buffer
+      ..writeln()
+      ..writeln()
+      ..writeln('## ${strings.diaryAiToolsTitle}')
+      ..writeln();
+
+    if (analysis.overviewText.trim().isNotEmpty) {
+      buffer
+        ..writeln('### ${strings.aiSummaryLabel}')
+        ..writeln()
+        ..writeln(analysis.overviewText.trim())
+        ..writeln();
+    }
+
+    if (analysis.suggestedTags.isNotEmpty) {
+      buffer
+        ..writeln('### ${strings.aiSuggestedTagsLabel}')
+        ..writeln()
+        ..writeln(analysis.suggestedTags.join(', '))
+        ..writeln();
+    }
+
+    if (analysis.emotionalSupportText?.trim().isNotEmpty == true) {
+      buffer
+        ..writeln('### ${strings.emotionalCompanionSectionTitle}')
+        ..writeln()
+        ..writeln(analysis.emotionalSupportText!.trim())
+        ..writeln();
+    }
+
+    if (analysis.questionSuggestionText?.trim().isNotEmpty == true) {
+      buffer
+        ..writeln('### ${strings.problemSuggestionSectionTitle}')
+        ..writeln()
+        ..writeln(analysis.questionSuggestionText!.trim());
+    }
+  }
+
   void _appendPlainTextMediaSection({
     required StringBuffer buffer,
     required String title,
@@ -313,6 +371,47 @@ class DiaryExportService {
 
     for (final item in media) {
       buffer.writeln('- ${item.relativePath}');
+    }
+  }
+
+  void _appendPlainTextAiAnalysis({
+    required StringBuffer buffer,
+    required DiaryEntry entry,
+    required AppStrings strings,
+  }) {
+    final analysis = entry.aiAnalysis;
+    if (analysis == null || analysis.isEmpty) return;
+
+    buffer
+      ..writeln()
+      ..writeln('${strings.diaryAiToolsTitle}:');
+
+    if (analysis.overviewText.trim().isNotEmpty) {
+      buffer
+        ..writeln('${strings.aiSummaryLabel}:')
+        ..writeln(analysis.overviewText.trim())
+        ..writeln();
+    }
+
+    if (analysis.suggestedTags.isNotEmpty) {
+      buffer
+        ..writeln(
+          '${strings.aiSuggestedTagsLabel}: ${analysis.suggestedTags.join(', ')}',
+        )
+        ..writeln();
+    }
+
+    if (analysis.emotionalSupportText?.trim().isNotEmpty == true) {
+      buffer
+        ..writeln('${strings.emotionalCompanionSectionTitle}:')
+        ..writeln(analysis.emotionalSupportText!.trim())
+        ..writeln();
+    }
+
+    if (analysis.questionSuggestionText?.trim().isNotEmpty == true) {
+      buffer
+        ..writeln('${strings.problemSuggestionSectionTitle}:')
+        ..writeln(analysis.questionSuggestionText!.trim());
     }
   }
 }

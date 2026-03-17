@@ -5,9 +5,11 @@ class CapturedMediaResult {
     required this.type,
     required this.path,
     this.durationLabel,
+    this.capturedAt,
   });
 
   final MediaType type;
   final String path;
   final String? durationLabel;
+  final DateTime? capturedAt;
 }

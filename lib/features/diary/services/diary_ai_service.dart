@@ -17,44 +17,6 @@ enum DiaryAiFailure {
   invalidResponse,
 }
 
-class DiaryAiSuggestion {
-  const DiaryAiSuggestion({
-    required this.summary,
-    required this.title,
-    required this.moodId,
-    required this.tags,
-    required this.emotionCategory,
-    required this.comfortReply,
-    required this.companionStyle,
-    required this.priorityFeedback,
-    required this.distressIdentification,
-    required this.problemAnalysis,
-  });
-
-  final String summary;
-  final String title;
-  final String moodId;
-  final List<String> tags;
-  final String emotionCategory;
-  final String comfortReply;
-  final String companionStyle;
-  final String priorityFeedback;
-  final String distressIdentification;
-  final String problemAnalysis;
-
-  bool get isEmpty =>
-      summary.trim().isEmpty &&
-      title.trim().isEmpty &&
-      tags.isEmpty &&
-      moodId.trim().isEmpty &&
-      emotionCategory.trim().isEmpty &&
-      comfortReply.trim().isEmpty &&
-      companionStyle.trim().isEmpty &&
-      priorityFeedback.trim().isEmpty &&
-      distressIdentification.trim().isEmpty &&
-      problemAnalysis.trim().isEmpty;
-}
-
 class DiaryAiResult {
   const DiaryAiResult({
     required this.ok,
@@ -64,7 +26,7 @@ class DiaryAiResult {
   });
 
   final bool ok;
-  final DiaryAiSuggestion? suggestion;
+  final DiaryEntryAiAnalysis? suggestion;
   final DiaryAiFailure? failure;
   final int? statusCode;
 }
@@ -80,7 +42,6 @@ class DiaryAiService {
 
   Future<DiaryAiResult> analyzeEntry({
     required DiaryEntry draft,
-    required List<DiaryMood> availableMoods,
     required bool preferChinese,
     required bool includeEmotionalCompanion,
     required bool includeProblemSuggestions,
@@ -122,7 +83,6 @@ class DiaryAiService {
                   {
                     'role': 'system',
                     'content': _buildSystemPrompt(
-                      availableMoods: availableMoods,
                       preferChinese: preferChinese,
                       includeEmotionalCompanion: includeEmotionalCompanion,
                       includeProblemSuggestions: includeProblemSuggestions,
@@ -159,10 +119,7 @@ class DiaryAiService {
       );
     }
 
-    final suggestion = _parseSuggestion(
-      response.body,
-      availableMoods: availableMoods,
-    );
+    final suggestion = _parseSuggestion(response.body);
     if (suggestion == null || suggestion.isEmpty) {
       return const DiaryAiResult(
         ok: false,
@@ -205,61 +162,36 @@ class DiaryAiService {
   }
 
   String _buildSystemPrompt({
-    required List<DiaryMood> availableMoods,
     required bool preferChinese,
     required bool includeEmotionalCompanion,
     required bool includeProblemSuggestions,
   }) {
     final toneInstruction = preferChinese
-        ? 'Write title, summary, and tags in Simplified Chinese unless the diary is clearly written in another language.'
-        : 'Write title, summary, and tags in the same language as the diary entry. Use English when the language is unclear.';
-
-    final moodGuide = availableMoods
-        .map(
-          (mood) => '- ${mood.id}: ${_describeMood(mood)}',
-        )
-        .join('\n');
+        ? 'Write the overview text and tags in Simplified Chinese unless the diary is clearly written in another language.'
+        : 'Write the overview text and tags in the same language as the diary entry. Use English when the language is unclear.';
 
     final requiredKeys = [
-      '"title"',
-      '"summary"',
-      '"mood_id"',
+      '"overview_text"',
       '"tags"',
-      if (includeEmotionalCompanion) ...[
-        '"emotion_category"',
-        '"comfort_reply"',
-        '"companion_style"',
-        '"priority_feedback"',
-      ],
-      if (includeProblemSuggestions) ...[
-        '"distress_identification"',
-        '"problem_analysis"',
-      ],
+      if (includeEmotionalCompanion) '"emotional_support_text"',
+      if (includeProblemSuggestions) '"question_suggestion_text"',
     ].join(', ');
 
     return '''
 You are a diary analysis assistant.
 Return JSON only.
 The JSON object must use exactly these keys: $requiredKeys.
-"title" must be a string.
-"summary" must be a string.
-"mood_id" must be one of the allowed mood ids.
+"overview_text" must be a string.
 "tags" must be an array of short strings.
-${includeEmotionalCompanion ? '"emotion_category" must be a short emotion classification phrase.' : ''}
-${includeEmotionalCompanion ? '"comfort_reply" must be a warm and helpful reply tailored to the diary tone.' : ''}
-${includeEmotionalCompanion ? '"companion_style" must be a short label describing the response style.' : ''}
-${includeEmotionalCompanion ? '"priority_feedback" must be extra supportive feedback for important emotions. Use an empty string if not needed.' : ''}
-${includeProblemSuggestions ? '"distress_identification" must identify the core trouble or pressure point in one short sentence.' : ''}
-${includeProblemSuggestions ? '"problem_analysis" must explain the likely cause or conflict clearly and briefly.' : ''}
+${includeEmotionalCompanion ? '"emotional_support_text" must combine emotional companionship, comforting reply, response style, and priority support into one empathetic paragraph.' : ''}
+${includeProblemSuggestions ? '"question_suggestion_text" must combine the core trouble and the brief analysis into one concise empathetic paragraph.' : ''}
 Do not include markdown, code fences, or extra fields.
 $toneInstruction
-Keep the title concise and natural.
-Keep the summary to 1-3 sentences.
+The first line of "overview_text" should be a concise natural title.
+After the first line, add a short diary summary in 1-3 sentences.
 Return 3-6 tags when possible, and avoid duplicates.
-${includeEmotionalCompanion ? 'The comforting reply should feel emotionally aware, and the style should adapt to the user tone.' : ''}
-${includeProblemSuggestions ? 'Keep the problem-suggestion section empathetic and concise. Avoid lecturing, blame, pressure, or moralizing.' : ''}
-Allowed mood ids:
-$moodGuide
+${includeEmotionalCompanion ? 'The emotional-support text should feel warm, emotionally aware, and gently supportive.' : ''}
+${includeProblemSuggestions ? 'Keep the problem-suggestion text empathetic and concise. Avoid lecturing, blame, pressure, or moralizing.' : ''}
 ''';
   }
 
@@ -279,10 +211,7 @@ $moodGuide
     );
   }
 
-  DiaryAiSuggestion? _parseSuggestion(
-    String responseBody, {
-    required List<DiaryMood> availableMoods,
-  }) {
+  DiaryEntryAiAnalysis? _parseSuggestion(String responseBody) {
     try {
       final decoded = jsonDecode(responseBody);
       if (decoded is! Map<String, dynamic>) return null;
@@ -296,45 +225,38 @@ $moodGuide
       final suggestionJson = jsonDecode(jsonString);
       if (suggestionJson is! Map<String, dynamic>) return null;
 
-      final summary = _readString(suggestionJson['summary']);
-      final title = _readString(suggestionJson['title']);
-      final moodId = _resolveMoodId(
-        suggestionJson['mood_id'] ?? suggestionJson['mood'],
-        availableMoods,
-      );
+      final overviewText = _resolveOverviewText(suggestionJson);
       final tags = _readTags(suggestionJson['tags']);
-      final emotionCategory = _readString(
-        suggestionJson['emotion_category'] ?? suggestionJson['emotionCategory'],
+      final emotionalSupportText = _resolveSectionText(
+        primaryValue: suggestionJson['emotional_support_text'] ??
+            suggestionJson['emotionalSupportText'],
+        legacyValues: [
+          suggestionJson['emotion_category'] ??
+              suggestionJson['emotionCategory'],
+          suggestionJson['companion_style'] ?? suggestionJson['companionStyle'],
+          suggestionJson['comfort_reply'] ?? suggestionJson['comfortReply'],
+          suggestionJson['priority_feedback'] ??
+              suggestionJson['priorityFeedback'],
+        ],
       );
-      final comfortReply = _readString(
-        suggestionJson['comfort_reply'] ?? suggestionJson['comfortReply'],
-      );
-      final companionStyle = _readString(
-        suggestionJson['companion_style'] ?? suggestionJson['companionStyle'],
-      );
-      final priorityFeedback = _readString(
-        suggestionJson['priority_feedback'] ??
-            suggestionJson['priorityFeedback'],
-      );
-      final distressIdentification = _readString(
-        suggestionJson['distress_identification'] ??
-            suggestionJson['distressIdentification'],
-      );
-      final problemAnalysis = _readString(
-        suggestionJson['problem_analysis'] ?? suggestionJson['problemAnalysis'],
+      final questionSuggestionText = _resolveSectionText(
+        primaryValue: suggestionJson['question_suggestion_text'] ??
+            suggestionJson['questionSuggestionText'],
+        legacyValues: [
+          suggestionJson['distress_identification'] ??
+              suggestionJson['distressIdentification'],
+          suggestionJson['problem_analysis'] ??
+              suggestionJson['problemAnalysis'],
+        ],
       );
 
-      return DiaryAiSuggestion(
-        summary: summary,
-        title: title,
-        moodId: moodId,
-        tags: tags,
-        emotionCategory: emotionCategory,
-        comfortReply: comfortReply,
-        companionStyle: companionStyle,
-        priorityFeedback: priorityFeedback,
-        distressIdentification: distressIdentification,
-        problemAnalysis: problemAnalysis,
+      return DiaryEntryAiAnalysis(
+        overviewText: overviewText,
+        suggestedTags: tags,
+        emotionalSupportText:
+            emotionalSupportText.isEmpty ? null : emotionalSupportText,
+        questionSuggestionText:
+            questionSuggestionText.isEmpty ? null : questionSuggestionText,
       );
     } on FormatException {
       return null;
@@ -423,70 +345,37 @@ $moodGuide
     return List.unmodifiable(tags.take(6));
   }
 
-  String _resolveMoodId(Object? rawMood, List<DiaryMood> availableMoods) {
-    if (rawMood == null) return DiaryMood.neutralId;
-
-    final normalized = switch (rawMood) {
-      String value => value.trim().toLowerCase(),
-      Map<String, dynamic> value => _readString(value['id']).toLowerCase(),
-      _ => rawMood.toString().trim().toLowerCase(),
-    };
-
-    for (final mood in availableMoods) {
-      if (mood.id.toLowerCase() == normalized) {
-        return mood.id;
-      }
+  String _resolveOverviewText(Map<String, dynamic> suggestionJson) {
+    final direct = _readString(
+      suggestionJson['overview_text'] ?? suggestionJson['overviewText'],
+    );
+    if (direct.isNotEmpty) {
+      return direct;
     }
 
-    for (final mood in availableMoods) {
-      final aliases = <String>{
-        mood.label.trim().toLowerCase(),
-        ..._moodAliases(mood.id),
-      }..removeWhere((item) => item.trim().isEmpty);
-      if (aliases.contains(normalized)) {
-        return mood.id;
-      }
+    final title = _readString(suggestionJson['title']);
+    final summary = _readString(suggestionJson['summary']);
+    if (title.isEmpty && summary.isEmpty) {
+      return '';
     }
-
-    return DiaryMood.neutralId;
+    if (title.isEmpty) return summary;
+    if (summary.isEmpty) return title;
+    return '$title\n$summary';
   }
 
-  String _describeMood(DiaryMood mood) {
-    final customLabel = mood.label.trim();
-    if (customLabel.isNotEmpty) {
-      return customLabel;
+  String _resolveSectionText({
+    required Object? primaryValue,
+    required List<Object?> legacyValues,
+  }) {
+    final primary = _readString(primaryValue);
+    if (primary.isNotEmpty) {
+      return primary;
     }
 
-    switch (mood.id) {
-      case DiaryMood.happyId:
-        return 'happy / joyful / positive';
-      case DiaryMood.calmId:
-        return 'calm / peaceful / steady';
-      case DiaryMood.neutralId:
-        return 'neutral / ordinary / mixed';
-      case DiaryMood.sadId:
-        return 'sad / low / disappointed';
-      case DiaryMood.angryId:
-        return 'angry / frustrated / upset';
-      default:
-        return mood.id;
-    }
-  }
-
-  Set<String> _moodAliases(String moodId) {
-    switch (moodId) {
-      case DiaryMood.happyId:
-        return const {'happy', 'joyful', 'positive', 'kaixin', 'happy mood'};
-      case DiaryMood.calmId:
-        return const {'calm', 'peaceful', 'steady', 'relaxed'};
-      case DiaryMood.neutralId:
-        return const {'neutral', 'ordinary', 'mixed', 'normal'};
-      case DiaryMood.sadId:
-        return const {'sad', 'down', 'low', 'disappointed'};
-      case DiaryMood.angryId:
-        return const {'angry', 'mad', 'frustrated', 'upset'};
-      default:
-        return {moodId.toLowerCase()};
-    }
+    final parts = legacyValues
+        .map(_readString)
+        .where((value) => value.isNotEmpty)
+        .toList(growable: false);
+    return parts.join('\n\n');
   }
 }

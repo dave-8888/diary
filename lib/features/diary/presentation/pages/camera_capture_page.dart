@@ -44,6 +44,7 @@ class _CameraCapturePageState extends ConsumerState<CameraCapturePage>
   String? _capturedPhotoPath;
   String? _capturedVideoPath;
   String? _capturedVideoDurationLabel;
+  DateTime? _capturedVideoCapturedAt;
   Uint8List? _croppedImageBytes;
   Uint8List? _previewImageBytes;
   DateTime? _videoRecordingStartedAt;
@@ -711,6 +712,7 @@ class _CameraCapturePageState extends ConsumerState<CameraCapturePage>
       setState(() {
         _capturedVideoPath = file.path;
         _capturedVideoDurationLabel = _formatDuration(seconds);
+        _capturedVideoCapturedAt = DateTime.now();
         _isCapturing = false;
         _isVideoRecording = false;
         _videoRecordingStartedAt = null;
@@ -757,6 +759,7 @@ class _CameraCapturePageState extends ConsumerState<CameraCapturePage>
     setState(() {
       _capturedVideoPath = null;
       _capturedVideoDurationLabel = null;
+      _capturedVideoCapturedAt = null;
       _isVideoRecording = false;
       _videoRecordingStartedAt = null;
     });
@@ -817,6 +820,7 @@ class _CameraCapturePageState extends ConsumerState<CameraCapturePage>
           type: MediaType.video,
           path: savedPath,
           durationLabel: _capturedVideoDurationLabel,
+          capturedAt: _capturedVideoCapturedAt,
         ),
       );
     } catch (error) {

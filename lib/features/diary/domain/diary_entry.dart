@@ -104,24 +104,120 @@ class DiaryMedia {
     required this.type,
     required this.path,
     this.durationLabel,
+    this.capturedAt,
   });
 
   final String id;
   final MediaType type;
   final String path;
   final String? durationLabel;
+  final DateTime? capturedAt;
 
   DiaryMedia copyWith({
     String? id,
     MediaType? type,
     String? path,
     String? durationLabel,
+    DateTime? capturedAt,
   }) {
     return DiaryMedia(
       id: id ?? this.id,
       type: type ?? this.type,
       path: path ?? this.path,
       durationLabel: durationLabel ?? this.durationLabel,
+      capturedAt: capturedAt ?? this.capturedAt,
+    );
+  }
+}
+
+class DiaryEntryAiAnalysis {
+  const DiaryEntryAiAnalysis({
+    required this.overviewText,
+    this.suggestedTags = const [],
+    this.emotionalSupportText,
+    this.questionSuggestionText,
+  });
+
+  final String overviewText;
+  final List<String> suggestedTags;
+  final String? emotionalSupportText;
+  final String? questionSuggestionText;
+
+  bool get isEmpty =>
+      overviewText.trim().isEmpty &&
+      suggestedTags.isEmpty &&
+      (emotionalSupportText?.trim().isEmpty ?? true) &&
+      (questionSuggestionText?.trim().isEmpty ?? true);
+
+  DiaryEntryAiAnalysis copyWith({
+    String? overviewText,
+    List<String>? suggestedTags,
+    String? emotionalSupportText,
+    String? questionSuggestionText,
+  }) {
+    return DiaryEntryAiAnalysis(
+      overviewText: overviewText ?? this.overviewText,
+      suggestedTags: suggestedTags ?? this.suggestedTags,
+      emotionalSupportText: emotionalSupportText ?? this.emotionalSupportText,
+      questionSuggestionText:
+          questionSuggestionText ?? this.questionSuggestionText,
+    );
+  }
+
+  Map<String, Object?> toJson() {
+    return {
+      'overview_text': overviewText,
+      'suggested_tags': suggestedTags,
+      'emotional_support_text': emotionalSupportText,
+      'question_suggestion_text': questionSuggestionText,
+    };
+  }
+
+  factory DiaryEntryAiAnalysis.fromJson(Map<String, dynamic> json) {
+    final rawTags = json['suggested_tags'] ?? json['tags'];
+    final tags = <String>[];
+    final seen = <String>{};
+
+    void addTag(String raw) {
+      final trimmed = raw.trim();
+      if (trimmed.isEmpty) return;
+      final key = trimmed.toLowerCase();
+      if (seen.add(key)) {
+        tags.add(trimmed);
+      }
+    }
+
+    if (rawTags is List) {
+      for (final item in rawTags) {
+        if (item is String) {
+          addTag(item);
+        }
+      }
+    } else if (rawTags is String) {
+      for (final item in rawTags.split(RegExp(r'[,\n/|]+'))) {
+        addTag(item);
+      }
+    }
+
+    final overviewText =
+        (json['overview_text'] ?? json['overviewText'] ?? '').toString().trim();
+    final emotionalSupportText =
+        (json['emotional_support_text'] ?? json['emotionalSupportText'])
+            ?.toString()
+            .trim();
+    final questionSuggestionText =
+        (json['question_suggestion_text'] ?? json['questionSuggestionText'])
+            ?.toString()
+            .trim();
+
+    return DiaryEntryAiAnalysis(
+      overviewText: overviewText,
+      suggestedTags: List<String>.unmodifiable(tags),
+      emotionalSupportText:
+          emotionalSupportText?.isEmpty == true ? null : emotionalSupportText,
+      questionSuggestionText: questionSuggestionText?.isEmpty == true
+          ? null
+          : questionSuggestionText,
     );
   }
 }
@@ -139,6 +235,7 @@ class DiaryEntry {
     this.trashedAt,
     this.tags = const [],
     this.media = const [],
+    this.aiAnalysis,
   });
 
   final String id;
@@ -150,6 +247,7 @@ class DiaryEntry {
   final DateTime? trashedAt;
   final List<String> tags;
   final List<DiaryMedia> media;
+  final DiaryEntryAiAnalysis? aiAnalysis;
 
   DiaryEntry copyWith({
     String? id,
@@ -161,6 +259,7 @@ class DiaryEntry {
     Object? trashedAt = _unset,
     List<String>? tags,
     List<DiaryMedia>? media,
+    Object? aiAnalysis = _unset,
   }) {
     return DiaryEntry(
       id: id ?? this.id,
@@ -175,6 +274,9 @@ class DiaryEntry {
           : trashedAt as DateTime?,
       tags: tags ?? this.tags,
       media: media ?? this.media,
+      aiAnalysis: identical(aiAnalysis, _unset)
+          ? this.aiAnalysis
+          : aiAnalysis as DiaryEntryAiAnalysis?,
     );
   }
 }

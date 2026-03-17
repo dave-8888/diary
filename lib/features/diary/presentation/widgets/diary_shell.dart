@@ -1,5 +1,4 @@
 import 'package:diary_mvp/app/app_icon.dart';
-import 'package:diary_mvp/app/app_display_name.dart';
 import 'package:diary_mvp/app/localization/app_strings.dart';
 import 'package:diary_mvp/app/theme.dart';
 import 'package:flutter/material.dart';
@@ -14,6 +13,8 @@ class DiaryShell extends ConsumerWidget {
     this.floatingActionButton,
     this.actions = const [],
     this.showAppBarTitle = true,
+    this.compactBodyPadding,
+    this.expandedBodyPadding,
   });
 
   final String title;
@@ -21,6 +22,8 @@ class DiaryShell extends ConsumerWidget {
   final Widget? floatingActionButton;
   final List<Widget> actions;
   final bool showAppBarTitle;
+  final EdgeInsetsGeometry? compactBodyPadding;
+  final EdgeInsetsGeometry? expandedBodyPadding;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -30,10 +33,6 @@ class DiaryShell extends ConsumerWidget {
     );
     final selectedIcon = resolveAppIconSelection(
       ref.watch(appIconControllerProvider),
-    );
-    final appName = resolveAppDisplayName(
-      strings: strings,
-      customNameAsync: ref.watch(appDisplayNameControllerProvider),
     );
     final location = GoRouterState.of(context).uri.toString();
     final selectedIndex = _primaryIndexForLocation(location);
@@ -59,7 +58,6 @@ class DiaryShell extends ConsumerWidget {
                 ? AppBar(
                     title: showAppBarTitle
                         ? _AppBarTitle(
-                            appName: appName,
                             pageTitle: title,
                             iconSelection: selectedIcon,
                           )
@@ -74,7 +72,7 @@ class DiaryShell extends ConsumerWidget {
               themePreset: selectedTheme,
               child: SafeArea(
                 child: Padding(
-                  padding: const EdgeInsets.all(16),
+                  padding: compactBodyPadding ?? const EdgeInsets.all(16),
                   child: child,
                 ),
               ),
@@ -109,7 +107,6 @@ class DiaryShell extends ConsumerWidget {
               ? AppBar(
                   title: showAppBarTitle
                       ? _AppBarTitle(
-                          appName: appName,
                           pageTitle: title,
                           iconSelection: selectedIcon,
                         )
@@ -179,7 +176,7 @@ class DiaryShell extends ConsumerWidget {
                 Expanded(
                   child: SafeArea(
                     child: Padding(
-                      padding: const EdgeInsets.all(24),
+                      padding: expandedBodyPadding ?? const EdgeInsets.all(20),
                       child: child,
                     ),
                   ),
@@ -220,19 +217,16 @@ class DiaryShell extends ConsumerWidget {
 
 class _AppBarTitle extends StatelessWidget {
   const _AppBarTitle({
-    required this.appName,
     required this.pageTitle,
     required this.iconSelection,
   });
 
-  final String appName;
   final String pageTitle;
   final AppIconSelection iconSelection;
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final showSubtitle = pageTitle.trim() != appName.trim();
 
     return Row(
       children: [
@@ -242,26 +236,12 @@ class _AppBarTitle extends StatelessWidget {
         ),
         const SizedBox(width: 10),
         Flexible(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                appName,
-                overflow: TextOverflow.ellipsis,
-                style: theme.textTheme.titleMedium?.copyWith(
-                  fontWeight: FontWeight.w700,
-                ),
-              ),
-              if (showSubtitle)
-                Text(
-                  pageTitle,
-                  overflow: TextOverflow.ellipsis,
-                  style: theme.textTheme.bodySmall?.copyWith(
-                    color: theme.colorScheme.onSurfaceVariant,
-                  ),
-                ),
-            ],
+          child: Text(
+            pageTitle,
+            overflow: TextOverflow.ellipsis,
+            style: theme.textTheme.titleMedium?.copyWith(
+              fontWeight: FontWeight.w700,
+            ),
           ),
         ),
       ],

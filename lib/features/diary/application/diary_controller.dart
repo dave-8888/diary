@@ -29,6 +29,7 @@ class DiaryController extends AsyncNotifier<List<DiaryEntry>> {
     required String location,
     required List<String> tags,
     required List<DiaryMedia> media,
+    DiaryEntryAiAnalysis? aiAnalysis,
   }) async {
     await _runMutation(() async {
       await _repository.createEntry(
@@ -38,6 +39,7 @@ class DiaryController extends AsyncNotifier<List<DiaryEntry>> {
         location: location,
         tags: tags,
         media: media,
+        aiAnalysis: aiAnalysis,
       );
       ref.invalidate(tagLibraryControllerProvider);
     });
@@ -51,6 +53,7 @@ class DiaryController extends AsyncNotifier<List<DiaryEntry>> {
     required String location,
     required List<String> tags,
     required List<DiaryMedia> media,
+    DiaryEntryAiAnalysis? aiAnalysis,
   }) async {
     await _runMutation(() async {
       await _repository.updateEntry(
@@ -61,6 +64,7 @@ class DiaryController extends AsyncNotifier<List<DiaryEntry>> {
         location: location,
         tags: tags,
         media: media,
+        aiAnalysis: aiAnalysis,
       );
       ref.invalidate(tagLibraryControllerProvider);
     });

@@ -31,10 +31,6 @@ class AppStrings {
 
   String get appTitle => '\u65e5\u8bb0';
   String get theme => isChinese ? '\u4e3b\u9898' : 'Theme';
-  String get renameAppTitle =>
-      isChinese ? '\u81ea\u5b9a\u4e49\u5e94\u7528\u540d' : 'Customize app name';
-  String get renameAppTooltip =>
-      isChinese ? '\u4fee\u6539\u5e94\u7528\u540d' : 'Rename app';
   String get appNameLabel => isChinese ? '\u5e94\u7528\u540d' : 'App name';
   String get appNameHint => isChinese
       ? '\u4f8b\u5982\uff1a\u65e5\u8bb0 / \u6211\u7684\u65e5\u8bb0'
@@ -579,8 +575,8 @@ class AppStrings {
       ? '\u5f53\u524d\u8fd9\u6761\u65e5\u8bb0\u8fd8\u6ca1\u6709\u751f\u6210\u95ee\u9898\u5efa\u8bae\u3002'
       : 'No AI problem suggestions have been generated yet.';
   String get noAiSuggestionYet => isChinese
-      ? '先写下一些标题、正文、地点或标签，再点击 AI 分析即可生成建议。'
-      : 'Write a bit of title, content, location, or tags first, then run AI analysis.';
+      ? '\u6682\u65e0 AI \u5efa\u8bae\u3002'
+      : 'No AI suggestions yet.';
   String get aiAnalysisReady =>
       isChinese ? 'AI 建议已生成。' : 'AI suggestions are ready.';
   String get applyAllAiSuggestions => isChinese ? '全部应用' : 'Apply all';
@@ -607,8 +603,8 @@ class AppStrings {
       : 'For example: Afternoon in the park';
   String get contentLabel => isChinese ? '\u5185\u5bb9' : 'Content';
   String get contentHint => isChinese
-      ? '\u5199\u4e0b\u4eca\u5929\u53d1\u751f\u7684\u4e8b\u3001\u4f60\u7684\u611f\u53d7\uff0c\u4ee5\u53ca\u60f3\u7559\u4e0b\u7684\u8bb0\u5fc6...'
-      : 'Write down what happened, how you felt, and what you want to remember...';
+      ? '\u4f8b\u5982\uff1a\u4e0b\u73ed\u8def\u4e0a\u4e0b\u96e8\uff0c\u5fc3\u60c5\u53cd\u800c\u5f88\u5e73\u9759\u3002'
+      : 'For example: It rained on the way home, and I felt surprisingly calm.';
   String get locationLabel => isChinese ? '\u5730\u70b9' : 'Location';
   String get createdAtLabel => isChinese ? '\u65f6\u95f4' : 'Created at';
   String get locationHint => isChinese
@@ -699,6 +695,11 @@ class AppStrings {
       isChinese ? '\u9884\u89c8\u7167\u7247' : 'Preview photo';
   String get previewVideo =>
       isChinese ? '\u9884\u89c8\u89c6\u9891' : 'Preview video';
+  String get imagePreviewPageTitle =>
+      isChinese ? '\u56fe\u7247\u9884\u89c8' : 'Image preview';
+  String get noImageSelected => isChinese
+      ? '\u672a\u9009\u4e2d\u8981\u9884\u89c8\u7684\u56fe\u7247\u3002'
+      : 'No image selected for preview.';
   String get retakePhoto => isChinese ? '\u91cd\u62cd' : 'Retake';
   String get retakeVideo =>
       isChinese ? '\u91cd\u65b0\u5f55\u5236' : 'Record again';
@@ -905,6 +906,9 @@ class AppStrings {
             : 'Video ${media.durationLabel}${baseName == null ? '' : ': $baseName'}';
     }
   }
+
+  String get aiOverviewSectionTitle =>
+      isChinese ? '\u7efc\u5408\u603b\u7ed3' : 'Overview';
 
   String formatDay(DateTime date) {
     return DateFormat('yyyy-MM-dd', locale.languageCode).format(date);

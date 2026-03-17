@@ -20,6 +20,7 @@ abstract class DiaryRepository {
     required String location,
     required List<String> tags,
     required List<DiaryMedia> media,
+    DiaryEntryAiAnalysis? aiAnalysis,
   });
   Future<DiaryEntry> updateEntry({
     required DiaryEntry entry,
@@ -29,6 +30,7 @@ abstract class DiaryRepository {
     required String location,
     required List<String> tags,
     required List<DiaryMedia> media,
+    DiaryEntryAiAnalysis? aiAnalysis,
   });
   Future<void> saveEntry(DiaryEntry entry);
   Future<void> deleteEntry(String id);
@@ -72,6 +74,7 @@ class DriftDiaryRepository implements DiaryRepository {
     required String location,
     required List<String> tags,
     required List<DiaryMedia> media,
+    DiaryEntryAiAnalysis? aiAnalysis,
   }) async {
     final entry = DiaryEntry(
       id: _uuid.v4(),
@@ -82,6 +85,7 @@ class DriftDiaryRepository implements DiaryRepository {
       location: location.trim().isEmpty ? null : location.trim(),
       media: media,
       tags: _normalizeTags(tags),
+      aiAnalysis: aiAnalysis,
     );
 
     await _database.insertEntry(entry);
@@ -104,6 +108,7 @@ class DriftDiaryRepository implements DiaryRepository {
     required String location,
     required List<String> tags,
     required List<DiaryMedia> media,
+    DiaryEntryAiAnalysis? aiAnalysis,
   }) async {
     final updated = entry.copyWith(
       title: title.trim().isEmpty ? 'Untitled entry' : title.trim(),
@@ -112,6 +117,7 @@ class DriftDiaryRepository implements DiaryRepository {
       location: location.trim().isEmpty ? null : location.trim(),
       media: media,
       tags: _normalizeTags(tags),
+      aiAnalysis: aiAnalysis,
     );
 
     await saveEntry(updated);

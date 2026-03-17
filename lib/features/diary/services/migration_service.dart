@@ -100,6 +100,7 @@ class DiaryMigrationService {
           'type': media.type.name,
           'relative_path': relativePath,
           'duration_label': media.durationLabel,
+          'captured_at': media.capturedAt?.millisecondsSinceEpoch,
         });
       }
 
@@ -112,6 +113,7 @@ class DiaryMigrationService {
         'location': entry.location,
         'trashed_at': entry.trashedAt?.millisecondsSinceEpoch,
         'tags': entry.tags,
+        'ai_analysis': entry.aiAnalysis?.toJson(),
         'media': mediaRecords,
       });
     }
@@ -406,6 +408,7 @@ class _MigrationEntry {
     required this.location,
     required this.trashedAt,
     required this.tags,
+    required this.aiAnalysis,
     required this.media,
   });
 
@@ -424,6 +427,11 @@ class _MigrationEntry {
       tags: (json['tags'] as List? ?? const [])
           .whereType<String>()
           .toList(growable: false),
+      aiAnalysis: json['ai_analysis'] is Map<String, dynamic>
+          ? DiaryEntryAiAnalysis.fromJson(
+              json['ai_analysis'] as Map<String, dynamic>,
+            )
+          : null,
       media: (mediaRaw as List? ?? const [])
           .map((item) => _MigrationMedia.fromJson(item as Map<String, dynamic>))
           .toList(growable: false),
@@ -438,6 +446,7 @@ class _MigrationEntry {
   final String? location;
   final DateTime? trashedAt;
   final List<String> tags;
+  final DiaryEntryAiAnalysis? aiAnalysis;
   final List<_MigrationMedia> media;
 
   DiaryEntry toDiaryEntry(Map<String, DiaryMood> moodLibrary) {
@@ -450,6 +459,7 @@ class _MigrationEntry {
       location: location,
       trashedAt: trashedAt,
       tags: tags,
+      aiAnalysis: aiAnalysis,
       media: media
           .map(
             (item) => DiaryMedia(
@@ -457,6 +467,7 @@ class _MigrationEntry {
               type: item.type,
               path: item.absolutePath ?? '',
               durationLabel: item.durationLabel,
+              capturedAt: item.capturedAt,
             ),
           )
           .toList(growable: false),
@@ -506,6 +517,7 @@ class _MigrationMedia {
     required this.type,
     required this.relativePath,
     required this.durationLabel,
+    required this.capturedAt,
   });
 
   factory _MigrationMedia.fromJson(Map<String, dynamic> json) {
@@ -514,6 +526,9 @@ class _MigrationMedia {
       type: _parseMediaType(json['type'] as String?),
       relativePath: json['relative_path'] as String,
       durationLabel: json['duration_label'] as String?,
+      capturedAt: json['captured_at'] == null
+          ? null
+          : DateTime.fromMillisecondsSinceEpoch(json['captured_at'] as int),
     );
   }
 
@@ -521,6 +536,7 @@ class _MigrationMedia {
   final MediaType type;
   final String relativePath;
   final String? durationLabel;
+  final DateTime? capturedAt;
   String? absolutePath;
 
   static MediaType _parseMediaType(String? raw) {

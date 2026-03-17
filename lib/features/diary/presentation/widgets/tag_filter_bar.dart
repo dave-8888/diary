@@ -27,34 +27,24 @@ class TagFilterBar extends ConsumerWidget {
           return const SizedBox.shrink();
         }
 
-        return Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+        return Wrap(
+          spacing: 8,
+          runSpacing: 8,
           children: [
-            Text(
-              strings.filterByTag,
-              style: Theme.of(context).textTheme.titleMedium,
+            ChoiceChip(
+              selected: selectedTag == null,
+              onSelected: (_) =>
+                  ref.read(selectedTagFilterProvider.notifier).state = null,
+              label: Text(strings.allTags),
             ),
-            const SizedBox(height: 12),
-            Wrap(
-              spacing: 8,
-              runSpacing: 8,
-              children: [
-                ChoiceChip(
-                  selected: selectedTag == null,
-                  onSelected: (_) =>
-                      ref.read(selectedTagFilterProvider.notifier).state = null,
-                  label: Text(strings.allTags),
-                ),
-                ...tags.map(
-                  (tag) => ChoiceChip(
-                    selected: selectedTag == tag,
-                    onSelected: (_) => ref
-                        .read(selectedTagFilterProvider.notifier)
-                        .state = selectedTag == tag ? null : tag,
-                    label: Text(tag),
-                  ),
-                ),
-              ],
+            ...tags.map(
+              (tag) => ChoiceChip(
+                selected: selectedTag == tag,
+                onSelected: (_) => ref
+                    .read(selectedTagFilterProvider.notifier)
+                    .state = selectedTag == tag ? null : tag,
+                label: Text(tag),
+              ),
             ),
           ],
         );

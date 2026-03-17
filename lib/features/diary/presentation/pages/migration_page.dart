@@ -1,3 +1,4 @@
+import 'package:diary_mvp/app/context_tooltip.dart';
 import 'package:diary_mvp/app/localization/app_strings.dart';
 import 'package:diary_mvp/app/themed_snackbar.dart';
 import 'package:diary_mvp/core/storage/local_storage_service.dart';
@@ -40,28 +41,26 @@ class _MigrationPageState extends ConsumerState<MigrationPage> {
           constraints: const BoxConstraints(maxWidth: 920),
           child: ListView(
             children: [
-              Text(
-                strings.migrationHint,
-                style: Theme.of(context).textTheme.titleMedium,
-              ),
-              const SizedBox(height: 20),
               Card(
                 child: Padding(
-                  padding: const EdgeInsets.all(20),
+                  padding: const EdgeInsets.all(18),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
                         strings.currentDataLocation,
-                        style: Theme.of(context).textTheme.titleLarge,
+                        style:
+                            Theme.of(context).textTheme.titleMedium?.copyWith(
+                                  fontWeight: FontWeight.w700,
+                                ),
                       ),
-                      const SizedBox(height: 12),
+                      const SizedBox(height: 10),
                       SelectableText(_dataRootPath ?? '...'),
                     ],
                   ),
                 ),
               ),
-              const SizedBox(height: 20),
+              const SizedBox(height: 16),
               _buildActionCard(
                 context: context,
                 icon: Icons.upload_file_outlined,
@@ -107,50 +106,24 @@ class _MigrationPageState extends ConsumerState<MigrationPage> {
 
     return Card(
       child: Padding(
-        padding: const EdgeInsets.all(20),
+        padding: const EdgeInsets.all(18),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Container(
-                  width: 44,
-                  height: 44,
-                  decoration: BoxDecoration(
-                    color: isDanger
-                        ? theme.colorScheme.errorContainer
-                        : theme.colorScheme.secondaryContainer,
-                    borderRadius: BorderRadius.circular(14),
-                  ),
-                  alignment: Alignment.center,
-                  child: Icon(
-                    icon,
-                    color: isDanger
-                        ? theme.colorScheme.onErrorContainer
-                        : theme.colorScheme.onSecondaryContainer,
-                  ),
-                ),
-                const SizedBox(width: 12),
                 Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(title, style: theme.textTheme.titleLarge),
-                      const SizedBox(height: 6),
-                      Text(
-                        hint,
-                        style: theme.textTheme.bodyMedium?.copyWith(
-                          color: theme.colorScheme.onSurfaceVariant,
-                          height: 1.4,
-                        ),
-                      ),
-                    ],
+                  child: Text(
+                    title,
+                    style: theme.textTheme.titleMedium?.copyWith(
+                      fontWeight: FontWeight.w700,
+                    ),
                   ),
                 ),
+                ContextTooltip(message: hint),
               ],
             ),
-            const SizedBox(height: 18),
+            const SizedBox(height: 14),
             FilledButton.icon(
               onPressed: onPressed,
               icon: isBusy
@@ -160,6 +133,12 @@ class _MigrationPageState extends ConsumerState<MigrationPage> {
                       child: CircularProgressIndicator(strokeWidth: 2),
                     )
                   : Icon(icon),
+              style: isDanger
+                  ? FilledButton.styleFrom(
+                      backgroundColor: theme.colorScheme.errorContainer,
+                      foregroundColor: theme.colorScheme.onErrorContainer,
+                    )
+                  : null,
               label: Text(buttonLabel),
             ),
           ],

@@ -1,4 +1,5 @@
 import 'package:diary_mvp/app/localization/app_strings.dart';
+import 'package:diary_mvp/app/context_tooltip.dart';
 import 'package:diary_mvp/app/themed_snackbar.dart';
 import 'package:diary_mvp/features/diary/application/diary_controller.dart';
 import 'package:diary_mvp/features/diary/domain/diary_entry.dart';
@@ -47,16 +48,17 @@ class _TrashPageState extends ConsumerState<TrashPage> {
             children: [
               Card(
                 child: Padding(
-                  padding: const EdgeInsets.all(18),
+                  padding: const EdgeInsets.all(16),
                   child: Wrap(
                     spacing: 12,
                     runSpacing: 12,
                     crossAxisAlignment: WrapCrossAlignment.center,
                     children: [
                       Text(
-                        strings.trashedEntryHint,
-                        style: Theme.of(context).textTheme.bodyMedium,
+                        strings.trashNav,
+                        style: Theme.of(context).textTheme.titleMedium,
                       ),
+                      ContextTooltip(message: strings.trashedEntryHint),
                       Chip(label: Text(strings.selectedEntries(selectedCount))),
                       OutlinedButton(
                         onPressed: () => setState(() {

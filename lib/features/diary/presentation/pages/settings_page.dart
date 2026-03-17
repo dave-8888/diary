@@ -1,5 +1,6 @@
 import 'package:diary_mvp/app/app_display_name.dart';
 import 'package:diary_mvp/app/app_icon.dart';
+import 'package:diary_mvp/app/context_tooltip.dart';
 import 'package:diary_mvp/app/localization/app_locale.dart';
 import 'package:diary_mvp/app/localization/app_strings.dart';
 import 'package:diary_mvp/app/themed_snackbar.dart';
@@ -15,7 +16,6 @@ import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:path/path.dart' as p;
 
 class SettingsPage extends ConsumerStatefulWidget {
   const SettingsPage({super.key});
@@ -46,6 +46,9 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
   bool _isChangingDiaryAiVisibility = false;
   bool _isChangingEmotionalCompanionVisibility = false;
   bool _isChangingProblemSuggestionVisibility = false;
+  bool _isDiaryAiSectionExpanded = false;
+  bool _isTranscriptionSectionExpanded = false;
+  bool _isMigrationSectionExpanded = false;
   bool _showDiaryAiApiKey = false;
   bool _showApiKey = false;
 
@@ -189,23 +192,24 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
+                    Row(
+                      children: [
+                        Text(
+                          strings.appNameLabel,
+                          style: Theme.of(context).textTheme.labelLarge,
+                        ),
+                        const SizedBox(width: 4),
+                        ContextTooltip(message: strings.appNameDesktopHint),
+                      ],
+                    ),
+                    const SizedBox(height: 8),
                     TextField(
                       controller: _appNameController,
                       decoration: InputDecoration(
-                        labelText: strings.appNameLabel,
                         hintText: strings.appNameHint,
                       ),
                       textInputAction: TextInputAction.done,
                       onSubmitted: (_) => _saveAppName(),
-                    ),
-                    const SizedBox(height: 10),
-                    Text(
-                      strings.appNameDesktopHint,
-                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                            color:
-                                Theme.of(context).colorScheme.onSurfaceVariant,
-                            height: 1.4,
-                          ),
                     ),
                     const SizedBox(height: 16),
                     Wrap(
@@ -241,23 +245,15 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
                       ],
                     ),
                     const SizedBox(height: 24),
-                    Text(
-                      strings.appIconTitle,
-                      style: Theme.of(context).textTheme.titleMedium,
-                    ),
-                    const SizedBox(height: 8),
-                    Text(
-                      strings.appIconHint,
-                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                            color:
-                                Theme.of(context).colorScheme.onSurfaceVariant,
-                            height: 1.4,
-                          ),
-                    ),
-                    const SizedBox(height: 16),
-                    _CurrentAppIconPreviewCard(
-                      selection: iconSelection,
-                      title: strings.currentWindowIcon,
+                    Row(
+                      children: [
+                        Text(
+                          strings.appIconTitle,
+                          style: Theme.of(context).textTheme.labelLarge,
+                        ),
+                        const SizedBox(width: 4),
+                        ContextTooltip(message: strings.appIconHint),
+                      ],
                     ),
                     const SizedBox(height: 16),
                     Wrap(
@@ -312,14 +308,15 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
                     ),
                     if (canSyncBuildWindowIcon) ...[
                       const SizedBox(height: 16),
-                      Text(
-                        strings.buildWindowIconHint,
-                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                              color: Theme.of(context)
-                                  .colorScheme
-                                  .onSurfaceVariant,
-                              height: 1.4,
-                            ),
+                      Row(
+                        children: [
+                          Text(
+                            strings.windowIconTitle,
+                            style: Theme.of(context).textTheme.labelLarge,
+                          ),
+                          const SizedBox(width: 4),
+                          ContextTooltip(message: strings.buildWindowIconHint),
+                        ],
                       ),
                       const SizedBox(height: 12),
                       Wrap(
@@ -365,188 +362,62 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
                     ],
                     if (!supportsWindowIdentity) ...[
                       const SizedBox(height: 12),
-                      Text(
-                        strings.windowIconPlatformHint,
-                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                              color: Theme.of(context)
-                                  .colorScheme
-                                  .onSurfaceVariant,
-                              height: 1.4,
-                            ),
+                      Row(
+                        children: [
+                          Text(
+                            strings.windowIconTitle,
+                            style: Theme.of(context).textTheme.labelLarge,
+                          ),
+                          const SizedBox(width: 4),
+                          ContextTooltip(
+                            message: strings.windowIconPlatformHint,
+                          ),
+                        ],
                       ),
                     ],
                   ],
                 ),
               ),
               const SizedBox(height: 18),
-              _buildSectionCard(
+              _buildExpandableSectionCard(
                 context: context,
                 icon: Icons.auto_awesome_outlined,
                 title: strings.diaryAiSettingsTitle,
                 subtitle: strings.diaryAiSettingsHint,
+                summary:
+                    '${strings.diaryAiVisibilityLabel}: ${diaryAiVisible ? strings.enabledLabel : strings.disabledLabel}',
+                expanded: _isDiaryAiSectionExpanded,
+                onExpandedChanged: (expanded) {
+                  setState(() => _isDiaryAiSectionExpanded = expanded);
+                },
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Container(
-                      decoration: BoxDecoration(
-                        color: Theme.of(context)
-                            .colorScheme
-                            .surfaceContainerHighest
-                            .withValues(alpha: 0.42),
-                        borderRadius: BorderRadius.circular(18),
-                      ),
-                      child: Padding(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 14,
-                          vertical: 8,
-                        ),
-                        child: Row(
-                          children: [
-                            Expanded(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text(
-                                    strings.diaryAiVisibilityStatus(
-                                      diaryAiVisible,
-                                    ),
-                                    style:
-                                        Theme.of(context).textTheme.titleMedium,
-                                  ),
-                                  const SizedBox(height: 4),
-                                  Text(
-                                    strings.diaryAiVisibilityHint,
-                                    style: Theme.of(context)
-                                        .textTheme
-                                        .bodySmall
-                                        ?.copyWith(
-                                          color: Theme.of(context)
-                                              .colorScheme
-                                              .onSurfaceVariant,
-                                          height: 1.4,
-                                        ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                            const SizedBox(width: 12),
-                            Switch.adaptive(
-                              value: diaryAiVisible,
-                              onChanged: _isChangingDiaryAiVisibility
-                                  ? null
-                                  : _changeDiaryAiVisibility,
-                            ),
-                          ],
-                        ),
-                      ),
+                    _buildToggleSettingTile(
+                      context: context,
+                      title: strings.diaryAiVisibilityLabel,
+                      helpText: strings.diaryAiVisibilityHint,
+                      value: diaryAiVisible,
+                      enabled: !_isChangingDiaryAiVisibility,
+                      onChanged: _changeDiaryAiVisibility,
                     ),
                     const SizedBox(height: 16),
-                    Container(
-                      decoration: BoxDecoration(
-                        color: Theme.of(context)
-                            .colorScheme
-                            .surfaceContainerHighest
-                            .withValues(alpha: 0.42),
-                        borderRadius: BorderRadius.circular(18),
-                      ),
-                      child: Padding(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 14,
-                          vertical: 8,
-                        ),
-                        child: Row(
-                          children: [
-                            Expanded(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text(
-                                    strings.emotionalCompanionStatus(
-                                      emotionalCompanionVisible,
-                                    ),
-                                    style:
-                                        Theme.of(context).textTheme.titleMedium,
-                                  ),
-                                  const SizedBox(height: 4),
-                                  Text(
-                                    strings.emotionalCompanionHint,
-                                    style: Theme.of(context)
-                                        .textTheme
-                                        .bodySmall
-                                        ?.copyWith(
-                                          color: Theme.of(context)
-                                              .colorScheme
-                                              .onSurfaceVariant,
-                                          height: 1.4,
-                                        ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                            const SizedBox(width: 12),
-                            Switch.adaptive(
-                              value: emotionalCompanionVisible,
-                              onChanged: _isChangingEmotionalCompanionVisibility
-                                  ? null
-                                  : _changeEmotionalCompanionVisibility,
-                            ),
-                          ],
-                        ),
-                      ),
+                    _buildToggleSettingTile(
+                      context: context,
+                      title: strings.emotionalCompanionLabel,
+                      helpText: strings.emotionalCompanionHint,
+                      value: emotionalCompanionVisible,
+                      enabled: !_isChangingEmotionalCompanionVisibility,
+                      onChanged: _changeEmotionalCompanionVisibility,
                     ),
                     const SizedBox(height: 16),
-                    Container(
-                      decoration: BoxDecoration(
-                        color: Theme.of(context)
-                            .colorScheme
-                            .surfaceContainerHighest
-                            .withValues(alpha: 0.42),
-                        borderRadius: BorderRadius.circular(18),
-                      ),
-                      child: Padding(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 14,
-                          vertical: 8,
-                        ),
-                        child: Row(
-                          children: [
-                            Expanded(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text(
-                                    strings.problemSuggestionStatus(
-                                      problemSuggestionVisible,
-                                    ),
-                                    style:
-                                        Theme.of(context).textTheme.titleMedium,
-                                  ),
-                                  const SizedBox(height: 4),
-                                  Text(
-                                    strings.problemSuggestionHint,
-                                    style: Theme.of(context)
-                                        .textTheme
-                                        .bodySmall
-                                        ?.copyWith(
-                                          color: Theme.of(context)
-                                              .colorScheme
-                                              .onSurfaceVariant,
-                                          height: 1.4,
-                                        ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                            const SizedBox(width: 12),
-                            Switch.adaptive(
-                              value: problemSuggestionVisible,
-                              onChanged: _isChangingProblemSuggestionVisibility
-                                  ? null
-                                  : _changeProblemSuggestionVisibility,
-                            ),
-                          ],
-                        ),
-                      ),
+                    _buildToggleSettingTile(
+                      context: context,
+                      title: strings.problemSuggestionLabel,
+                      helpText: strings.problemSuggestionHint,
+                      value: problemSuggestionVisible,
+                      enabled: !_isChangingProblemSuggestionVisibility,
+                      onChanged: _changeProblemSuggestionVisibility,
                     ),
                     const SizedBox(height: 16),
                     TextField(
@@ -617,11 +488,18 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
                 ),
               ),
               const SizedBox(height: 18),
-              _buildSectionCard(
+              _buildExpandableSectionCard(
                 context: context,
                 icon: Icons.key_outlined,
                 title: strings.transcriptionSettingsTitle,
                 subtitle: strings.transcriptionSettingsHint,
+                summary: transcriptionEnvironmentApiKey.isNotEmpty
+                    ? strings.usingEnvironmentApiKey
+                    : strings.apiKeyEnvironmentHint,
+                expanded: _isTranscriptionSectionExpanded,
+                onExpandedChanged: (expanded) {
+                  setState(() => _isTranscriptionSectionExpanded = expanded);
+                },
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
@@ -748,16 +626,23 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
                                 style: const TextStyle(fontSize: 24, height: 1),
                               ),
                               title: Text(strings.moodLabel(mood)),
-                              subtitle: Text(
-                                mood.isDefault
-                                    ? strings.defaultMoodBadge
-                                    : strings.customMoodBadge,
-                              ),
-                              trailing: IconButton(
-                                onPressed: () =>
-                                    _openMoodDialog(existing: mood),
-                                tooltip: strings.editMood,
-                                icon: const Icon(Icons.edit_outlined),
+                              trailing: Wrap(
+                                spacing: 8,
+                                crossAxisAlignment: WrapCrossAlignment.center,
+                                children: [
+                                  _buildStatusChip(
+                                    context,
+                                    mood.isDefault
+                                        ? strings.defaultMoodBadge
+                                        : strings.customMoodBadge,
+                                  ),
+                                  IconButton(
+                                    onPressed: () =>
+                                        _openMoodDialog(existing: mood),
+                                    tooltip: strings.editMood,
+                                    icon: const Icon(Icons.edit_outlined),
+                                  ),
+                                ],
                               ),
                             ),
                           ),
@@ -767,11 +652,16 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
                 ),
               ),
               const SizedBox(height: 18),
-              _buildSectionCard(
+              _buildExpandableSectionCard(
                 context: context,
                 icon: Icons.import_export_outlined,
                 title: strings.migrationTitle,
                 subtitle: strings.migrationHint,
+                summary: strings.currentDataLocation,
+                expanded: _isMigrationSectionExpanded,
+                onExpandedChanged: (expanded) {
+                  setState(() => _isMigrationSectionExpanded = expanded);
+                },
                 child: Align(
                   alignment: Alignment.centerLeft,
                   child: OutlinedButton.icon(
@@ -799,48 +689,178 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
 
     return Card(
       child: Padding(
-        padding: const EdgeInsets.all(20),
+        padding: const EdgeInsets.all(18),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Flexible(
+                  child: Text(
+                    title,
+                    style: theme.textTheme.titleMedium?.copyWith(
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 4),
+                ContextTooltip(message: subtitle),
+              ],
+            ),
+            const SizedBox(height: 16),
+            child,
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildExpandableSectionCard({
+    required BuildContext context,
+    required IconData icon,
+    required String title,
+    required String subtitle,
+    required String summary,
+    required bool expanded,
+    required ValueChanged<bool> onExpandedChanged,
+    required Widget child,
+  }) {
+    final theme = Theme.of(context);
+
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(18),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Container(
-                  width: 44,
-                  height: 44,
-                  decoration: BoxDecoration(
-                    color: theme.colorScheme.secondaryContainer,
-                    borderRadius: BorderRadius.circular(14),
-                  ),
-                  alignment: Alignment.center,
-                  child: Icon(
-                    icon,
-                    color: theme.colorScheme.onSecondaryContainer,
+                Expanded(
+                  child: InkWell(
+                    borderRadius: BorderRadius.circular(16),
+                    onTap: () => onExpandedChanged(!expanded),
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 2,
+                        vertical: 2,
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            children: [
+                              Flexible(
+                                child: Text(
+                                  title,
+                                  style: theme.textTheme.titleMedium?.copyWith(
+                                    fontWeight: FontWeight.w700,
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(width: 4),
+                              ContextTooltip(message: subtitle),
+                            ],
+                          ),
+                          if (summary.trim().isNotEmpty) ...[
+                            const SizedBox(height: 6),
+                            Text(
+                              summary,
+                              maxLines: expanded ? 2 : 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: theme.textTheme.bodySmall?.copyWith(
+                                color: theme.colorScheme.onSurfaceVariant,
+                                height: 1.35,
+                              ),
+                            ),
+                          ],
+                        ],
+                      ),
+                    ),
                   ),
                 ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(title, style: theme.textTheme.titleLarge),
-                      const SizedBox(height: 6),
-                      Text(
-                        subtitle,
-                        style: theme.textTheme.bodyMedium?.copyWith(
-                          color: theme.colorScheme.onSurfaceVariant,
-                          height: 1.4,
-                        ),
-                      ),
-                    ],
+                IconButton(
+                  onPressed: () => onExpandedChanged(!expanded),
+                  icon: Icon(
+                    expanded ? Icons.expand_less : Icons.expand_more,
                   ),
                 ),
               ],
             ),
-            const SizedBox(height: 20),
-            child,
+            if (expanded) ...[
+              const SizedBox(height: 16),
+              child,
+            ],
           ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildToggleSettingTile({
+    required BuildContext context,
+    required String title,
+    required String helpText,
+    required bool value,
+    required bool enabled,
+    required ValueChanged<bool> onChanged,
+  }) {
+    final strings = context.strings;
+    final theme = Theme.of(context);
+
+    return Container(
+      decoration: BoxDecoration(
+        color:
+            theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.32),
+        borderRadius: BorderRadius.circular(18),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+        child: Row(
+          children: [
+            Expanded(
+              child: Row(
+                children: [
+                  Flexible(
+                    child: Text(
+                      title,
+                      style: theme.textTheme.titleMedium,
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  _buildStatusChip(
+                    context,
+                    value ? strings.enabledLabel : strings.disabledLabel,
+                  ),
+                  const SizedBox(width: 4),
+                  ContextTooltip(message: helpText),
+                ],
+              ),
+            ),
+            const SizedBox(width: 12),
+            Switch.adaptive(
+              value: value,
+              onChanged: enabled ? onChanged : null,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildStatusChip(BuildContext context, String label) {
+    final theme = Theme.of(context);
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      decoration: BoxDecoration(
+        color: theme.colorScheme.secondaryContainer.withValues(alpha: 0.8),
+        borderRadius: BorderRadius.circular(999),
+      ),
+      child: Text(
+        label,
+        style: theme.textTheme.labelMedium?.copyWith(
+          fontWeight: FontWeight.w700,
         ),
       ),
     );
@@ -1384,82 +1404,6 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
       case DiaryThemePreset.spaceLines:
         return Icons.rocket_launch_outlined;
     }
-  }
-}
-
-class _CurrentAppIconPreviewCard extends StatelessWidget {
-  const _CurrentAppIconPreviewCard({
-    required this.selection,
-    required this.title,
-  });
-
-  final AppIconSelection selection;
-  final String title;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final strings = context.strings;
-
-    return Container(
-      padding: const EdgeInsets.all(14),
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(18),
-        border: Border.all(
-          color: theme.colorScheme.outlineVariant.withValues(alpha: 0.7),
-        ),
-        color:
-            theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.28),
-      ),
-      child: Row(
-        children: [
-          Container(
-            width: 76,
-            height: 76,
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(20),
-              color: theme.colorScheme.surface,
-              border: Border.all(
-                color: theme.colorScheme.outlineVariant.withValues(alpha: 0.6),
-              ),
-            ),
-            alignment: Alignment.center,
-            child: AppIconBadge(
-              selection: selection,
-              size: 60,
-            ),
-          ),
-          const SizedBox(width: 14),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  title,
-                  style: theme.textTheme.titleSmall?.copyWith(
-                    fontWeight: FontWeight.w700,
-                  ),
-                ),
-                const SizedBox(height: 6),
-                Text(
-                  selection.isCustom
-                      ? _fileName(selection.customImagePath!)
-                      : strings.titleForAppIcon(selection.preset),
-                  style: theme.textTheme.bodyMedium?.copyWith(
-                    color: theme.colorScheme.onSurfaceVariant,
-                    height: 1.35,
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  String _fileName(String path) {
-    return p.basename(path);
   }
 }
 

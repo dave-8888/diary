@@ -1,7 +1,7 @@
-import 'package:diary_mvp/features/diary/presentation/pages/app_name_page.dart';
 import 'package:diary_mvp/features/diary/presentation/pages/camera_capture_page.dart';
 import 'package:diary_mvp/features/diary/presentation/pages/editor_page.dart';
 import 'package:diary_mvp/features/diary/presentation/pages/home_page.dart';
+import 'package:diary_mvp/features/diary/presentation/pages/image_preview_page.dart';
 import 'package:diary_mvp/features/diary/presentation/pages/migration_page.dart';
 import 'package:diary_mvp/features/diary/presentation/pages/settings_page.dart';
 import 'package:diary_mvp/features/diary/presentation/pages/trash_page.dart';
@@ -31,13 +31,6 @@ final appRouterProvider = Provider<GoRouter>((ref) {
           child: EditorPage(
             entry: state.extra as DiaryEntry?,
           ),
-        ),
-      ),
-      GoRoute(
-        path: '/app-name',
-        pageBuilder: (context, state) => _buildDetailPage(
-          state: state,
-          child: const AppNamePage(),
         ),
       ),
       GoRoute(
@@ -95,6 +88,15 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         pageBuilder: (context, state) => _buildDetailPage(
           state: state,
           child: VideoPreviewPage(
+            media: state.extra as DiaryMedia?,
+          ),
+        ),
+      ),
+      GoRoute(
+        path: '/image-preview',
+        pageBuilder: (context, state) => _buildDetailPage(
+          state: state,
+          child: ImagePreviewPage(
             media: state.extra as DiaryMedia?,
           ),
         ),

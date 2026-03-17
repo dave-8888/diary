@@ -20,7 +20,7 @@ class DiaryDatabase extends GeneratedDatabase {
   bool _initialized = false;
 
   @override
-  int get schemaVersion => 4;
+  int get schemaVersion => 5;
 
   @override
   Iterable<TableInfo<Table, Object?>> get allTables => const [];
@@ -56,7 +56,8 @@ class DiaryDatabase extends GeneratedDatabase {
         created_at INTEGER NOT NULL,
         location TEXT,
         trashed_at INTEGER,
-        tags_json TEXT NOT NULL
+        tags_json TEXT NOT NULL,
+        ai_analysis_json TEXT
       );
     ''');
     await customStatement('''
@@ -66,6 +67,7 @@ class DiaryDatabase extends GeneratedDatabase {
         type TEXT NOT NULL,
         path TEXT NOT NULL,
         duration_label TEXT,
+        captured_at INTEGER,
         FOREIGN KEY (diary_id) REFERENCES diary_entries (id) ON DELETE CASCADE
       );
     ''');
@@ -129,7 +131,8 @@ class DiaryDatabase extends GeneratedDatabase {
         created_at,
         location,
         trashed_at,
-        COALESCE(tags_json, '[]') AS tags_json
+        COALESCE(tags_json, '[]') AS tags_json,
+        ai_analysis_json
       FROM diary_entries
       WHERE trashed_at ${trashed ? 'IS NOT NULL' : 'IS NULL'}
       ORDER BY ${trashed ? 'trashed_at DESC,' : ''} created_at DESC;
@@ -141,7 +144,7 @@ class DiaryDatabase extends GeneratedDatabase {
       final id = row.read<String>('id');
       final mediaRows = await customSelect(
         '''
-        SELECT id, type, path, duration_label
+        SELECT id, type, path, duration_label, captured_at
         FROM diary_media
         WHERE diary_id = ?
         ORDER BY rowid ASC;
@@ -160,6 +163,8 @@ class DiaryDatabase extends GeneratedDatabase {
           location: row.readNullable<String>('location'),
           trashedAt: _trashedAtFromDb(row.readNullable<int>('trashed_at')),
           tags: _decodeTags(row.read<String>('tags_json')),
+          aiAnalysis:
+              _decodeAiAnalysis(row.readNullable<String>('ai_analysis_json')),
           media: mediaRows.map(_mapMediaRow).toList(growable: false),
         ),
       );
@@ -173,8 +178,8 @@ class DiaryDatabase extends GeneratedDatabase {
     await transaction(() async {
       await customStatement(
         '''
-        INSERT INTO diary_entries (id, title, content, mood, created_at, location, trashed_at, tags_json)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?);
+        INSERT INTO diary_entries (id, title, content, mood, created_at, location, trashed_at, tags_json, ai_analysis_json)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?);
         ''',
         [
           entry.id,
@@ -185,14 +190,17 @@ class DiaryDatabase extends GeneratedDatabase {
           entry.location,
           entry.trashedAt?.millisecondsSinceEpoch,
           jsonEncode(entry.tags),
+          entry.aiAnalysis == null
+              ? null
+              : jsonEncode(entry.aiAnalysis!.toJson()),
         ],
       );
 
       for (final media in entry.media) {
         await customStatement(
           '''
-          INSERT INTO diary_media (id, diary_id, type, path, duration_label)
-          VALUES (?, ?, ?, ?, ?);
+          INSERT INTO diary_media (id, diary_id, type, path, duration_label, captured_at)
+          VALUES (?, ?, ?, ?, ?, ?);
           ''',
           [
             media.id,
@@ -200,6 +208,7 @@ class DiaryDatabase extends GeneratedDatabase {
             media.type.name,
             media.path,
             media.durationLabel,
+            media.capturedAt?.millisecondsSinceEpoch,
           ],
         );
       }
@@ -212,7 +221,7 @@ class DiaryDatabase extends GeneratedDatabase {
       await customStatement(
         '''
         UPDATE diary_entries
-        SET title = ?, content = ?, mood = ?, created_at = ?, location = ?, trashed_at = ?, tags_json = ?
+        SET title = ?, content = ?, mood = ?, created_at = ?, location = ?, trashed_at = ?, tags_json = ?, ai_analysis_json = ?
         WHERE id = ?;
         ''',
         [
@@ -223,6 +232,9 @@ class DiaryDatabase extends GeneratedDatabase {
           entry.location,
           entry.trashedAt?.millisecondsSinceEpoch,
           jsonEncode(entry.tags),
+          entry.aiAnalysis == null
+              ? null
+              : jsonEncode(entry.aiAnalysis!.toJson()),
           entry.id,
         ],
       );
@@ -238,8 +250,8 @@ class DiaryDatabase extends GeneratedDatabase {
       for (final media in entry.media) {
         await customStatement(
           '''
-          INSERT INTO diary_media (id, diary_id, type, path, duration_label)
-          VALUES (?, ?, ?, ?, ?);
+          INSERT INTO diary_media (id, diary_id, type, path, duration_label, captured_at)
+          VALUES (?, ?, ?, ?, ?, ?);
           ''',
           [
             media.id,
@@ -247,6 +259,7 @@ class DiaryDatabase extends GeneratedDatabase {
             media.type.name,
             media.path,
             media.durationLabel,
+            media.capturedAt?.millisecondsSinceEpoch,
           ],
         );
       }
@@ -432,6 +445,11 @@ class DiaryDatabase extends GeneratedDatabase {
         "ALTER TABLE diary_entries ADD COLUMN tags_json TEXT;",
       );
     }
+    if (!columns.contains('ai_analysis_json')) {
+      await customStatement(
+        'ALTER TABLE diary_entries ADD COLUMN ai_analysis_json TEXT;',
+      );
+    }
     await customStatement(
       "UPDATE diary_entries SET tags_json = '[]' WHERE tags_json IS NULL OR TRIM(tags_json) = '';",
     );
@@ -443,6 +461,11 @@ class DiaryDatabase extends GeneratedDatabase {
     if (!columns.contains('duration_label')) {
       await customStatement(
         'ALTER TABLE diary_media ADD COLUMN duration_label TEXT;',
+      );
+    }
+    if (!columns.contains('captured_at')) {
+      await customStatement(
+        'ALTER TABLE diary_media ADD COLUMN captured_at INTEGER;',
       );
     }
   }
@@ -526,11 +549,18 @@ class DiaryDatabase extends GeneratedDatabase {
   }
 
   DiaryMedia _mapMediaRow(QueryRow row) {
+    final type = _mediaTypeFromDb(row.read<String>('type'));
+    final path = row.read<String>('path');
     return DiaryMedia(
       id: row.read<String>('id'),
-      type: _mediaTypeFromDb(row.read<String>('type')),
-      path: row.read<String>('path'),
+      type: type,
+      path: path,
       durationLabel: row.readNullable<String>('duration_label'),
+      capturedAt: _mediaCapturedAtFromDb(
+        row.readNullable<int>('captured_at'),
+        type: type,
+        path: path,
+      ),
     );
   }
 
@@ -541,6 +571,22 @@ class DiaryDatabase extends GeneratedDatabase {
       return decoded.whereType<String>().toList(growable: false);
     } on FormatException {
       return const [];
+    }
+  }
+
+  DiaryEntryAiAnalysis? _decodeAiAnalysis(String? rawJson) {
+    final normalized = rawJson?.trim();
+    if (normalized == null || normalized.isEmpty) {
+      return null;
+    }
+
+    try {
+      final decoded = jsonDecode(normalized);
+      if (decoded is! Map<String, dynamic>) return null;
+      final analysis = DiaryEntryAiAnalysis.fromJson(decoded);
+      return analysis.isEmpty ? null : analysis;
+    } on FormatException {
+      return null;
     }
   }
 
@@ -556,6 +602,29 @@ class DiaryDatabase extends GeneratedDatabase {
       (type) => type.name == raw,
       orElse: () => MediaType.image,
     );
+  }
+
+  DateTime? _mediaCapturedAtFromDb(
+    int? rawMilliseconds, {
+    required MediaType type,
+    required String path,
+  }) {
+    if (rawMilliseconds != null) {
+      return DateTime.fromMillisecondsSinceEpoch(rawMilliseconds);
+    }
+    if (type != MediaType.video) {
+      return null;
+    }
+
+    try {
+      final file = File(path);
+      if (!file.existsSync()) {
+        return null;
+      }
+      return file.lastModifiedSync();
+    } on FileSystemException {
+      return null;
+    }
   }
 
   DateTime? _trashedAtFromDb(int? raw) {
