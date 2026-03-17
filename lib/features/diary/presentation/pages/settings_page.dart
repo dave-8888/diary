@@ -277,59 +277,10 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
                         ),
                       ],
                     ),
-                    const SizedBox(height: 16),
-                    Text(
-                      strings.buildWindowIconHint,
-                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                            color:
-                                Theme.of(context).colorScheme.onSurfaceVariant,
-                            height: 1.4,
-                          ),
-                    ),
-                    const SizedBox(height: 12),
-                    Wrap(
-                      spacing: 12,
-                      runSpacing: 12,
-                      children: [
-                        FilledButton.icon(
-                          onPressed: !canSyncBuildWindowIcon ||
-                                  iconSelection.windowIconPath.trim().isEmpty ||
-                                  _isSyncingBuildWindowIcon ||
-                                  _isResettingBuildWindowIcon
-                              ? null
-                              : () => _syncBuildWindowIcon(iconSelection),
-                          icon: _isSyncingBuildWindowIcon
-                              ? const SizedBox(
-                                  width: 18,
-                                  height: 18,
-                                  child:
-                                      CircularProgressIndicator(strokeWidth: 2),
-                                )
-                              : const Icon(Icons.install_desktop_outlined),
-                          label: Text(strings.syncBuildWindowIcon),
-                        ),
-                        OutlinedButton.icon(
-                          onPressed: !canSyncBuildWindowIcon ||
-                                  _isSyncingBuildWindowIcon ||
-                                  _isResettingBuildWindowIcon
-                              ? null
-                              : _resetBuildWindowIcon,
-                          icon: _isResettingBuildWindowIcon
-                              ? const SizedBox(
-                                  width: 18,
-                                  height: 18,
-                                  child:
-                                      CircularProgressIndicator(strokeWidth: 2),
-                                )
-                              : const Icon(Icons.restart_alt_outlined),
-                          label: Text(strings.resetBuildWindowIcon),
-                        ),
-                      ],
-                    ),
-                    if (!supportsWindowIdentity) ...[
-                      const SizedBox(height: 12),
+                    if (canSyncBuildWindowIcon) ...[
+                      const SizedBox(height: 16),
                       Text(
-                        strings.windowIconPlatformHint,
+                        strings.buildWindowIconHint,
                         style: Theme.of(context).textTheme.bodySmall?.copyWith(
                               color: Theme.of(context)
                                   .colorScheme
@@ -337,11 +288,52 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
                               height: 1.4,
                             ),
                       ),
+                      const SizedBox(height: 12),
+                      Wrap(
+                        spacing: 12,
+                        runSpacing: 12,
+                        children: [
+                          FilledButton.icon(
+                            onPressed:
+                                iconSelection.windowIconPath.trim().isEmpty ||
+                                        _isSyncingBuildWindowIcon ||
+                                        _isResettingBuildWindowIcon
+                                    ? null
+                                    : () => _syncBuildWindowIcon(iconSelection),
+                            icon: _isSyncingBuildWindowIcon
+                                ? const SizedBox(
+                                    width: 18,
+                                    height: 18,
+                                    child: CircularProgressIndicator(
+                                      strokeWidth: 2,
+                                    ),
+                                  )
+                                : const Icon(Icons.install_desktop_outlined),
+                            label: Text(strings.syncBuildWindowIcon),
+                          ),
+                          OutlinedButton.icon(
+                            onPressed: _isSyncingBuildWindowIcon ||
+                                    _isResettingBuildWindowIcon
+                                ? null
+                                : _resetBuildWindowIcon,
+                            icon: _isResettingBuildWindowIcon
+                                ? const SizedBox(
+                                    width: 18,
+                                    height: 18,
+                                    child: CircularProgressIndicator(
+                                      strokeWidth: 2,
+                                    ),
+                                  )
+                                : const Icon(Icons.restart_alt_outlined),
+                            label: Text(strings.resetBuildWindowIcon),
+                          ),
+                        ],
+                      ),
                     ],
-                    if (!canSyncBuildWindowIcon) ...[
+                    if (!supportsWindowIdentity) ...[
                       const SizedBox(height: 12),
                       Text(
-                        strings.buildWindowIconUnavailableHint,
+                        strings.windowIconPlatformHint,
                         style: Theme.of(context).textTheme.bodySmall?.copyWith(
                               color: Theme.of(context)
                                   .colorScheme

@@ -16,7 +16,7 @@ namespace {
 #define DWMWA_USE_IMMERSIVE_DARK_MODE 20
 #endif
 
-constexpr const wchar_t kWindowClassName[] = L"FLUTTER_RUNNER_WIN32_WINDOW";
+constexpr const wchar_t kWindowClassName[] = L"DIARY_MVP_WIN32_WINDOW";
 
 /// Registry key for app theme preference.
 ///
@@ -253,6 +253,10 @@ RECT Win32Window::GetClientArea() {
   RECT frame;
   GetClientRect(window_handle_, &frame);
   return frame;
+}
+
+const wchar_t* Win32Window::GetWindowClassName() {
+  return kWindowClassName;
 }
 
 HWND Win32Window::GetHandle() {

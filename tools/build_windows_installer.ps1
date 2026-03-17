@@ -2,6 +2,8 @@ param(
   [string]$FlutterExe = "C:\Users\Administrator\fvm\default\bin\flutter.bat",
   [string]$IsccExe = "D:\unitPrograms\Inno Setup 6\ISCC.exe",
   [string]$ReleaseTag,
+  [string]$OutputBaseFilename,
+  [string]$OutputDir,
   [switch]$SkipBuild
 )
 
@@ -10,7 +12,11 @@ $ErrorActionPreference = "Stop"
 $repoRoot = Split-Path -Parent $PSScriptRoot
 $pubspecPath = Join-Path $repoRoot "pubspec.yaml"
 $releaseDir = Join-Path $repoRoot "build\windows\x64\runner\Release"
-$outputDir = Join-Path $repoRoot "dist\windows-installer"
+$resolvedOutputDir = if ($OutputDir) {
+  $OutputDir.Trim()
+} else {
+  Join-Path $repoRoot "dist\windows-installer"
+}
 $issPath = Join-Path $repoRoot "windows\installer\diary_setup.iss"
 
 Set-Location $repoRoot
@@ -30,7 +36,13 @@ if (-not $pubspecVersionLine) {
 
 $pubspecVersion = ($pubspecVersionLine.Matches[0].Groups[1].Value -split '\+')[0].Trim()
 $installerVersion = if ($ReleaseTag) { $ReleaseTag.TrimStart('v') } else { $pubspecVersion }
-$outputBaseFilename = if ($ReleaseTag) { "Diary-Setup-$ReleaseTag" } else { "Diary-Setup-v$pubspecVersion" }
+$resolvedOutputBaseFilename = if ($OutputBaseFilename) {
+  $OutputBaseFilename.Trim()
+} elseif ($ReleaseTag) {
+  "Diary-Setup-$ReleaseTag"
+} else {
+  "Diary-Setup-v$pubspecVersion"
+}
 
 if (-not (Test-Path $FlutterExe)) {
   throw "Flutter executable not found: $FlutterExe"
@@ -52,20 +64,20 @@ if (-not (Test-Path $appExe)) {
   throw "Windows release executable not found: $appExe"
 }
 
-New-Item -ItemType Directory -Force $outputDir | Out-Null
+New-Item -ItemType Directory -Force $resolvedOutputDir | Out-Null
 
 & $IsccExe `
   "/DReleaseDir=$releaseDir" `
-  "/DOutputDir=$outputDir" `
+  "/DOutputDir=$resolvedOutputDir" `
   "/DMyAppVersion=$installerVersion" `
-  "/DMyOutputBaseFilename=$outputBaseFilename" `
+  "/DMyOutputBaseFilename=$resolvedOutputBaseFilename" `
   $issPath
 
 if ($LASTEXITCODE -ne 0) {
   throw "ISCC packaging failed."
 }
 
-$setupExe = Join-Path $outputDir "$outputBaseFilename.exe"
+$setupExe = Join-Path $resolvedOutputDir "$resolvedOutputBaseFilename.exe"
 if (-not (Test-Path $setupExe)) {
   throw "Installer was not generated: $setupExe"
 }
