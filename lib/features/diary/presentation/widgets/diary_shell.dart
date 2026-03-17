@@ -26,7 +26,7 @@ class DiaryShell extends ConsumerWidget {
     final selectedTheme = resolveThemePreset(
       ref.watch(appThemeControllerProvider),
     );
-    final selectedIcon = resolveAppIconPreset(
+    final selectedIcon = resolveAppIconSelection(
       ref.watch(appIconControllerProvider),
     );
     final appName = resolveAppDisplayName(
@@ -53,7 +53,7 @@ class DiaryShell extends ConsumerWidget {
               title: _AppBarTitle(
                 appName: appName,
                 pageTitle: title,
-                iconPreset: selectedIcon,
+                iconSelection: selectedIcon,
               ),
               centerTitle: false,
               backgroundColor: Colors.transparent,
@@ -99,7 +99,7 @@ class DiaryShell extends ConsumerWidget {
             title: _AppBarTitle(
               appName: appName,
               pageTitle: title,
-              iconPreset: selectedIcon,
+              iconSelection: selectedIcon,
             ),
             centerTitle: false,
             backgroundColor: Colors.transparent,
@@ -120,7 +120,7 @@ class DiaryShell extends ConsumerWidget {
                       padding: const EdgeInsets.fromLTRB(12, 12, 12, 18),
                       child: _NavigationBrandHeader(
                         appName: appName,
-                        iconPreset: selectedIcon,
+                        iconSelection: selectedIcon,
                       ),
                     ),
                   ),
@@ -193,12 +193,12 @@ class _AppBarTitle extends StatelessWidget {
   const _AppBarTitle({
     required this.appName,
     required this.pageTitle,
-    required this.iconPreset,
+    required this.iconSelection,
   });
 
   final String appName;
   final String pageTitle;
-  final AppIconPreset iconPreset;
+  final AppIconSelection iconSelection;
 
   @override
   Widget build(BuildContext context) {
@@ -208,7 +208,7 @@ class _AppBarTitle extends StatelessWidget {
     return Row(
       children: [
         AppIconBadge(
-          preset: iconPreset,
+          selection: iconSelection,
           size: 28,
         ),
         const SizedBox(width: 10),
@@ -243,11 +243,11 @@ class _AppBarTitle extends StatelessWidget {
 class _NavigationBrandHeader extends StatelessWidget {
   const _NavigationBrandHeader({
     required this.appName,
-    required this.iconPreset,
+    required this.iconSelection,
   });
 
   final String appName;
-  final AppIconPreset iconPreset;
+  final AppIconSelection iconSelection;
 
   @override
   Widget build(BuildContext context) {
@@ -267,7 +267,7 @@ class _NavigationBrandHeader extends StatelessWidget {
         mainAxisSize: MainAxisSize.min,
         children: [
           AppIconBadge(
-            preset: iconPreset,
+            selection: iconSelection,
             size: 42,
           ),
           const SizedBox(height: 10),

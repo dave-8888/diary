@@ -1,6 +1,6 @@
 import 'dart:io';
 
-import 'package:diary_mvp/app/window_identity.dart';
+import 'package:diary_mvp/app/app_icon.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:image/image.dart' as img;
 import 'package:path/path.dart' as p;
@@ -13,7 +13,7 @@ final windowsBuildIdentityServiceProvider =
 class WindowsBuildIdentityService {
   bool get canSyncBuildIcon => _findProjectRoot() != null;
 
-  Future<void> applyBuildIcon(WindowIconSnapshot snapshot) async {
+  Future<void> applyBuildIcon(AppIconSelection selection) async {
     final projectRoot = _findProjectRoot();
     if (projectRoot == null) {
       throw Exception('Windows build resources were not found.');
@@ -33,7 +33,7 @@ class WindowsBuildIdentityService {
       await appIconFile.copy(backupIconFile.path);
     }
 
-    final sourceFile = File(snapshot.path);
+    final sourceFile = File(selection.windowIconPath);
     if (!await sourceFile.exists()) {
       throw Exception('The selected window icon image no longer exists.');
     }

@@ -165,21 +165,22 @@ class AppStrings {
   String get appIdentityTitle =>
       isChinese ? '\u5e94\u7528\u6807\u8bc6' : 'App identity';
   String get appIdentityHint => isChinese
-      ? '\u81ea\u5b9a\u4e49\u5e94\u7528\u540d\u3001\u5e94\u7528\u5185\u56fe\u6807\u548c Windows \u5916\u5c42\u7a97\u53e3\u56fe\u6807\u3002'
-      : 'Customize the app name, in-app icon, and the Windows outer window icon.';
+      ? '\u81ea\u5b9a\u4e49\u5e94\u7528\u540d\uff0c\u5e76\u7528\u540c\u4e00\u5957\u56fe\u6807\u540c\u6b65\u5e94\u7528\u5185\u548c Windows \u5916\u5c42\u7a97\u53e3\u3002'
+      : 'Customize the app name, and keep the in-app and Windows outer icon in sync with one icon setting.';
   String get appNameDesktopHint => isChinese
       ? '\u4fdd\u5b58\u540e\u4f1a\u540c\u6b65\u66f4\u65b0\u5e94\u7528\u5185\u540d\u79f0\u548c Windows \u6807\u9898\u680f\u540d\u79f0\u3002'
       : 'Saving here updates both the in-app name and the Windows title bar name.';
   String get appIconTitle =>
-      isChinese ? '\u5e94\u7528\u5185\u56fe\u6807' : 'In-app icon';
+      isChinese ? '\u5e94\u7528\u56fe\u6807' : 'App icon';
   String get appIconHint => isChinese
-      ? '\u9009\u62e9\u4e00\u4e2a\u65b0\u7684\u5e94\u7528\u5185\u56fe\u6807\uff0c\u4e5f\u53ef\u4ee5\u6062\u590d\u9ed8\u8ba4\u3002'
-      : 'Choose a new in-app icon or restore the default.';
-  String get resetAppIcon =>
-      isChinese ? '\u6062\u590d\u9ed8\u8ba4\u56fe\u6807' : 'Reset icon';
+      ? '\u53ef\u4ee5\u9009\u62e9\u9884\u8bbe\u56fe\u6807\uff0c\u4e5f\u53ef\u4ee5\u4e0a\u4f20 PNG / JPG / WebP / BMP \u56fe\u7247\u4f5c\u4e3a\u81ea\u5b9a\u4e49\u56fe\u6807\u3002\u8bbe\u7f6e\u540e\uff0c\u5e94\u7528\u5185\u548c Windows \u5916\u5c42\u56fe\u6807\u4f1a\u4e00\u8d77\u66f4\u65b0\u3002'
+      : 'Choose a preset icon or upload a PNG / JPG / WebP / BMP image as a custom icon. The in-app and Windows outer icon will update together.';
+  String get resetAppIcon => isChinese
+      ? '\u6062\u590d\u9ed8\u8ba4\u5e94\u7528\u56fe\u6807'
+      : 'Reset app icon';
   String get appIconUpdated => isChinese
-      ? '\u5e94\u7528\u56fe\u6807\u5df2\u66f4\u65b0\u3002'
-      : 'App icon updated.';
+      ? '\u5e94\u7528\u56fe\u6807\u5df2\u66f4\u65b0\uff0c\u5e94\u7528\u5185\u548c Windows \u5916\u5c42\u5df2\u540c\u6b65\u3002'
+      : 'App icon updated and synced to the Windows outer window.';
   String get appIconReset => isChinese
       ? '\u5df2\u6062\u590d\u9ed8\u8ba4\u56fe\u6807\u3002'
       : 'App icon reset to default.';
@@ -212,7 +213,7 @@ class AppStrings {
       ? '\u6062\u590d Windows \u9ed8\u8ba4\u6784\u5efa\u56fe\u6807'
       : 'Reset Windows build icon';
   String get currentWindowIcon =>
-      isChinese ? '\u5f53\u524d\u5916\u5c42\u56fe\u6807' : 'Current outer icon';
+      isChinese ? '\u5f53\u524d\u5e94\u7528\u56fe\u6807' : 'Current app icon';
   String get defaultWindowIcon => isChinese
       ? '\u9ed8\u8ba4\u7cfb\u7edf\u56fe\u6807'
       : 'Default system icon';

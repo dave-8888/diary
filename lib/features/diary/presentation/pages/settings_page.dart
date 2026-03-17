@@ -1,5 +1,3 @@
-import 'dart:io';
-
 import 'package:diary_mvp/app/app_display_name.dart';
 import 'package:diary_mvp/app/app_icon.dart';
 import 'package:diary_mvp/app/localization/app_locale.dart';
@@ -16,6 +14,7 @@ import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:path/path.dart' as p;
 
 class SettingsPage extends ConsumerStatefulWidget {
   const SettingsPage({super.key});
@@ -34,8 +33,6 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
   bool _isResettingAppName = false;
   bool _isResettingApiKey = false;
   bool _isChangingIcon = false;
-  bool _isChangingWindowIcon = false;
-  bool _isResettingWindowIcon = false;
   bool _isSyncingBuildWindowIcon = false;
   bool _isResettingBuildWindowIcon = false;
   bool _isChangingTheme = false;
@@ -66,11 +63,9 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
       customNameAsync: customAppNameAsync,
     );
     final apiKeyAsync = ref.watch(transcriptionApiKeyControllerProvider);
-    final iconPreset =
-        resolveAppIconPreset(ref.watch(appIconControllerProvider));
-    final windowIconSnapshot =
-        ref.watch(windowIconControllerProvider).valueOrNull;
-    final windowIconPath = windowIconSnapshot?.path;
+    final iconSelection =
+        resolveAppIconSelection(ref.watch(appIconControllerProvider));
+    final iconPreset = iconSelection.preset;
     final canSyncBuildWindowIcon =
         ref.read(windowsBuildIdentityServiceProvider).canSyncBuildIcon;
     final selectedTheme = resolveThemePreset(
@@ -223,7 +218,13 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
                       style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                             color:
                                 Theme.of(context).colorScheme.onSurfaceVariant,
+                            height: 1.4,
                           ),
+                    ),
+                    const SizedBox(height: 16),
+                    _CurrentAppIconPreviewCard(
+                      selection: iconSelection,
+                      title: strings.currentWindowIcon,
                     ),
                     const SizedBox(height: 16),
                     Wrap(
@@ -234,7 +235,8 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
                             (preset) => _IconOptionCard(
                               preset: preset,
                               label: strings.titleForAppIcon(preset),
-                              selected: preset == iconPreset,
+                              selected: iconSelection.isPreset &&
+                                  preset == iconPreset,
                               onTap: _isChangingIcon
                                   ? null
                                   : () => _selectIcon(preset),
@@ -243,57 +245,15 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
                           .toList(growable: false),
                     ),
                     const SizedBox(height: 16),
-                    OutlinedButton.icon(
-                      onPressed: _isChangingIcon ? null : _resetIcon,
-                      icon: _isChangingIcon
-                          ? const SizedBox(
-                              width: 18,
-                              height: 18,
-                              child: CircularProgressIndicator(strokeWidth: 2),
-                            )
-                          : const Icon(Icons.restart_alt_outlined),
-                      label: Text(strings.resetAppIcon),
-                    ),
-                    const SizedBox(height: 24),
-                    Divider(
-                      color: Theme.of(context)
-                          .colorScheme
-                          .outlineVariant
-                          .withValues(alpha: 0.72),
-                    ),
-                    const SizedBox(height: 24),
-                    Text(
-                      strings.windowIconTitle,
-                      style: Theme.of(context).textTheme.titleMedium,
-                    ),
-                    const SizedBox(height: 8),
-                    Text(
-                      strings.windowIconHint,
-                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                            color:
-                                Theme.of(context).colorScheme.onSurfaceVariant,
-                            height: 1.4,
-                          ),
-                    ),
-                    const SizedBox(height: 16),
-                    _WindowIconPreviewCard(
-                      iconPath: windowIconPath,
-                      revision: windowIconSnapshot?.revision,
-                      title: strings.currentWindowIcon,
-                      fallbackLabel: strings.defaultWindowIcon,
-                    ),
-                    const SizedBox(height: 16),
                     Wrap(
                       spacing: 12,
                       runSpacing: 12,
                       children: [
                         FilledButton.tonalIcon(
-                          onPressed: !supportsWindowIdentity ||
-                                  _isChangingWindowIcon ||
-                                  _isResettingWindowIcon
+                          onPressed: !supportsWindowIdentity || _isChangingIcon
                               ? null
-                              : _pickWindowIcon,
-                          icon: _isChangingWindowIcon
+                              : _pickCustomIcon,
+                          icon: _isChangingIcon
                               ? const SizedBox(
                                   width: 18,
                                   height: 18,
@@ -304,13 +264,8 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
                           label: Text(strings.pickWindowIcon),
                         ),
                         OutlinedButton.icon(
-                          onPressed: !supportsWindowIdentity ||
-                                  windowIconPath == null ||
-                                  _isChangingWindowIcon ||
-                                  _isResettingWindowIcon
-                              ? null
-                              : _resetWindowIcon,
-                          icon: _isResettingWindowIcon
+                          onPressed: _isChangingIcon ? null : _resetIcon,
+                          icon: _isChangingIcon
                               ? const SizedBox(
                                   width: 18,
                                   height: 18,
@@ -318,7 +273,7 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
                                       CircularProgressIndicator(strokeWidth: 2),
                                 )
                               : const Icon(Icons.restart_alt_outlined),
-                          label: Text(strings.resetWindowIcon),
+                          label: Text(strings.resetAppIcon),
                         ),
                       ],
                     ),
@@ -338,11 +293,11 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
                       children: [
                         FilledButton.icon(
                           onPressed: !canSyncBuildWindowIcon ||
-                                  windowIconSnapshot == null ||
+                                  iconSelection.windowIconPath.trim().isEmpty ||
                                   _isSyncingBuildWindowIcon ||
                                   _isResettingBuildWindowIcon
                               ? null
-                              : () => _syncBuildWindowIcon(windowIconSnapshot),
+                              : () => _syncBuildWindowIcon(iconSelection),
                           icon: _isSyncingBuildWindowIcon
                               ? const SizedBox(
                                   width: 18,
@@ -764,7 +719,7 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
     final strings = context.strings;
     setState(() => _isChangingIcon = true);
     try {
-      await ref.read(appIconControllerProvider.notifier).setIcon(preset);
+      await ref.read(appIconControllerProvider.notifier).setPreset(preset);
       if (!mounted) return;
       setState(() => _isChangingIcon = false);
       context.showAppSnackBar(
@@ -802,9 +757,9 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
     }
   }
 
-  Future<void> _pickWindowIcon() async {
+  Future<void> _pickCustomIcon() async {
     final strings = context.strings;
-    setState(() => _isChangingWindowIcon = true);
+    setState(() => _isChangingIcon = true);
 
     try {
       final result = await FilePicker.platform.pickFiles(
@@ -818,60 +773,38 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
           ? result.files.first.path
           : null;
       if (selectedPath == null || selectedPath.trim().isEmpty) {
-        setState(() => _isChangingWindowIcon = false);
+        setState(() => _isChangingIcon = false);
         return;
       }
 
-      await ref
-          .read(windowIconControllerProvider.notifier)
-          .saveFromSource(selectedPath);
+      await ref.read(appIconControllerProvider.notifier).setCustomImage(
+            selectedPath,
+          );
 
       if (!mounted) return;
-      setState(() => _isChangingWindowIcon = false);
+      setState(() => _isChangingIcon = false);
       context.showAppSnackBar(
-        strings.windowIconUpdated,
+        strings.appIconUpdated,
         tone: AppSnackBarTone.success,
       );
     } catch (error) {
       if (!mounted) return;
-      setState(() => _isChangingWindowIcon = false);
+      setState(() => _isChangingIcon = false);
       context.showAppSnackBar(
-        strings.windowIconUpdateFailed(error),
+        strings.appIconUpdateFailed(error),
         tone: AppSnackBarTone.error,
       );
     }
   }
 
-  Future<void> _resetWindowIcon() async {
-    final strings = context.strings;
-    setState(() => _isResettingWindowIcon = true);
-
-    try {
-      await ref.read(windowIconControllerProvider.notifier).reset();
-      if (!mounted) return;
-      setState(() => _isResettingWindowIcon = false);
-      context.showAppSnackBar(
-        strings.windowIconReset,
-        tone: AppSnackBarTone.success,
-      );
-    } catch (error) {
-      if (!mounted) return;
-      setState(() => _isResettingWindowIcon = false);
-      context.showAppSnackBar(
-        strings.windowIconUpdateFailed(error),
-        tone: AppSnackBarTone.error,
-      );
-    }
-  }
-
-  Future<void> _syncBuildWindowIcon(WindowIconSnapshot snapshot) async {
+  Future<void> _syncBuildWindowIcon(AppIconSelection selection) async {
     final strings = context.strings;
     setState(() => _isSyncingBuildWindowIcon = true);
 
     try {
       await ref
           .read(windowsBuildIdentityServiceProvider)
-          .applyBuildIcon(snapshot);
+          .applyBuildIcon(selection);
       if (!mounted) return;
       setState(() => _isSyncingBuildWindowIcon = false);
       context.showAppSnackBar(
@@ -1077,26 +1010,19 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
   }
 }
 
-class _WindowIconPreviewCard extends StatelessWidget {
-  const _WindowIconPreviewCard({
-    required this.iconPath,
-    required this.revision,
+class _CurrentAppIconPreviewCard extends StatelessWidget {
+  const _CurrentAppIconPreviewCard({
+    required this.selection,
     required this.title,
-    required this.fallbackLabel,
   });
 
-  final String? iconPath;
-  final int? revision;
+  final AppIconSelection selection;
   final String title;
-  final String fallbackLabel;
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final normalizedPath = iconPath?.trim();
-    final hasCustomIcon = normalizedPath != null &&
-        normalizedPath.isNotEmpty &&
-        File(normalizedPath).existsSync();
+    final strings = context.strings;
 
     return Container(
       padding: const EdgeInsets.all(14),
@@ -1120,18 +1046,11 @@ class _WindowIconPreviewCard extends StatelessWidget {
                 color: theme.colorScheme.outlineVariant.withValues(alpha: 0.6),
               ),
             ),
-            clipBehavior: Clip.antiAlias,
-            child: hasCustomIcon
-                ? Image.file(
-                    File(normalizedPath),
-                    key: ValueKey('$normalizedPath#${revision ?? 0}'),
-                    fit: BoxFit.cover,
-                    gaplessPlayback: true,
-                    errorBuilder: (context, error, stackTrace) {
-                      return _WindowIconFallback(theme: theme);
-                    },
-                  )
-                : _WindowIconFallback(theme: theme),
+            alignment: Alignment.center,
+            child: AppIconBadge(
+              selection: selection,
+              size: 60,
+            ),
           ),
           const SizedBox(width: 14),
           Expanded(
@@ -1146,7 +1065,9 @@ class _WindowIconPreviewCard extends StatelessWidget {
                 ),
                 const SizedBox(height: 6),
                 Text(
-                  hasCustomIcon ? _fileName(normalizedPath) : fallbackLabel,
+                  selection.isCustom
+                      ? _fileName(selection.customImagePath!)
+                      : strings.titleForAppIcon(selection.preset),
                   style: theme.textTheme.bodyMedium?.copyWith(
                     color: theme.colorScheme.onSurfaceVariant,
                     height: 1.35,
@@ -1161,39 +1082,7 @@ class _WindowIconPreviewCard extends StatelessWidget {
   }
 
   String _fileName(String path) {
-    final segments = path.split(Platform.pathSeparator);
-    return segments.isEmpty ? path : segments.last;
-  }
-}
-
-class _WindowIconFallback extends StatelessWidget {
-  const _WindowIconFallback({
-    required this.theme,
-  });
-
-  final ThemeData theme;
-
-  @override
-  Widget build(BuildContext context) {
-    return DecoratedBox(
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [
-            theme.colorScheme.primary.withValues(alpha: 0.18),
-            theme.colorScheme.secondary.withValues(alpha: 0.1),
-          ],
-        ),
-      ),
-      child: Center(
-        child: Icon(
-          Icons.apps_rounded,
-          size: 30,
-          color: theme.colorScheme.primary,
-        ),
-      ),
-    );
+    return p.basename(path);
   }
 }
 
