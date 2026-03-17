@@ -188,6 +188,9 @@ void FlutterWindow::ApplyWindowTitle(const std::wstring& title) {
   }
 
   ::SetWindowTextW(window, title.c_str());
+  ::SetWindowPos(window, nullptr, 0, 0, 0, 0,
+                 SWP_NOMOVE | SWP_NOSIZE | SWP_NOZORDER | SWP_FRAMECHANGED |
+                     SWP_NOACTIVATE);
 }
 
 bool FlutterWindow::ApplyWindowIcon(const std::wstring& icon_path) {
@@ -223,6 +226,11 @@ bool FlutterWindow::ApplyWindowIcon(const std::wstring& icon_path) {
                     reinterpret_cast<LONG_PTR>(large_icon));
   ::SetClassLongPtr(window, GCLP_HICONSM,
                     reinterpret_cast<LONG_PTR>(small_icon));
+  ::SetWindowPos(window, nullptr, 0, 0, 0, 0,
+                 SWP_NOMOVE | SWP_NOSIZE | SWP_NOZORDER | SWP_FRAMECHANGED |
+                     SWP_NOACTIVATE);
+  ::RedrawWindow(window, nullptr, nullptr,
+                 RDW_INVALIDATE | RDW_FRAME | RDW_UPDATENOW | RDW_ALLCHILDREN);
 
   ClearCustomIcons();
   large_window_icon_ = large_icon;
@@ -247,6 +255,11 @@ void FlutterWindow::RestoreDefaultWindowIcon() {
                     reinterpret_cast<LONG_PTR>(large_icon));
   ::SetClassLongPtr(window, GCLP_HICONSM,
                     reinterpret_cast<LONG_PTR>(small_icon));
+  ::SetWindowPos(window, nullptr, 0, 0, 0, 0,
+                 SWP_NOMOVE | SWP_NOSIZE | SWP_NOZORDER | SWP_FRAMECHANGED |
+                     SWP_NOACTIVATE);
+  ::RedrawWindow(window, nullptr, nullptr,
+                 RDW_INVALIDATE | RDW_FRAME | RDW_UPDATENOW | RDW_ALLCHILDREN);
 
   ClearCustomIcons();
 }

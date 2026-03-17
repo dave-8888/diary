@@ -194,11 +194,23 @@ class AppStrings {
   String get windowIconPlatformHint => isChinese
       ? '\u76ee\u524d\u53ea\u6709 Windows \u684c\u9762\u7aef\u652f\u6301\u5b9e\u65f6\u66f4\u65b0\u5916\u5c42\u7a97\u53e3\u56fe\u6807\u3002'
       : 'Live outer window icon updates are currently available on Windows desktop only.';
+  String get buildWindowIconHint => isChinese
+      ? '\u5982\u679c\u4f60\u5e0c\u671b `exe` \u9ed8\u8ba4\u56fe\u6807\u4e5f\u4e00\u8d77\u66f4\u65b0\uff0c\u53ef\u4ee5\u628a\u5f53\u524d\u5916\u5c42\u56fe\u6807\u540c\u6b65\u5230 Windows \u6784\u5efa\u8d44\u6e90\u3002\u9700\u8981\u91cd\u65b0 `flutter run/build windows` \u540e\u751f\u6548\u3002'
+      : 'If you also want the default `exe` icon to change, sync the current outer icon into the Windows build resources. Rebuild with `flutter run/build windows` afterward.';
+  String get buildWindowIconUnavailableHint => isChinese
+      ? '\u5f53\u524d\u6ca1\u6709\u68c0\u6d4b\u5230 Windows \u9879\u76ee\u6e90\u7801\u76ee\u5f55\uff0c\u65e0\u6cd5\u76f4\u63a5\u4fee\u6539\u6784\u5efa\u9ed8\u8ba4\u56fe\u6807\u3002'
+      : 'The Windows project source directory was not detected, so the build-time default icon cannot be updated here.';
   String get pickWindowIcon =>
       isChinese ? '\u9009\u62e9\u56fe\u7247' : 'Choose image';
   String get resetWindowIcon => isChinese
       ? '\u6062\u590d\u9ed8\u8ba4\u5916\u5c42\u56fe\u6807'
       : 'Reset outer icon';
+  String get syncBuildWindowIcon => isChinese
+      ? '\u540c\u6b65\u4e3a Windows \u9ed8\u8ba4\u56fe\u6807'
+      : 'Sync as Windows default icon';
+  String get resetBuildWindowIcon => isChinese
+      ? '\u6062\u590d Windows \u9ed8\u8ba4\u6784\u5efa\u56fe\u6807'
+      : 'Reset Windows build icon';
   String get currentWindowIcon =>
       isChinese ? '\u5f53\u524d\u5916\u5c42\u56fe\u6807' : 'Current outer icon';
   String get defaultWindowIcon => isChinese
@@ -213,6 +225,15 @@ class AppStrings {
   String windowIconUpdateFailed(Object error) => isChinese
       ? '\u4fdd\u5b58 Windows \u5916\u5c42\u56fe\u6807\u5931\u8d25\uff1a$error'
       : 'Failed to save the Windows outer icon: $error';
+  String get buildWindowIconApplied => isChinese
+      ? 'Windows \u6784\u5efa\u9ed8\u8ba4\u56fe\u6807\u5df2\u540c\u6b65\uff0c\u91cd\u65b0 build/run \u540e\u751f\u6548\u3002'
+      : 'The Windows build default icon has been synced. Rebuild or rerun to apply it.';
+  String get buildWindowIconReset => isChinese
+      ? 'Windows \u6784\u5efa\u9ed8\u8ba4\u56fe\u6807\u5df2\u6062\u590d\u3002'
+      : 'The Windows build default icon has been restored.';
+  String buildWindowIconFailed(Object error) => isChinese
+      ? '\u540c\u6b65 Windows \u6784\u5efa\u56fe\u6807\u5931\u8d25\uff1a$error'
+      : 'Failed to sync the Windows build icon: $error';
   String get transcriptionSettingsTitle =>
       isChinese ? 'AI \u8f6c\u5199' : 'AI transcription';
   String get transcriptionSettingsHint => isChinese

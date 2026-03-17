@@ -7,6 +7,7 @@ import 'package:diary_mvp/app/localization/app_strings.dart';
 import 'package:diary_mvp/app/themed_snackbar.dart';
 import 'package:diary_mvp/app/theme.dart';
 import 'package:diary_mvp/app/window_identity.dart';
+import 'package:diary_mvp/app/windows_build_identity_service.dart';
 import 'package:diary_mvp/features/diary/application/diary_controller.dart';
 import 'package:diary_mvp/features/diary/domain/diary_entry.dart';
 import 'package:diary_mvp/features/diary/presentation/widgets/diary_shell.dart';
@@ -35,6 +36,8 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
   bool _isChangingIcon = false;
   bool _isChangingWindowIcon = false;
   bool _isResettingWindowIcon = false;
+  bool _isSyncingBuildWindowIcon = false;
+  bool _isResettingBuildWindowIcon = false;
   bool _isChangingTheme = false;
   bool _isChangingLanguage = false;
   bool _isResettingMoods = false;
@@ -65,7 +68,11 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
     final apiKeyAsync = ref.watch(transcriptionApiKeyControllerProvider);
     final iconPreset =
         resolveAppIconPreset(ref.watch(appIconControllerProvider));
-    final windowIconPath = ref.watch(windowIconControllerProvider).valueOrNull;
+    final windowIconSnapshot =
+        ref.watch(windowIconControllerProvider).valueOrNull;
+    final windowIconPath = windowIconSnapshot?.path;
+    final canSyncBuildWindowIcon =
+        ref.read(windowsBuildIdentityServiceProvider).canSyncBuildIcon;
     final selectedTheme = resolveThemePreset(
       ref.watch(appThemeControllerProvider),
     );
@@ -271,6 +278,7 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
                     const SizedBox(height: 16),
                     _WindowIconPreviewCard(
                       iconPath: windowIconPath,
+                      revision: windowIconSnapshot?.revision,
                       title: strings.currentWindowIcon,
                       fallbackLabel: strings.defaultWindowIcon,
                     ),
@@ -314,10 +322,71 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
                         ),
                       ],
                     ),
+                    const SizedBox(height: 16),
+                    Text(
+                      strings.buildWindowIconHint,
+                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                            color:
+                                Theme.of(context).colorScheme.onSurfaceVariant,
+                            height: 1.4,
+                          ),
+                    ),
+                    const SizedBox(height: 12),
+                    Wrap(
+                      spacing: 12,
+                      runSpacing: 12,
+                      children: [
+                        FilledButton.icon(
+                          onPressed: !canSyncBuildWindowIcon ||
+                                  windowIconSnapshot == null ||
+                                  _isSyncingBuildWindowIcon ||
+                                  _isResettingBuildWindowIcon
+                              ? null
+                              : () => _syncBuildWindowIcon(windowIconSnapshot),
+                          icon: _isSyncingBuildWindowIcon
+                              ? const SizedBox(
+                                  width: 18,
+                                  height: 18,
+                                  child:
+                                      CircularProgressIndicator(strokeWidth: 2),
+                                )
+                              : const Icon(Icons.install_desktop_outlined),
+                          label: Text(strings.syncBuildWindowIcon),
+                        ),
+                        OutlinedButton.icon(
+                          onPressed: !canSyncBuildWindowIcon ||
+                                  _isSyncingBuildWindowIcon ||
+                                  _isResettingBuildWindowIcon
+                              ? null
+                              : _resetBuildWindowIcon,
+                          icon: _isResettingBuildWindowIcon
+                              ? const SizedBox(
+                                  width: 18,
+                                  height: 18,
+                                  child:
+                                      CircularProgressIndicator(strokeWidth: 2),
+                                )
+                              : const Icon(Icons.restart_alt_outlined),
+                          label: Text(strings.resetBuildWindowIcon),
+                        ),
+                      ],
+                    ),
                     if (!supportsWindowIdentity) ...[
                       const SizedBox(height: 12),
                       Text(
                         strings.windowIconPlatformHint,
+                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                              color: Theme.of(context)
+                                  .colorScheme
+                                  .onSurfaceVariant,
+                              height: 1.4,
+                            ),
+                      ),
+                    ],
+                    if (!canSyncBuildWindowIcon) ...[
+                      const SizedBox(height: 12),
+                      Text(
+                        strings.buildWindowIconUnavailableHint,
                         style: Theme.of(context).textTheme.bodySmall?.copyWith(
                               color: Theme.of(context)
                                   .colorScheme
@@ -795,6 +864,52 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
     }
   }
 
+  Future<void> _syncBuildWindowIcon(WindowIconSnapshot snapshot) async {
+    final strings = context.strings;
+    setState(() => _isSyncingBuildWindowIcon = true);
+
+    try {
+      await ref
+          .read(windowsBuildIdentityServiceProvider)
+          .applyBuildIcon(snapshot);
+      if (!mounted) return;
+      setState(() => _isSyncingBuildWindowIcon = false);
+      context.showAppSnackBar(
+        strings.buildWindowIconApplied,
+        tone: AppSnackBarTone.success,
+      );
+    } catch (error) {
+      if (!mounted) return;
+      setState(() => _isSyncingBuildWindowIcon = false);
+      context.showAppSnackBar(
+        strings.buildWindowIconFailed(error),
+        tone: AppSnackBarTone.error,
+      );
+    }
+  }
+
+  Future<void> _resetBuildWindowIcon() async {
+    final strings = context.strings;
+    setState(() => _isResettingBuildWindowIcon = true);
+
+    try {
+      await ref.read(windowsBuildIdentityServiceProvider).resetBuildIcon();
+      if (!mounted) return;
+      setState(() => _isResettingBuildWindowIcon = false);
+      context.showAppSnackBar(
+        strings.buildWindowIconReset,
+        tone: AppSnackBarTone.success,
+      );
+    } catch (error) {
+      if (!mounted) return;
+      setState(() => _isResettingBuildWindowIcon = false);
+      context.showAppSnackBar(
+        strings.buildWindowIconFailed(error),
+        tone: AppSnackBarTone.error,
+      );
+    }
+  }
+
   Future<void> _openMoodDialog({
     DiaryMood? existing,
   }) async {
@@ -965,11 +1080,13 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
 class _WindowIconPreviewCard extends StatelessWidget {
   const _WindowIconPreviewCard({
     required this.iconPath,
+    required this.revision,
     required this.title,
     required this.fallbackLabel,
   });
 
   final String? iconPath;
+  final int? revision;
   final String title;
   final String fallbackLabel;
 
@@ -1007,7 +1124,9 @@ class _WindowIconPreviewCard extends StatelessWidget {
             child: hasCustomIcon
                 ? Image.file(
                     File(normalizedPath),
+                    key: ValueKey('$normalizedPath#${revision ?? 0}'),
                     fit: BoxFit.cover,
+                    gaplessPlayback: true,
                     errorBuilder: (context, error, stackTrace) {
                       return _WindowIconFallback(theme: theme);
                     },

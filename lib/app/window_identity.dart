@@ -14,20 +14,30 @@ final windowIconStorageProvider = Provider<WindowIconStorage>((ref) {
 });
 
 final windowIconControllerProvider =
-    AsyncNotifierProvider<WindowIconController, String?>(
+    AsyncNotifierProvider<WindowIconController, WindowIconSnapshot?>(
   WindowIconController.new,
 );
 
 bool get supportsNativeWindowIdentityCustomization => Platform.isWindows;
 
+class WindowIconSnapshot {
+  const WindowIconSnapshot({
+    required this.path,
+    required this.revision,
+  });
+
+  final String path;
+  final int revision;
+}
+
 class WindowIconStorage {
-  Future<String?> read() async {
+  Future<WindowIconSnapshot?> read() async {
     final file = await _iconFile();
     if (!await file.exists()) return null;
-    return file.path;
+    return _snapshotFor(file);
   }
 
-  Future<String> saveFromSource(String sourcePath) async {
+  Future<WindowIconSnapshot> saveFromSource(String sourcePath) async {
     final sourceFile = File(sourcePath);
     if (!await sourceFile.exists()) {
       throw Exception('Selected image file does not exist.');
@@ -42,7 +52,7 @@ class WindowIconStorage {
     final output = await _iconFile();
     await output.parent.create(recursive: true);
     await output.writeAsBytes(img.encodePng(normalized), flush: true);
-    return output.path;
+    return _snapshotFor(output);
   }
 
   Future<void> reset() async {
@@ -79,13 +89,21 @@ class WindowIconStorage {
     );
     return File(p.join(settingsDir.path, 'window_app_icon.png'));
   }
+
+  Future<WindowIconSnapshot> _snapshotFor(File file) async {
+    final stat = await file.stat();
+    return WindowIconSnapshot(
+      path: file.path,
+      revision: stat.modified.millisecondsSinceEpoch,
+    );
+  }
 }
 
-class WindowIconController extends AsyncNotifier<String?> {
+class WindowIconController extends AsyncNotifier<WindowIconSnapshot?> {
   WindowIconStorage get _storage => ref.read(windowIconStorageProvider);
 
   @override
-  Future<String?> build() {
+  Future<WindowIconSnapshot?> build() {
     return _storage.read();
   }
 
@@ -134,7 +152,7 @@ class _WindowIdentitySyncState extends ConsumerState<WindowIdentitySync> {
   );
 
   String? _lastTitle;
-  String? _lastIconPath;
+  String? _lastIconKey;
 
   @override
   Widget build(BuildContext context) {
@@ -143,10 +161,10 @@ class _WindowIdentitySyncState extends ConsumerState<WindowIdentitySync> {
       strings: strings,
       customNameAsync: ref.watch(appDisplayNameControllerProvider),
     );
-    final iconPath = ref.watch(windowIconControllerProvider).valueOrNull;
+    final iconSnapshot = ref.watch(windowIconControllerProvider).valueOrNull;
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      _syncWindowIdentity(title: title, iconPath: iconPath);
+      _syncWindowIdentity(title: title, iconSnapshot: iconSnapshot);
     });
 
     return widget.child;
@@ -154,20 +172,23 @@ class _WindowIdentitySyncState extends ConsumerState<WindowIdentitySync> {
 
   Future<void> _syncWindowIdentity({
     required String title,
-    required String? iconPath,
+    required WindowIconSnapshot? iconSnapshot,
   }) async {
     if (!mounted || !supportsNativeWindowIdentityCustomization) {
       return;
     }
 
-    final normalizedIconPath =
-        (iconPath == null || iconPath.trim().isEmpty) ? null : iconPath;
-    if (_lastTitle == title && _lastIconPath == normalizedIconPath) {
+    final normalizedIconPath = iconSnapshot?.path.trim();
+    final normalizedIconKey =
+        normalizedIconPath == null || normalizedIconPath.isEmpty
+            ? null
+            : '$normalizedIconPath#${iconSnapshot!.revision}';
+    if (_lastTitle == title && _lastIconKey == normalizedIconKey) {
       return;
     }
 
     _lastTitle = title;
-    _lastIconPath = normalizedIconPath;
+    _lastIconKey = normalizedIconKey;
 
     try {
       await _channel.invokeMethod<void>('applyWindowIdentity', {
