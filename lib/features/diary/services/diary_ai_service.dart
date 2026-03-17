@@ -27,6 +27,9 @@ class DiaryAiSuggestion {
     required this.comfortReply,
     required this.companionStyle,
     required this.priorityFeedback,
+    required this.distressIdentification,
+    required this.problemAnalysis,
+    required this.suggestionOutput,
   });
 
   final String summary;
@@ -37,6 +40,9 @@ class DiaryAiSuggestion {
   final String comfortReply;
   final String companionStyle;
   final String priorityFeedback;
+  final String distressIdentification;
+  final String problemAnalysis;
+  final String suggestionOutput;
 
   bool get isEmpty =>
       summary.trim().isEmpty &&
@@ -46,7 +52,10 @@ class DiaryAiSuggestion {
       emotionCategory.trim().isEmpty &&
       comfortReply.trim().isEmpty &&
       companionStyle.trim().isEmpty &&
-      priorityFeedback.trim().isEmpty;
+      priorityFeedback.trim().isEmpty &&
+      distressIdentification.trim().isEmpty &&
+      problemAnalysis.trim().isEmpty &&
+      suggestionOutput.trim().isEmpty;
 }
 
 class DiaryAiResult {
@@ -77,6 +86,7 @@ class DiaryAiService {
     required List<DiaryMood> availableMoods,
     required bool preferChinese,
     required bool includeEmotionalCompanion,
+    required bool includeProblemSuggestions,
   }) async {
     final configuredApiKey =
         _ref.read(diaryAiApiKeyControllerProvider).valueOrNull;
@@ -122,6 +132,7 @@ class DiaryAiService {
                       availableMoods: availableMoods,
                       preferChinese: preferChinese,
                       includeEmotionalCompanion: includeEmotionalCompanion,
+                      includeProblemSuggestions: includeProblemSuggestions,
                     ),
                   },
                   {
@@ -183,6 +194,7 @@ class DiaryAiService {
     required List<DiaryMood> availableMoods,
     required bool preferChinese,
     required bool includeEmotionalCompanion,
+    required bool includeProblemSuggestions,
   }) {
     final toneInstruction = preferChinese
         ? 'Write title, summary, and tags in Simplified Chinese unless the diary is clearly written in another language.'
@@ -194,9 +206,23 @@ class DiaryAiService {
         )
         .join('\n');
 
-    final requiredKeys = includeEmotionalCompanion
-        ? '"title", "summary", "mood_id", "tags", "emotion_category", "comfort_reply", "companion_style", "priority_feedback"'
-        : '"title", "summary", "mood_id", "tags"';
+    final requiredKeys = [
+      '"title"',
+      '"summary"',
+      '"mood_id"',
+      '"tags"',
+      if (includeEmotionalCompanion) ...[
+        '"emotion_category"',
+        '"comfort_reply"',
+        '"companion_style"',
+        '"priority_feedback"',
+      ],
+      if (includeProblemSuggestions) ...[
+        '"distress_identification"',
+        '"problem_analysis"',
+        '"suggestion_output"',
+      ],
+    ].join(', ');
 
     return '''
 You are a diary analysis assistant.
@@ -210,12 +236,16 @@ ${includeEmotionalCompanion ? '"emotion_category" must be a short emotion classi
 ${includeEmotionalCompanion ? '"comfort_reply" must be a warm and helpful reply tailored to the diary tone.' : ''}
 ${includeEmotionalCompanion ? '"companion_style" must be a short label describing the response style.' : ''}
 ${includeEmotionalCompanion ? '"priority_feedback" must be extra supportive feedback for important emotions. Use an empty string if not needed.' : ''}
+${includeProblemSuggestions ? '"distress_identification" must identify the core trouble or pressure point in one short sentence.' : ''}
+${includeProblemSuggestions ? '"problem_analysis" must explain the likely cause or conflict clearly and briefly.' : ''}
+${includeProblemSuggestions ? '"suggestion_output" must provide practical, gentle, non-preachy suggestions.' : ''}
 Do not include markdown, code fences, or extra fields.
 $toneInstruction
 Keep the title concise and natural.
 Keep the summary to 1-3 sentences.
 Return 3-6 tags when possible, and avoid duplicates.
 ${includeEmotionalCompanion ? 'The comforting reply should feel emotionally aware, and the style should adapt to the user tone.' : ''}
+${includeProblemSuggestions ? 'The suggestions must avoid lecturing, blame, pressure, or moralizing. Focus on empathy, clarity, and practical next steps.' : ''}
 Allowed mood ids:
 $moodGuide
 ''';
@@ -274,6 +304,17 @@ $moodGuide
         suggestionJson['priority_feedback'] ??
             suggestionJson['priorityFeedback'],
       );
+      final distressIdentification = _readString(
+        suggestionJson['distress_identification'] ??
+            suggestionJson['distressIdentification'],
+      );
+      final problemAnalysis = _readString(
+        suggestionJson['problem_analysis'] ?? suggestionJson['problemAnalysis'],
+      );
+      final suggestionOutput = _readString(
+        suggestionJson['suggestion_output'] ??
+            suggestionJson['suggestionOutput'],
+      );
 
       return DiaryAiSuggestion(
         summary: summary,
@@ -284,6 +325,9 @@ $moodGuide
         comfortReply: comfortReply,
         companionStyle: companionStyle,
         priorityFeedback: priorityFeedback,
+        distressIdentification: distressIdentification,
+        problemAnalysis: problemAnalysis,
+        suggestionOutput: suggestionOutput,
       );
     } on FormatException {
       return null;

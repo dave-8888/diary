@@ -45,6 +45,7 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
   bool _isResettingMoods = false;
   bool _isChangingDiaryAiVisibility = false;
   bool _isChangingEmotionalCompanionVisibility = false;
+  bool _isChangingProblemSuggestionVisibility = false;
   bool _showDiaryAiApiKey = false;
   bool _showApiKey = false;
 
@@ -81,6 +82,11 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
     );
     final emotionalCompanionVisible =
         emotionalCompanionVisibilityAsync.valueOrNull ?? true;
+    final problemSuggestionVisibilityAsync = ref.watch(
+      problemSuggestionVisibilityControllerProvider,
+    );
+    final problemSuggestionVisible =
+        problemSuggestionVisibilityAsync.valueOrNull ?? true;
     final apiKeyAsync = ref.watch(transcriptionApiKeyControllerProvider);
     final iconSelection =
         resolveAppIconSelection(ref.watch(appIconControllerProvider));
@@ -483,6 +489,60 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
                               onChanged: _isChangingEmotionalCompanionVisibility
                                   ? null
                                   : _changeEmotionalCompanionVisibility,
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    Container(
+                      decoration: BoxDecoration(
+                        color: Theme.of(context)
+                            .colorScheme
+                            .surfaceContainerHighest
+                            .withValues(alpha: 0.42),
+                        borderRadius: BorderRadius.circular(18),
+                      ),
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 14,
+                          vertical: 8,
+                        ),
+                        child: Row(
+                          children: [
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    strings.problemSuggestionStatus(
+                                      problemSuggestionVisible,
+                                    ),
+                                    style:
+                                        Theme.of(context).textTheme.titleMedium,
+                                  ),
+                                  const SizedBox(height: 4),
+                                  Text(
+                                    strings.problemSuggestionHint,
+                                    style: Theme.of(context)
+                                        .textTheme
+                                        .bodySmall
+                                        ?.copyWith(
+                                          color: Theme.of(context)
+                                              .colorScheme
+                                              .onSurfaceVariant,
+                                          height: 1.4,
+                                        ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            const SizedBox(width: 12),
+                            Switch.adaptive(
+                              value: problemSuggestionVisible,
+                              onChanged: _isChangingProblemSuggestionVisibility
+                                  ? null
+                                  : _changeProblemSuggestionVisibility,
                             ),
                           ],
                         ),
@@ -914,6 +974,29 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
       setState(() => _isChangingEmotionalCompanionVisibility = false);
       context.showAppSnackBar(
         strings.emotionalCompanionUpdateFailed(error),
+        tone: AppSnackBarTone.error,
+      );
+    }
+  }
+
+  Future<void> _changeProblemSuggestionVisibility(bool enabled) async {
+    final strings = context.strings;
+    setState(() => _isChangingProblemSuggestionVisibility = true);
+    try {
+      await ref
+          .read(problemSuggestionVisibilityControllerProvider.notifier)
+          .setEnabled(enabled);
+      if (!mounted) return;
+      setState(() => _isChangingProblemSuggestionVisibility = false);
+      context.showAppSnackBar(
+        strings.problemSuggestionUpdated,
+        tone: AppSnackBarTone.success,
+      );
+    } catch (error) {
+      if (!mounted) return;
+      setState(() => _isChangingProblemSuggestionVisibility = false);
+      context.showAppSnackBar(
+        strings.problemSuggestionUpdateFailed(error),
         tone: AppSnackBarTone.error,
       );
     }

@@ -455,6 +455,9 @@ class _EditorPageState extends ConsumerState<EditorPage> {
     final showEmotionalCompanion =
         ref.watch(emotionalCompanionVisibilityControllerProvider).valueOrNull ??
             true;
+    final showProblemSuggestions =
+        ref.watch(problemSuggestionVisibilityControllerProvider).valueOrNull ??
+            true;
     final detectedMood = suggestion == null
         ? null
         : _resolveAiMood(availableMoods, suggestion.moodId);
@@ -608,6 +611,58 @@ class _EditorPageState extends ConsumerState<EditorPage> {
                     suggestion.priorityFeedback.trim().isEmpty
                         ? strings.noPriorityFeedback
                         : suggestion.priorityFeedback,
+                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                          height: 1.45,
+                        ),
+                  ),
+                ),
+              ],
+            ],
+            if (showProblemSuggestions) ...[
+              const SizedBox(height: 18),
+              Text(
+                strings.problemSuggestionSectionTitle,
+                style: Theme.of(context).textTheme.titleMedium,
+              ),
+              const SizedBox(height: 12),
+              if (_isProblemSuggestionEmpty(suggestion))
+                _buildSidebarEmptyState(
+                  context,
+                  icon: Icons.psychology_alt_outlined,
+                  message: strings.problemSuggestionEmpty,
+                )
+              else ...[
+                _buildAiResultBlock(
+                  context,
+                  label: strings.distressIdentificationLabel,
+                  child: Text(
+                    suggestion.distressIdentification.trim().isEmpty
+                        ? strings.notProvided
+                        : suggestion.distressIdentification,
+                    style: Theme.of(context).textTheme.bodyMedium,
+                  ),
+                ),
+                const SizedBox(height: 14),
+                _buildAiResultBlock(
+                  context,
+                  label: strings.problemAnalysisLabel,
+                  child: Text(
+                    suggestion.problemAnalysis.trim().isEmpty
+                        ? strings.notProvided
+                        : suggestion.problemAnalysis,
+                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                          height: 1.45,
+                        ),
+                  ),
+                ),
+                const SizedBox(height: 14),
+                _buildAiResultBlock(
+                  context,
+                  label: strings.suggestionOutputLabel,
+                  child: Text(
+                    suggestion.suggestionOutput.trim().isEmpty
+                        ? strings.notProvided
+                        : suggestion.suggestionOutput,
                     style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                           height: 1.45,
                         ),
@@ -1113,6 +1168,9 @@ class _EditorPageState extends ConsumerState<EditorPage> {
     final includeEmotionalCompanion =
         ref.read(emotionalCompanionVisibilityControllerProvider).valueOrNull ??
             true;
+    final includeProblemSuggestions =
+        ref.read(problemSuggestionVisibilityControllerProvider).valueOrNull ??
+            true;
 
     setState(() => _isAnalyzingAi = true);
     final result = await ref.read(diaryAiServiceProvider).analyzeEntry(
@@ -1120,6 +1178,7 @@ class _EditorPageState extends ConsumerState<EditorPage> {
           availableMoods: moods,
           preferChinese: strings.isChinese,
           includeEmotionalCompanion: includeEmotionalCompanion,
+          includeProblemSuggestions: includeProblemSuggestions,
         );
 
     if (!mounted) return;
@@ -1634,5 +1693,11 @@ class _EditorPageState extends ConsumerState<EditorPage> {
         suggestion.comfortReply.trim().isEmpty &&
         suggestion.companionStyle.trim().isEmpty &&
         suggestion.priorityFeedback.trim().isEmpty;
+  }
+
+  bool _isProblemSuggestionEmpty(DiaryAiSuggestion suggestion) {
+    return suggestion.distressIdentification.trim().isEmpty &&
+        suggestion.problemAnalysis.trim().isEmpty &&
+        suggestion.suggestionOutput.trim().isEmpty;
   }
 }
