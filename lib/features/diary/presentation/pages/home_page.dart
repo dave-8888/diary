@@ -35,6 +35,7 @@ class HomePage extends ConsumerWidget {
 
     return DiaryShell(
       title: appTitle,
+      showAppBarTitle: false,
       floatingActionButton: FloatingActionButton.extended(
         onPressed: () => context.go('/editor'),
         icon: const Icon(Icons.add),

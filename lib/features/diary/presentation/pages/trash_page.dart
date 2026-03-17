@@ -26,6 +26,7 @@ class _TrashPageState extends ConsumerState<TrashPage> {
 
     return DiaryShell(
       title: strings.trashNav,
+      showAppBarTitle: false,
       child: trashAsync.when(
         loading: () => const Center(child: CircularProgressIndicator()),
         error: (error, stack) =>

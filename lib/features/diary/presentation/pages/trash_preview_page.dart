@@ -30,6 +30,7 @@ class _TrashPreviewPageState extends ConsumerState<TrashPreviewPage> {
 
     return DiaryShell(
       title: strings.previewEntry,
+      showAppBarTitle: false,
       actions: [
         if (entry != null)
           IconButton(

@@ -101,19 +101,8 @@ class _EditorPageState extends ConsumerState<EditorPage> {
 
     return DiaryShell(
       title: _isEditing ? strings.editEntry : strings.newEntry,
+      showAppBarTitle: false,
       actions: [
-        IconButton(
-          onPressed:
-              _isSaving || _isDeleting || _isExporting ? null : _exportEntry,
-          tooltip: _isExporting ? strings.exportingEntry : strings.exportEntry,
-          icon: _isExporting
-              ? const SizedBox(
-                  width: 18,
-                  height: 18,
-                  child: CircularProgressIndicator(strokeWidth: 2),
-                )
-              : const Icon(Icons.file_download_outlined),
-        ),
         if (_isEditing)
           IconButton(
             onPressed: _isSaving || _isDeleting || _isExporting
@@ -191,11 +180,8 @@ class _EditorPageState extends ConsumerState<EditorPage> {
     required AsyncValue<List<DiaryMood>> moodLibraryAsync,
   }) {
     return [
-      Text(
-        strings.whatHappenedToday,
-        style: Theme.of(context).textTheme.headlineMedium,
-      ),
-      const SizedBox(height: 20),
+      _buildEditorHeader(context, strings),
+      const SizedBox(height: 18),
       TextField(
         controller: _titleController,
         decoration: InputDecoration(
@@ -341,12 +327,78 @@ class _EditorPageState extends ConsumerState<EditorPage> {
           );
         },
       ),
-      const SizedBox(height: 32),
-      Align(
-        alignment: Alignment.centerRight,
-        child: FilledButton.icon(
-          onPressed: _isSaving || _isDeleting ? null : _save,
-          icon: const Icon(Icons.save_outlined),
+    ];
+  }
+
+  Widget _buildEditorHeader(BuildContext context, AppStrings strings) {
+    final theme = Theme.of(context);
+
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final actionButtons = _buildHeaderActionButtons(context, strings);
+
+        if (constraints.maxWidth < 760) {
+          return Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                strings.whatHappenedToday,
+                style: theme.textTheme.headlineMedium,
+              ),
+              const SizedBox(height: 14),
+              actionButtons,
+            ],
+          );
+        }
+
+        return Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Expanded(
+              child: Text(
+                strings.whatHappenedToday,
+                style: theme.textTheme.headlineMedium,
+              ),
+            ),
+            const SizedBox(width: 20),
+            Flexible(
+              child: Align(
+                alignment: Alignment.centerRight,
+                child: actionButtons,
+              ),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  Widget _buildHeaderActionButtons(BuildContext context, AppStrings strings) {
+    final colorScheme = Theme.of(context).colorScheme;
+
+    return Wrap(
+      spacing: 12,
+      runSpacing: 12,
+      alignment: WrapAlignment.end,
+      crossAxisAlignment: WrapCrossAlignment.center,
+      children: [
+        FilledButton.tonalIcon(
+          onPressed:
+              _isSaving || _isDeleting || _isExporting ? null : _exportEntry,
+          icon: _isExporting
+              ? _buttonProgressIndicator(
+                  color: colorScheme.onSecondaryContainer,
+                )
+              : const Icon(Icons.file_download_outlined),
+          label: Text(
+            _isExporting ? strings.exportingEntry : strings.exportEntry,
+          ),
+        ),
+        FilledButton.icon(
+          onPressed: _isSaving || _isDeleting || _isExporting ? null : _save,
+          icon: _isSaving || _isDeleting
+              ? _buttonProgressIndicator(color: colorScheme.onPrimary)
+              : const Icon(Icons.save_outlined),
           label: Text(
             _isDeleting
                 ? strings.deleting
@@ -355,8 +407,21 @@ class _EditorPageState extends ConsumerState<EditorPage> {
                     : (_isEditing ? strings.updateEntry : strings.saveEntry),
           ),
         ),
+      ],
+    );
+  }
+
+  Widget _buttonProgressIndicator({
+    required Color color,
+  }) {
+    return SizedBox(
+      width: 18,
+      height: 18,
+      child: CircularProgressIndicator(
+        strokeWidth: 2,
+        color: color,
       ),
-    ];
+    );
   }
 
   Widget _buildTagSection(

@@ -25,6 +25,7 @@ class TimelinePage extends ConsumerWidget {
 
     return DiaryShell(
       title: strings.timelineNav,
+      showAppBarTitle: false,
       child: entriesAsync.when(
         loading: () => const Center(child: CircularProgressIndicator()),
         error: (error, stack) =>

@@ -13,12 +13,14 @@ class DiaryShell extends ConsumerWidget {
     required this.child,
     this.floatingActionButton,
     this.actions = const [],
+    this.showAppBarTitle = true,
   });
 
   final String title;
   final Widget child;
   final Widget? floatingActionButton;
   final List<Widget> actions;
+  final bool showAppBarTitle;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -34,31 +36,39 @@ class DiaryShell extends ConsumerWidget {
       customNameAsync: ref.watch(appDisplayNameControllerProvider),
     );
     final location = GoRouterState.of(context).uri.toString();
-    final selectedIndex = _indexForLocation(location);
-    final appBarActions = [
-      ...actions,
-      if (!location.startsWith('/settings'))
-        IconButton(
-          onPressed: () => context.push('/settings'),
-          tooltip: strings.settingsTooltip,
-          icon: const Icon(Icons.settings_outlined),
-        ),
-    ];
+    final selectedIndex = _primaryIndexForLocation(location);
+    final isSettingsPage = location.startsWith('/settings');
 
     return LayoutBuilder(
       builder: (context, constraints) {
-        if (constraints.maxWidth < 860) {
-          return Scaffold(
-            appBar: AppBar(
-              title: _AppBarTitle(
-                appName: appName,
-                pageTitle: title,
-                iconSelection: selectedIcon,
-              ),
-              centerTitle: false,
-              backgroundColor: Colors.transparent,
-              actions: appBarActions,
+        final useCompactLayout = constraints.maxWidth < 860;
+        final appBarActions = [
+          ...actions,
+          if (useCompactLayout && !isSettingsPage)
+            IconButton(
+              onPressed: () => context.push('/settings'),
+              tooltip: strings.settingsTooltip,
+              icon: const Icon(Icons.settings_outlined),
             ),
+        ];
+        final shouldShowAppBar = showAppBarTitle || appBarActions.isNotEmpty;
+
+        if (useCompactLayout) {
+          return Scaffold(
+            appBar: shouldShowAppBar
+                ? AppBar(
+                    title: showAppBarTitle
+                        ? _AppBarTitle(
+                            appName: appName,
+                            pageTitle: title,
+                            iconSelection: selectedIcon,
+                          )
+                        : null,
+                    centerTitle: false,
+                    backgroundColor: Colors.transparent,
+                    actions: appBarActions,
+                  )
+                : null,
             floatingActionButton: floatingActionButton,
             body: _ThemedShellBackground(
               themePreset: selectedTheme,
@@ -70,7 +80,7 @@ class DiaryShell extends ConsumerWidget {
               ),
             ),
             bottomNavigationBar: NavigationBar(
-              selectedIndex: selectedIndex,
+              selectedIndex: selectedIndex ?? 0,
               onDestinationSelected: (index) => _goToIndex(context, index),
               destinations: [
                 NavigationDestination(
@@ -95,57 +105,75 @@ class DiaryShell extends ConsumerWidget {
         }
 
         return Scaffold(
-          appBar: AppBar(
-            title: _AppBarTitle(
-              appName: appName,
-              pageTitle: title,
-              iconSelection: selectedIcon,
-            ),
-            centerTitle: false,
-            backgroundColor: Colors.transparent,
-            actions: appBarActions,
-          ),
+          appBar: shouldShowAppBar
+              ? AppBar(
+                  title: showAppBarTitle
+                      ? _AppBarTitle(
+                          appName: appName,
+                          pageTitle: title,
+                          iconSelection: selectedIcon,
+                        )
+                      : null,
+                  centerTitle: false,
+                  backgroundColor: Colors.transparent,
+                  actions: appBarActions,
+                )
+              : null,
           floatingActionButton: floatingActionButton,
           body: _ThemedShellBackground(
             themePreset: selectedTheme,
             child: Row(
               children: [
-                NavigationRail(
-                  selectedIndex: selectedIndex,
-                  onDestinationSelected: (index) => _goToIndex(context, index),
-                  labelType: NavigationRailLabelType.all,
-                  leading: SizedBox(
-                    width: 108,
-                    child: Padding(
-                      padding: const EdgeInsets.fromLTRB(12, 12, 12, 18),
-                      child: _NavigationBrandHeader(
-                        appName: appName,
-                        iconSelection: selectedIcon,
-                      ),
+                SizedBox(
+                  width: 92,
+                  child: SafeArea(
+                    child: Column(
+                      children: [
+                        Expanded(
+                          child: NavigationRail(
+                            selectedIndex: selectedIndex,
+                            onDestinationSelected: (index) =>
+                                _goToIndex(context, index),
+                            groupAlignment: -1,
+                            labelType: NavigationRailLabelType.all,
+                            destinations: [
+                              NavigationRailDestination(
+                                icon: const Icon(Icons.home_outlined),
+                                selectedIcon: const Icon(Icons.home),
+                                label: Text(strings.homeNav),
+                              ),
+                              NavigationRailDestination(
+                                icon: const Icon(Icons.edit_note_outlined),
+                                selectedIcon: const Icon(Icons.edit_note),
+                                label: Text(strings.writeNav),
+                              ),
+                              NavigationRailDestination(
+                                icon: const Icon(Icons.timeline_outlined),
+                                selectedIcon: const Icon(Icons.timeline),
+                                label: Text(strings.timelineNav),
+                              ),
+                              NavigationRailDestination(
+                                icon: const Icon(Icons.delete_outline),
+                                selectedIcon: const Icon(Icons.delete),
+                                label: Text(strings.trashNav),
+                              ),
+                            ],
+                          ),
+                        ),
+                        Padding(
+                          padding: const EdgeInsets.fromLTRB(10, 10, 10, 18),
+                          child: _RailFooterAction(
+                            icon: isSettingsPage
+                                ? Icons.settings
+                                : Icons.settings_outlined,
+                            label: strings.settingsTitle,
+                            selected: isSettingsPage,
+                            onTap: () => context.go('/settings'),
+                          ),
+                        ),
+                      ],
                     ),
                   ),
-                  destinations: [
-                    NavigationRailDestination(
-                      icon: const Icon(Icons.home_outlined),
-                      selectedIcon: const Icon(Icons.home),
-                      label: Text(strings.homeNav),
-                    ),
-                    NavigationRailDestination(
-                      icon: const Icon(Icons.edit_note_outlined),
-                      selectedIcon: const Icon(Icons.edit_note),
-                      label: Text(strings.writeNav),
-                    ),
-                    NavigationRailDestination(
-                      icon: const Icon(Icons.timeline_outlined),
-                      selectedIcon: const Icon(Icons.timeline),
-                      label: Text(strings.timelineNav),
-                    ),
-                    NavigationRailDestination(
-                      icon: const Icon(Icons.delete_outline),
-                      selectedIcon: const Icon(Icons.delete),
-                      label: Text(strings.trashNav),
-                    ),
-                  ],
                 ),
                 const VerticalDivider(width: 1),
                 Expanded(
@@ -164,7 +192,8 @@ class DiaryShell extends ConsumerWidget {
     );
   }
 
-  int _indexForLocation(String location) {
+  int? _primaryIndexForLocation(String location) {
+    if (location.startsWith('/settings')) return null;
     if (location.startsWith('/editor')) return 1;
     if (location.startsWith('/timeline')) return 2;
     if (location.startsWith('/trash')) return 3;
@@ -240,47 +269,58 @@ class _AppBarTitle extends StatelessWidget {
   }
 }
 
-class _NavigationBrandHeader extends StatelessWidget {
-  const _NavigationBrandHeader({
-    required this.appName,
-    required this.iconSelection,
+class _RailFooterAction extends StatelessWidget {
+  const _RailFooterAction({
+    required this.icon,
+    required this.label,
+    required this.selected,
+    required this.onTap,
   });
 
-  final String appName;
-  final AppIconSelection iconSelection;
+  final IconData icon;
+  final String label;
+  final bool selected;
+  final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+    final foregroundColor = selected
+        ? colorScheme.onSecondaryContainer
+        : colorScheme.onSurfaceVariant;
 
-    return Container(
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: theme.cardTheme.color?.withValues(alpha: 0.92) ??
-            theme.colorScheme.surface,
+    return SizedBox(
+      width: double.infinity,
+      child: Material(
+        color: selected
+            ? colorScheme.secondaryContainer.withValues(alpha: 0.72)
+            : Colors.transparent,
         borderRadius: BorderRadius.circular(18),
-        border: Border.all(
-          color: theme.colorScheme.outlineVariant.withValues(alpha: 0.72),
-        ),
-      ),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          AppIconBadge(
-            selection: iconSelection,
-            size: 42,
-          ),
-          const SizedBox(height: 10),
-          Text(
-            appName,
-            maxLines: 2,
-            textAlign: TextAlign.center,
-            overflow: TextOverflow.ellipsis,
-            style: theme.textTheme.titleSmall?.copyWith(
-              fontWeight: FontWeight.w700,
+        child: InkWell(
+          onTap: onTap,
+          borderRadius: BorderRadius.circular(18),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 10),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(icon, color: foregroundColor),
+                const SizedBox(height: 6),
+                Text(
+                  label,
+                  maxLines: 2,
+                  textAlign: TextAlign.center,
+                  overflow: TextOverflow.ellipsis,
+                  style: theme.textTheme.labelMedium?.copyWith(
+                    color: foregroundColor,
+                    fontWeight: selected ? FontWeight.w700 : FontWeight.w600,
+                  ),
+                ),
+              ],
             ),
           ),
-        ],
+        ),
       ),
     );
   }
