@@ -84,8 +84,8 @@ class AppStrings {
   String get problemSuggestionLabel =>
       isChinese ? 'AI \u95ee\u9898\u5efa\u8bae' : 'AI problem suggestions';
   String get problemSuggestionHint => isChinese
-      ? '\u5728 AI \u5206\u6790\u7ed3\u679c\u4e2d\u589e\u52a0\u56f0\u6270\u8bc6\u522b\u3001\u95ee\u9898\u5206\u6790\u3001\u5efa\u8bae\u8f93\u51fa\uff0c\u5e76\u907f\u514d\u8bf4\u6559\u5f0f\u56de\u7b54\u3002'
-      : 'Add distress identification, problem analysis, and suggestions to AI results while avoiding preachy responses.';
+      ? '\u5728 AI \u5206\u6790\u7ed3\u679c\u4e2d\u589e\u52a0\u56f0\u6270\u8bc6\u522b\u548c\u95ee\u9898\u5206\u6790\uff0c\u5e76\u907f\u514d\u8bf4\u6559\u5f0f\u56de\u7b54\u3002'
+      : 'Add distress identification and problem analysis to AI results while avoiding preachy responses.';
   String problemSuggestionStatus(bool enabled) =>
       '$problemSuggestionLabel\uff1a${enabled ? enabledLabel : disabledLabel}';
   String get problemSuggestionUpdated => isChinese
@@ -575,8 +575,6 @@ class AppStrings {
       isChinese ? '\u56f0\u6270\u8bc6\u522b' : 'Distress identification';
   String get problemAnalysisLabel =>
       isChinese ? '\u95ee\u9898\u5206\u6790' : 'Problem analysis';
-  String get suggestionOutputLabel =>
-      isChinese ? '\u5efa\u8bae\u8f93\u51fa' : 'Suggested actions';
   String get problemSuggestionEmpty => isChinese
       ? '\u5f53\u524d\u8fd9\u6761\u65e5\u8bb0\u8fd8\u6ca1\u6709\u751f\u6210\u95ee\u9898\u5efa\u8bae\u3002'
       : 'No AI problem suggestions have been generated yet.';

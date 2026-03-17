@@ -29,7 +29,6 @@ class DiaryAiSuggestion {
     required this.priorityFeedback,
     required this.distressIdentification,
     required this.problemAnalysis,
-    required this.suggestionOutput,
   });
 
   final String summary;
@@ -42,7 +41,6 @@ class DiaryAiSuggestion {
   final String priorityFeedback;
   final String distressIdentification;
   final String problemAnalysis;
-  final String suggestionOutput;
 
   bool get isEmpty =>
       summary.trim().isEmpty &&
@@ -54,8 +52,7 @@ class DiaryAiSuggestion {
       companionStyle.trim().isEmpty &&
       priorityFeedback.trim().isEmpty &&
       distressIdentification.trim().isEmpty &&
-      problemAnalysis.trim().isEmpty &&
-      suggestionOutput.trim().isEmpty;
+      problemAnalysis.trim().isEmpty;
 }
 
 class DiaryAiResult {
@@ -237,7 +234,6 @@ class DiaryAiService {
       if (includeProblemSuggestions) ...[
         '"distress_identification"',
         '"problem_analysis"',
-        '"suggestion_output"',
       ],
     ].join(', ');
 
@@ -255,14 +251,13 @@ ${includeEmotionalCompanion ? '"companion_style" must be a short label describin
 ${includeEmotionalCompanion ? '"priority_feedback" must be extra supportive feedback for important emotions. Use an empty string if not needed.' : ''}
 ${includeProblemSuggestions ? '"distress_identification" must identify the core trouble or pressure point in one short sentence.' : ''}
 ${includeProblemSuggestions ? '"problem_analysis" must explain the likely cause or conflict clearly and briefly.' : ''}
-${includeProblemSuggestions ? '"suggestion_output" must provide practical, gentle, non-preachy suggestions.' : ''}
 Do not include markdown, code fences, or extra fields.
 $toneInstruction
 Keep the title concise and natural.
 Keep the summary to 1-3 sentences.
 Return 3-6 tags when possible, and avoid duplicates.
 ${includeEmotionalCompanion ? 'The comforting reply should feel emotionally aware, and the style should adapt to the user tone.' : ''}
-${includeProblemSuggestions ? 'The suggestions must avoid lecturing, blame, pressure, or moralizing. Focus on empathy, clarity, and practical next steps.' : ''}
+${includeProblemSuggestions ? 'Keep the problem-suggestion section empathetic and concise. Avoid lecturing, blame, pressure, or moralizing.' : ''}
 Allowed mood ids:
 $moodGuide
 ''';
@@ -328,10 +323,6 @@ $moodGuide
       final problemAnalysis = _readString(
         suggestionJson['problem_analysis'] ?? suggestionJson['problemAnalysis'],
       );
-      final suggestionOutput = _readString(
-        suggestionJson['suggestion_output'] ??
-            suggestionJson['suggestionOutput'],
-      );
 
       return DiaryAiSuggestion(
         summary: summary,
@@ -344,7 +335,6 @@ $moodGuide
         priorityFeedback: priorityFeedback,
         distressIdentification: distressIdentification,
         problemAnalysis: problemAnalysis,
-        suggestionOutput: suggestionOutput,
       );
     } on FormatException {
       return null;

@@ -446,6 +446,8 @@ class _EditorPageState extends ConsumerState<EditorPage> {
     AsyncValue<List<DiaryMood>> moodLibraryAsync,
   ) {
     final suggestion = _aiSuggestion;
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
     final availableMoods = moodLibraryAsync.valueOrNull ?? DiaryMood.values;
     final showEmotionalCompanion =
         ref.watch(emotionalCompanionVisibilityControllerProvider).valueOrNull ??
@@ -465,6 +467,15 @@ class _EditorPageState extends ConsumerState<EditorPage> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          _buildAiHeroBanner(
+            context,
+            strings: strings,
+            suggestion: suggestion,
+            detectedMood: detectedMood,
+            showEmotionalCompanion: showEmotionalCompanion,
+            showProblemSuggestions: showProblemSuggestions,
+          ),
+          const SizedBox(height: 14),
           SizedBox(
             width: double.infinity,
             child: FilledButton.icon(
@@ -486,75 +497,70 @@ class _EditorPageState extends ConsumerState<EditorPage> {
           ),
           const SizedBox(height: 16),
           if (suggestion == null)
-            _buildSidebarEmptyState(
+            _buildAiSectionPanel(
               context,
-              icon: Icons.lightbulb_outline,
-              message: strings.noAiSuggestionYet,
+              icon: Icons.bolt_outlined,
+              title: strings.diaryAiToolsTitle,
+              accentColor: colorScheme.tertiary,
+              child: Text(
+                strings.noAiSuggestionYet,
+                style: theme.textTheme.bodyMedium?.copyWith(
+                  color: colorScheme.onSurfaceVariant,
+                  height: 1.45,
+                ),
+              ),
             )
           else ...[
-            _buildAiResultBlock(
+            _buildAiSectionPanel(
               context,
-              label: strings.aiGeneratedTitleLabel,
-              child: Text(
-                suggestion.title.trim().isEmpty
-                    ? strings.aiGeneratedTitleEmpty
-                    : suggestion.title,
-                style: Theme.of(context).textTheme.bodyMedium,
-              ),
-            ),
-            const SizedBox(height: 14),
-            _buildAiResultBlock(
-              context,
-              label: strings.aiSummaryLabel,
-              child: Text(
-                suggestion.summary.trim().isEmpty
-                    ? strings.aiSummaryEmpty
-                    : suggestion.summary,
-                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                      height: 1.45,
+              icon: Icons.insights_outlined,
+              title: strings.diaryAiToolsTitle,
+              accentColor: colorScheme.primary,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  _buildAiFieldTile(
+                    context,
+                    icon: Icons.favorite_outline,
+                    label: strings.aiDetectedMoodLabel,
+                    value: detectedMood == null
+                        ? strings.defaultMoodLabel(DiaryMood.neutralId)
+                        : strings.moodLabel(detectedMood),
+                    accentColor: colorScheme.primary,
+                  ),
+                  const SizedBox(height: 12),
+                  Text(
+                    strings.aiSuggestedTagsLabel,
+                    style: theme.textTheme.labelLarge?.copyWith(
+                      color: colorScheme.onSurfaceVariant,
                     ),
-              ),
-            ),
-            const SizedBox(height: 14),
-            _buildAiResultBlock(
-              context,
-              label: strings.aiDetectedMoodLabel,
-              child: Text(
-                detectedMood == null
-                    ? strings.defaultMoodLabel(DiaryMood.neutralId)
-                    : strings.moodLabel(detectedMood),
-                style: Theme.of(context).textTheme.bodyMedium,
-              ),
-            ),
-            const SizedBox(height: 14),
-            _buildAiResultBlock(
-              context,
-              label: strings.aiSuggestedTagsLabel,
-              child: suggestion.tags.isEmpty
-                  ? Text(
+                  ),
+                  const SizedBox(height: 10),
+                  if (suggestion.tags.isEmpty)
+                    Text(
                       strings.aiNoTagsSuggested,
-                      style: Theme.of(context).textTheme.bodyMedium,
+                      style: theme.textTheme.bodyMedium?.copyWith(
+                        color: colorScheme.onSurfaceVariant,
+                      ),
                     )
-                  : Wrap(
+                  else
+                    Wrap(
                       spacing: 8,
                       runSpacing: 8,
                       children: suggestion.tags
                           .map(
-                            (tag) => Chip(
-                              avatar: const Icon(Icons.label_outline, size: 18),
-                              label: Text(_normalizeTag(tag) ?? tag),
+                            (tag) => _buildAiTagChip(
+                              context,
+                              label: _normalizeTag(tag) ?? tag,
                             ),
                           )
                           .toList(growable: false),
                     ),
+                ],
+              ),
             ),
             if (showEmotionalCompanion) ...[
-              const SizedBox(height: 18),
-              Text(
-                strings.emotionalCompanionSectionTitle,
-                style: Theme.of(context).textTheme.titleMedium,
-              ),
-              const SizedBox(height: 12),
+              const SizedBox(height: 16),
               if (_isCompanionEmpty(suggestion))
                 _buildSidebarEmptyState(
                   context,
@@ -562,64 +568,63 @@ class _EditorPageState extends ConsumerState<EditorPage> {
                   message: strings.emotionalCompanionEmpty,
                 )
               else ...[
-                _buildAiResultBlock(
+                _buildAiSectionPanel(
                   context,
-                  label: strings.emotionCategoryLabel,
-                  child: Text(
-                    suggestion.emotionCategory.trim().isEmpty
-                        ? strings.moodLabel(
-                            detectedMood ?? DiaryMood.neutral,
-                          )
-                        : suggestion.emotionCategory,
-                    style: Theme.of(context).textTheme.bodyMedium,
-                  ),
-                ),
-                const SizedBox(height: 14),
-                _buildAiResultBlock(
-                  context,
-                  label: strings.companionStyleLabel,
-                  child: Text(
-                    suggestion.companionStyle.trim().isEmpty
-                        ? strings.notProvided
-                        : suggestion.companionStyle,
-                    style: Theme.of(context).textTheme.bodyMedium,
-                  ),
-                ),
-                const SizedBox(height: 14),
-                _buildAiResultBlock(
-                  context,
-                  label: strings.comfortReplyLabel,
-                  child: Text(
-                    suggestion.comfortReply.trim().isEmpty
-                        ? strings.notProvided
-                        : suggestion.comfortReply,
-                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                          height: 1.45,
-                        ),
-                  ),
-                ),
-                const SizedBox(height: 14),
-                _buildAiResultBlock(
-                  context,
-                  label: strings.priorityFeedbackLabel,
-                  child: Text(
-                    suggestion.priorityFeedback.trim().isEmpty
-                        ? strings.noPriorityFeedback
-                        : suggestion.priorityFeedback,
-                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                          height: 1.45,
-                        ),
+                  icon: Icons.favorite_outline,
+                  title: strings.emotionalCompanionSectionTitle,
+                  accentColor: colorScheme.tertiary,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      _buildAiFieldTile(
+                        context,
+                        icon: Icons.category_outlined,
+                        label: strings.emotionCategoryLabel,
+                        value: suggestion.emotionCategory.trim().isEmpty
+                            ? strings.moodLabel(
+                                detectedMood ?? DiaryMood.neutral,
+                              )
+                            : suggestion.emotionCategory,
+                        accentColor: colorScheme.tertiary,
+                      ),
+                      const SizedBox(height: 10),
+                      _buildAiFieldTile(
+                        context,
+                        icon: Icons.tune_outlined,
+                        label: strings.companionStyleLabel,
+                        value: suggestion.companionStyle.trim().isEmpty
+                            ? strings.notProvided
+                            : suggestion.companionStyle,
+                        accentColor: colorScheme.tertiary,
+                      ),
+                      const SizedBox(height: 10),
+                      _buildAiFieldTile(
+                        context,
+                        icon: Icons.chat_bubble_outline,
+                        label: strings.comfortReplyLabel,
+                        value: suggestion.comfortReply.trim().isEmpty
+                            ? strings.notProvided
+                            : suggestion.comfortReply,
+                        accentColor: colorScheme.tertiary,
+                        emphasize: true,
+                      ),
+                      const SizedBox(height: 10),
+                      _buildAiFieldTile(
+                        context,
+                        icon: Icons.priority_high_outlined,
+                        label: strings.priorityFeedbackLabel,
+                        value: suggestion.priorityFeedback.trim().isEmpty
+                            ? strings.noPriorityFeedback
+                            : suggestion.priorityFeedback,
+                        accentColor: colorScheme.tertiary,
+                      ),
+                    ],
                   ),
                 ),
               ],
             ],
             if (showProblemSuggestions) ...[
-              const SizedBox(height: 18),
-              Text(
-                strings.problemSuggestionSectionTitle,
-                style: Theme.of(context).textTheme.titleMedium,
-              ),
-              const SizedBox(height: 12),
+              const SizedBox(height: 16),
               if (_isProblemSuggestionEmpty(suggestion))
                 _buildSidebarEmptyState(
                   context,
@@ -627,71 +632,78 @@ class _EditorPageState extends ConsumerState<EditorPage> {
                   message: strings.problemSuggestionEmpty,
                 )
               else ...[
-                _buildAiResultBlock(
+                _buildAiSectionPanel(
                   context,
-                  label: strings.distressIdentificationLabel,
-                  child: Text(
-                    suggestion.distressIdentification.trim().isEmpty
-                        ? strings.notProvided
-                        : suggestion.distressIdentification,
-                    style: Theme.of(context).textTheme.bodyMedium,
-                  ),
-                ),
-                const SizedBox(height: 14),
-                _buildAiResultBlock(
-                  context,
-                  label: strings.problemAnalysisLabel,
-                  child: Text(
-                    suggestion.problemAnalysis.trim().isEmpty
-                        ? strings.notProvided
-                        : suggestion.problemAnalysis,
-                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                          height: 1.45,
-                        ),
-                  ),
-                ),
-                const SizedBox(height: 14),
-                _buildAiResultBlock(
-                  context,
-                  label: strings.suggestionOutputLabel,
-                  child: Text(
-                    suggestion.suggestionOutput.trim().isEmpty
-                        ? strings.notProvided
-                        : suggestion.suggestionOutput,
-                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                          height: 1.45,
-                        ),
+                  icon: Icons.psychology_alt_outlined,
+                  title: strings.problemSuggestionSectionTitle,
+                  accentColor: colorScheme.secondary,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      _buildAiFieldTile(
+                        context,
+                        icon: Icons.warning_amber_outlined,
+                        label: strings.distressIdentificationLabel,
+                        value: suggestion.distressIdentification.trim().isEmpty
+                            ? strings.notProvided
+                            : suggestion.distressIdentification,
+                        accentColor: colorScheme.secondary,
+                      ),
+                      const SizedBox(height: 10),
+                      _buildAiFieldTile(
+                        context,
+                        icon: Icons.account_tree_outlined,
+                        label: strings.problemAnalysisLabel,
+                        value: suggestion.problemAnalysis.trim().isEmpty
+                            ? strings.notProvided
+                            : suggestion.problemAnalysis,
+                        accentColor: colorScheme.secondary,
+                        emphasize: true,
+                      ),
+                    ],
                   ),
                 ),
               ],
             ],
             const SizedBox(height: 16),
-            Wrap(
-              spacing: 10,
-              runSpacing: 10,
-              children: [
-                FilledButton.tonalIcon(
-                  onPressed: _applyAllAiSuggestions,
-                  icon: const Icon(Icons.done_all_outlined),
-                  label: Text(strings.applyAllAiSuggestions),
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color:
+                    colorScheme.surfaceContainerHighest.withValues(alpha: 0.36),
+                borderRadius: BorderRadius.circular(18),
+                border: Border.all(
+                  color: colorScheme.outlineVariant.withValues(alpha: 0.48),
                 ),
-                OutlinedButton.icon(
-                  onPressed:
-                      suggestion.title.trim().isEmpty ? null : _applyAiTitle,
-                  icon: const Icon(Icons.title_outlined),
-                  label: Text(strings.applyAiTitle),
-                ),
-                OutlinedButton.icon(
-                  onPressed: _applyAiMood,
-                  icon: const Icon(Icons.mood_outlined),
-                  label: Text(strings.applyAiMood),
-                ),
-                OutlinedButton.icon(
-                  onPressed: suggestion.tags.isEmpty ? null : _applyAiTags,
-                  icon: const Icon(Icons.sell_outlined),
-                  label: Text(strings.applyAiTags),
-                ),
-              ],
+              ),
+              child: Wrap(
+                spacing: 10,
+                runSpacing: 10,
+                children: [
+                  FilledButton.tonalIcon(
+                    onPressed: _applyAllAiSuggestions,
+                    icon: const Icon(Icons.done_all_outlined),
+                    label: Text(strings.applyAllAiSuggestions),
+                  ),
+                  OutlinedButton.icon(
+                    onPressed:
+                        suggestion.title.trim().isEmpty ? null : _applyAiTitle,
+                    icon: const Icon(Icons.title_outlined),
+                    label: Text(strings.applyAiTitle),
+                  ),
+                  OutlinedButton.icon(
+                    onPressed: _applyAiMood,
+                    icon: const Icon(Icons.mood_outlined),
+                    label: Text(strings.applyAiMood),
+                  ),
+                  OutlinedButton.icon(
+                    onPressed: suggestion.tags.isEmpty ? null : _applyAiTags,
+                    icon: const Icon(Icons.sell_outlined),
+                    label: Text(strings.applyAiTags),
+                  ),
+                ],
+              ),
             ),
           ],
         ],
@@ -699,35 +711,335 @@ class _EditorPageState extends ConsumerState<EditorPage> {
     );
   }
 
-  Widget _buildAiResultBlock(
+  Widget _buildAiHeroBanner(
+    BuildContext context, {
+    required AppStrings strings,
+    required DiaryAiSuggestion? suggestion,
+    required DiaryMood? detectedMood,
+    required bool showEmotionalCompanion,
+    required bool showProblemSuggestions,
+  }) {
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+    final titleText = suggestion == null
+        ? strings.diaryAiToolsTitle
+        : (suggestion.title.trim().isEmpty
+            ? strings.aiGeneratedTitleEmpty
+            : suggestion.title);
+    final summaryText = suggestion == null
+        ? strings.diaryAiToolsHint
+        : (suggestion.summary.trim().isEmpty
+            ? strings.aiSummaryEmpty
+            : suggestion.summary);
+    final moodText = detectedMood == null
+        ? strings.defaultMoodLabel(DiaryMood.neutralId)
+        : strings.moodLabel(detectedMood);
+
+    return Container(
+      width: double.infinity,
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [
+            colorScheme.primaryContainer.withValues(alpha: 0.96),
+            colorScheme.secondaryContainer.withValues(alpha: 0.78),
+          ],
+        ),
+        borderRadius: BorderRadius.circular(24),
+        border: Border.all(
+          color: colorScheme.outlineVariant.withValues(alpha: 0.48),
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: colorScheme.primary.withValues(alpha: 0.08),
+            blurRadius: 22,
+            offset: const Offset(0, 14),
+          ),
+        ],
+      ),
+      child: Stack(
+        children: [
+          Positioned(
+            top: -28,
+            right: -18,
+            child: DecoratedBox(
+              decoration: BoxDecoration(
+                color: colorScheme.primary.withValues(alpha: 0.1),
+                shape: BoxShape.circle,
+              ),
+              child: const SizedBox(width: 124, height: 124),
+            ),
+          ),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(18, 18, 18, 16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Wrap(
+                  spacing: 8,
+                  runSpacing: 8,
+                  children: [
+                    _buildAiCapabilityChip(
+                      context,
+                      icon: Icons.auto_awesome_rounded,
+                      label: strings.diaryAiToolsTitle,
+                      backgroundColor: Colors.white.withValues(alpha: 0.78),
+                      foregroundColor: colorScheme.primary,
+                    ),
+                    _buildAiCapabilityChip(
+                      context,
+                      icon: Icons.favorite_outline,
+                      label: moodText,
+                      backgroundColor: Colors.white.withValues(alpha: 0.68),
+                      foregroundColor: colorScheme.onSurface,
+                    ),
+                    if (showEmotionalCompanion)
+                      _buildAiCapabilityChip(
+                        context,
+                        icon: Icons.favorite_border,
+                        label: strings.emotionalCompanionLabel,
+                        backgroundColor:
+                            colorScheme.tertiary.withValues(alpha: 0.12),
+                        foregroundColor: colorScheme.tertiary,
+                      ),
+                    if (showProblemSuggestions)
+                      _buildAiCapabilityChip(
+                        context,
+                        icon: Icons.psychology_alt_outlined,
+                        label: strings.problemSuggestionLabel,
+                        backgroundColor:
+                            colorScheme.secondary.withValues(alpha: 0.12),
+                        foregroundColor: colorScheme.secondary,
+                      ),
+                  ],
+                ),
+                const SizedBox(height: 16),
+                Text(
+                  strings.aiGeneratedTitleLabel,
+                  style: theme.textTheme.labelLarge?.copyWith(
+                    color: colorScheme.onSurface.withValues(alpha: 0.72),
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  titleText,
+                  style: theme.textTheme.titleLarge?.copyWith(
+                    fontWeight: FontWeight.w800,
+                    height: 1.15,
+                  ),
+                ),
+                const SizedBox(height: 12),
+                Text(
+                  strings.aiSummaryLabel,
+                  style: theme.textTheme.labelLarge?.copyWith(
+                    color: colorScheme.onSurface.withValues(alpha: 0.72),
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  summaryText,
+                  style: theme.textTheme.bodyMedium?.copyWith(
+                    color: colorScheme.onSurface.withValues(alpha: 0.82),
+                    height: 1.5,
+                  ),
+                ),
+                if (suggestion != null && suggestion.tags.isNotEmpty) ...[
+                  const SizedBox(height: 14),
+                  Wrap(
+                    spacing: 8,
+                    runSpacing: 8,
+                    children: suggestion.tags
+                        .take(4)
+                        .map(
+                          (tag) => _buildAiTagChip(
+                            context,
+                            label: _normalizeTag(tag) ?? tag,
+                            backgroundColor: Colors.white.withValues(
+                              alpha: 0.72,
+                            ),
+                          ),
+                        )
+                        .toList(growable: false),
+                  ),
+                ],
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildAiCapabilityChip(
+    BuildContext context, {
+    required IconData icon,
+    required String label,
+    required Color backgroundColor,
+    required Color foregroundColor,
+  }) {
+    final theme = Theme.of(context);
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 9),
+      decoration: BoxDecoration(
+        color: backgroundColor,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(
+          color: foregroundColor.withValues(alpha: 0.15),
+        ),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 16, color: foregroundColor),
+          const SizedBox(width: 8),
+          Text(
+            label,
+            style: theme.textTheme.labelLarge?.copyWith(
+              color: foregroundColor,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildAiTagChip(
     BuildContext context, {
     required String label,
+    Color? backgroundColor,
+  }) {
+    final theme = Theme.of(context);
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+      decoration: BoxDecoration(
+        color: backgroundColor ??
+            theme.colorScheme.secondaryContainer.withValues(alpha: 0.68),
+        borderRadius: BorderRadius.circular(999),
+        border: Border.all(
+          color: theme.colorScheme.outlineVariant.withValues(alpha: 0.48),
+        ),
+      ),
+      child: Text(
+        label,
+        style: theme.textTheme.labelLarge?.copyWith(
+          fontWeight: FontWeight.w600,
+        ),
+      ),
+    );
+  }
+
+  Widget _buildAiSectionPanel(
+    BuildContext context, {
+    required IconData icon,
+    required String title,
+    required Color accentColor,
     required Widget child,
   }) {
     final theme = Theme.of(context);
 
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          label,
-          style: theme.textTheme.labelLarge?.copyWith(
-            color: theme.colorScheme.onSurfaceVariant,
-          ),
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: accentColor.withValues(alpha: 0.06),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(
+          color: accentColor.withValues(alpha: 0.18),
         ),
-        const SizedBox(height: 8),
-        DecoratedBox(
-          decoration: BoxDecoration(
-            color: theme.colorScheme.surfaceContainerHighest
-                .withValues(alpha: 0.45),
-            borderRadius: BorderRadius.circular(16),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                width: 34,
+                height: 34,
+                decoration: BoxDecoration(
+                  color: accentColor.withValues(alpha: 0.14),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                alignment: Alignment.center,
+                child: Icon(
+                  icon,
+                  size: 18,
+                  color: accentColor,
+                ),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Text(
+                  title,
+                  style: theme.textTheme.titleMedium?.copyWith(
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+              ),
+            ],
           ),
-          child: Padding(
-            padding: const EdgeInsets.all(12),
-            child: child,
-          ),
+          const SizedBox(height: 14),
+          child,
+        ],
+      ),
+    );
+  }
+
+  Widget _buildAiFieldTile(
+    BuildContext context, {
+    required IconData icon,
+    required String label,
+    required String value,
+    required Color accentColor,
+    bool emphasize = false,
+  }) {
+    final theme = Theme.of(context);
+
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: emphasize
+            ? accentColor.withValues(alpha: 0.12)
+            : theme.colorScheme.surface.withValues(alpha: 0.74),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: emphasize
+              ? accentColor.withValues(alpha: 0.22)
+              : theme.colorScheme.outlineVariant.withValues(alpha: 0.4),
         ),
-      ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(icon, size: 16, color: accentColor),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  label,
+                  style: theme.textTheme.labelLarge?.copyWith(
+                    color: theme.colorScheme.onSurfaceVariant,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          Text(
+            value,
+            style: theme.textTheme.bodyMedium?.copyWith(
+              height: 1.45,
+              fontWeight: emphasize ? FontWeight.w600 : FontWeight.w500,
+            ),
+          ),
+        ],
+      ),
     );
   }
 
@@ -1692,7 +2004,6 @@ class _EditorPageState extends ConsumerState<EditorPage> {
 
   bool _isProblemSuggestionEmpty(DiaryAiSuggestion suggestion) {
     return suggestion.distressIdentification.trim().isEmpty &&
-        suggestion.problemAnalysis.trim().isEmpty &&
-        suggestion.suggestionOutput.trim().isEmpty;
+        suggestion.problemAnalysis.trim().isEmpty;
   }
 }
