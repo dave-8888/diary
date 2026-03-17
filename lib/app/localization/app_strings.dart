@@ -542,8 +542,12 @@ class AppStrings {
   String get diaryAiToolsHint => isChinese
       ? '一键生成日记总结、识别情绪、提取标签，并推荐标题。'
       : 'Generate a diary summary, detect mood, extract tags, and suggest a title in one step.';
-  String get analyzeDiaryWithAi => isChinese ? 'AI 分析日记' : 'Analyze with AI';
+  String get analyzeDiaryWithAi => isChinese ? '开始分析' : 'Start analysis';
+  String get reanalyzeDiaryWithAi => isChinese ? '重新分析' : 'Reanalyze';
   String get analyzingDiaryWithAi => isChinese ? 'AI 分析中...' : 'Analyzing...';
+  String aiAnalyzedAtLabel(DateTime date) => isChinese
+      ? '上次分析：${formatDateTime(date)}'
+      : 'Last analyzed: ${formatDateTime(date)}';
   String get aiSummaryLabel => isChinese ? '日记总结' : 'Summary';
   String get aiGeneratedTitleLabel => isChinese ? '推荐标题' : 'Suggested title';
   String get aiDetectedMoodLabel => isChinese ? '识别情绪' : 'Detected mood';
@@ -565,15 +569,13 @@ class AppStrings {
   String get noPriorityFeedback => isChinese
       ? '\u5f53\u524d\u60c5\u7eea\u6682\u4e0d\u9700\u8981\u989d\u5916\u589e\u5f3a\u53cd\u9988\u3002'
       : 'No extra enhanced feedback is needed for this emotion right now.';
-  String get problemSuggestionSectionTitle =>
-      isChinese ? 'AI \u95ee\u9898\u5efa\u8bae' : 'AI problem suggestions';
+  String get problemSuggestionSectionTitle => isChinese ? 'AI 小建议' : 'AI tips';
   String get distressIdentificationLabel =>
       isChinese ? '\u56f0\u6270\u8bc6\u522b' : 'Distress identification';
   String get problemAnalysisLabel =>
       isChinese ? '\u95ee\u9898\u5206\u6790' : 'Problem analysis';
-  String get problemSuggestionEmpty => isChinese
-      ? '\u5f53\u524d\u8fd9\u6761\u65e5\u8bb0\u8fd8\u6ca1\u6709\u751f\u6210\u95ee\u9898\u5efa\u8bae\u3002'
-      : 'No AI problem suggestions have been generated yet.';
+  String get problemSuggestionEmpty =>
+      isChinese ? '当前这条日记还没有生成 AI 小建议。' : 'No AI tips have been generated yet.';
   String get noAiSuggestionYet => isChinese
       ? '\u6682\u65e0 AI \u5efa\u8bae\u3002'
       : 'No AI suggestions yet.';

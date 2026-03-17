@@ -76,11 +76,12 @@ void main() {
     expect(find.text(strings.videoSidebarTitle), findsNothing);
   });
 
-  testWidgets('editor page restores saved AI analysis when editing',
+  testWidgets('editor page restores saved AI analysis in the requested order',
       (tester) async {
     final repository = FakeDiaryRepository(
       moods: DiaryMood.values,
     );
+    final analyzedAt = DateTime(2026, 3, 17, 20, 30);
 
     await pumpPage(
       tester,
@@ -91,11 +92,12 @@ void main() {
           content: 'A reflective day.',
           mood: DiaryMood.calm,
           createdAt: DateTime(2026, 3, 17, 11),
-          aiAnalysis: const DiaryEntryAiAnalysis(
-            overviewText: '傍晚散步\n今天的情绪慢慢安静下来。',
-            suggestedTags: ['#散步', '#放松'],
-            emotionalSupportText: '你已经在给自己留出缓冲空间，这很好。',
-            questionSuggestionText: '真正困住你的不是任务本身，而是累积的疲惫。',
+          aiAnalysis: DiaryEntryAiAnalysis(
+            overviewText: 'Evening walk\nI finally slowed down and breathed.',
+            suggestedTags: const ['#walk', '#relax'],
+            emotionalSupportText: 'You gave yourself some room to rest.',
+            questionSuggestionText: 'Try protecting one quiet hour tonight.',
+            analyzedAt: analyzedAt,
           ),
         ),
       ),
@@ -110,14 +112,79 @@ void main() {
     );
     await tester.pumpAndSettle();
 
+    expect(find.text(strings.reanalyzeDiaryWithAi), findsOneWidget);
+    expect(find.text(strings.aiAnalyzedAtLabel(analyzedAt)), findsOneWidget);
     expect(find.text(strings.aiOverviewSectionTitle), findsOneWidget);
-    expect(find.text('傍晚散步\n今天的情绪慢慢安静下来。'), findsOneWidget);
-    expect(find.text('#散步'), findsOneWidget);
+    expect(
+      find.text('Evening walk\nI finally slowed down and breathed.'),
+      findsOneWidget,
+    );
+    expect(find.text('You gave yourself some room to rest.'), findsOneWidget);
+    expect(find.text('Try protecting one quiet hour tonight.'), findsOneWidget);
+    expect(find.text('#walk'), findsOneWidget);
 
-    await tester.tap(find.text(strings.emotionalCompanionSectionTitle));
+    final aiCard = find
+        .ancestor(
+          of: find.text(strings.diaryAiToolsTitle),
+          matching: find.byType(Card),
+        )
+        .first;
+    final titleRect = tester.getRect(find.text(strings.diaryAiToolsTitle));
+    final tooltipRect = tester.getRect(
+      find.descendant(
+        of: aiCard,
+        matching: find.byIcon(Icons.info_outline),
+      ),
+    );
+    expect(tooltipRect.left - titleRect.right, lessThan(24));
+
+    final overviewY =
+        tester.getTopLeft(find.text(strings.aiOverviewSectionTitle)).dy;
+    final companionY =
+        tester.getTopLeft(find.text(strings.emotionalCompanionSectionTitle)).dy;
+    final tipsY =
+        tester.getTopLeft(find.text(strings.problemSuggestionSectionTitle)).dy;
+    final tagsY = tester.getTopLeft(find.text(strings.aiSuggestedTagsLabel)).dy;
+
+    expect(overviewY, lessThan(companionY));
+    expect(companionY, lessThan(tipsY));
+    expect(tipsY, lessThan(tagsY));
+  });
+
+  testWidgets('editor page hides analysis time for legacy AI analysis',
+      (tester) async {
+    final repository = FakeDiaryRepository(
+      moods: DiaryMood.values,
+    );
+
+    await pumpPage(
+      tester,
+      EditorPage(
+        entry: DiaryEntry(
+          id: 'legacy-ai-entry',
+          title: 'Legacy AI',
+          content: 'Old analysis without a timestamp.',
+          mood: DiaryMood.calm,
+          createdAt: DateTime(2026, 3, 17, 9),
+          aiAnalysis: const DiaryEntryAiAnalysis(
+            overviewText: 'Legacy summary',
+            suggestedTags: ['#legacy'],
+          ),
+        ),
+      ),
+      path: '/editor',
+      overrides: buildOverrides(repository: repository),
+    );
+
+    await tester.scrollUntilVisible(
+      find.text(strings.diaryAiToolsTitle),
+      300,
+      scrollable: find.byType(Scrollable).first,
+    );
     await tester.pumpAndSettle();
 
-    expect(find.text('你已经在给自己留出缓冲空间，这很好。'), findsOneWidget);
+    expect(find.text(strings.reanalyzeDiaryWithAi), findsOneWidget);
+    expect(find.textContaining('Last analyzed:'), findsNothing);
   });
 
   testWidgets('settings page keeps advanced sections collapsed by default',

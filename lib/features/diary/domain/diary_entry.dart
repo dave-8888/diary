@@ -136,12 +136,14 @@ class DiaryEntryAiAnalysis {
     this.suggestedTags = const [],
     this.emotionalSupportText,
     this.questionSuggestionText,
+    this.analyzedAt,
   });
 
   final String overviewText;
   final List<String> suggestedTags;
   final String? emotionalSupportText;
   final String? questionSuggestionText;
+  final DateTime? analyzedAt;
 
   bool get isEmpty =>
       overviewText.trim().isEmpty &&
@@ -154,6 +156,7 @@ class DiaryEntryAiAnalysis {
     List<String>? suggestedTags,
     String? emotionalSupportText,
     String? questionSuggestionText,
+    DateTime? analyzedAt,
   }) {
     return DiaryEntryAiAnalysis(
       overviewText: overviewText ?? this.overviewText,
@@ -161,6 +164,7 @@ class DiaryEntryAiAnalysis {
       emotionalSupportText: emotionalSupportText ?? this.emotionalSupportText,
       questionSuggestionText:
           questionSuggestionText ?? this.questionSuggestionText,
+      analyzedAt: analyzedAt ?? this.analyzedAt,
     );
   }
 
@@ -170,7 +174,25 @@ class DiaryEntryAiAnalysis {
       'suggested_tags': suggestedTags,
       'emotional_support_text': emotionalSupportText,
       'question_suggestion_text': questionSuggestionText,
+      'analyzed_at': analyzedAt?.millisecondsSinceEpoch,
     };
+  }
+
+  static DateTime? _readDateTime(Object? value) {
+    if (value is int) {
+      return DateTime.fromMillisecondsSinceEpoch(value);
+    }
+    if (value is num) {
+      return DateTime.fromMillisecondsSinceEpoch(value.toInt());
+    }
+    if (value is String) {
+      final epoch = int.tryParse(value);
+      if (epoch != null) {
+        return DateTime.fromMillisecondsSinceEpoch(epoch);
+      }
+      return DateTime.tryParse(value);
+    }
+    return null;
   }
 
   factory DiaryEntryAiAnalysis.fromJson(Map<String, dynamic> json) {
@@ -209,6 +231,7 @@ class DiaryEntryAiAnalysis {
         (json['question_suggestion_text'] ?? json['questionSuggestionText'])
             ?.toString()
             .trim();
+    final analyzedAt = _readDateTime(json['analyzed_at'] ?? json['analyzedAt']);
 
     return DiaryEntryAiAnalysis(
       overviewText: overviewText,
@@ -218,6 +241,7 @@ class DiaryEntryAiAnalysis {
       questionSuggestionText: questionSuggestionText?.isEmpty == true
           ? null
           : questionSuggestionText,
+      analyzedAt: analyzedAt,
     );
   }
 }

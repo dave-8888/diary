@@ -58,9 +58,6 @@ class _EditorPageState extends ConsumerState<EditorPage> {
   bool _isLocating = false;
   bool _isManagingTags = false;
   bool _isAiExpanded = false;
-  bool _isAiSummaryExpanded = true;
-  bool _isAiCompanionExpanded = false;
-  bool _isAiProblemExpanded = false;
   DateTime? _recordingStartedAt;
   DiaryEntryAiAnalysis? _aiSuggestion;
 
@@ -470,6 +467,8 @@ class _EditorPageState extends ConsumerState<EditorPage> {
     AppStrings strings,
   ) {
     final suggestion = _aiSuggestion;
+    final hasAiSuggestion = suggestion != null && !suggestion.isEmpty;
+    final aiSuggestion = hasAiSuggestion ? suggestion! : null;
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
     final showEmotionalCompanion =
@@ -478,13 +477,21 @@ class _EditorPageState extends ConsumerState<EditorPage> {
     final showProblemSuggestions =
         ref.watch(problemSuggestionVisibilityControllerProvider).valueOrNull ??
             true;
-    final suggestedTags =
-        suggestion == null ? const <String>[] : _normalizedAiTags(suggestion);
+    final suggestedTags = aiSuggestion == null
+        ? const <String>[]
+        : _normalizedAiTags(aiSuggestion);
 
     return _buildCollapsibleCard(
       context: context,
       title: strings.diaryAiToolsTitle,
       helpText: strings.diaryAiToolsHint,
+      summary: aiSuggestion?.analyzedAt == null
+          ? null
+          : strings.aiAnalyzedAtLabel(aiSuggestion!.analyzedAt!),
+      titleStyle: theme.textTheme.titleSmall?.copyWith(
+        fontWeight: FontWeight.w700,
+        fontSize: 19,
+      ),
       expanded: _isAiExpanded,
       onExpandedChanged: (expanded) {
         setState(() => _isAiExpanded = expanded);
@@ -505,93 +512,59 @@ class _EditorPageState extends ConsumerState<EditorPage> {
         label: Text(
           _isAnalyzingAi
               ? strings.analyzingDiaryWithAi
-              : strings.analyzeDiaryWithAi,
+              : hasAiSuggestion
+                  ? strings.reanalyzeDiaryWithAi
+                  : strings.analyzeDiaryWithAi,
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+          softWrap: false,
         ),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          if (suggestion != null) ...[
-            _buildAiGroup(
+          if (aiSuggestion != null) ...[
+            _buildAiTextSection(
               context,
               title: strings.aiOverviewSectionTitle,
-              expanded: _isAiSummaryExpanded,
-              onExpandedChanged: (expanded) {
-                setState(() => _isAiSummaryExpanded = expanded);
-              },
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  _buildAiTextPanel(
-                    context,
-                    value: suggestion.overviewText.trim().isEmpty
-                        ? strings.aiSummaryEmpty
-                        : suggestion.overviewText,
-                  ),
-                  const SizedBox(height: 12),
-                  Text(
-                    strings.aiSuggestedTagsLabel,
-                    style: theme.textTheme.labelLarge?.copyWith(
-                      fontWeight: FontWeight.w700,
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                  if (suggestedTags.isEmpty)
-                    Text(
-                      strings.aiNoTagsSuggested,
-                      style: theme.textTheme.bodySmall?.copyWith(
-                        color: colorScheme.onSurfaceVariant,
-                        height: 1.35,
-                      ),
-                    )
-                  else
-                    Wrap(
-                      spacing: 8,
-                      runSpacing: 8,
-                      children: suggestedTags
-                          .map(
-                            (tag) => _buildAiSuggestedTagChip(
-                              context,
-                              tag: tag,
-                            ),
-                          )
-                          .toList(growable: false),
-                    ),
-                ],
-              ),
+              value: aiSuggestion.overviewText.trim().isEmpty
+                  ? strings.aiSummaryEmpty
+                  : aiSuggestion.overviewText,
             ),
             if (showEmotionalCompanion &&
-                !_isAiSectionTextEmpty(suggestion.emotionalSupportText)) ...[
+                !_isAiSectionTextEmpty(aiSuggestion.emotionalSupportText)) ...[
               const SizedBox(height: 12),
-              _buildAiGroup(
+              _buildAiTextSection(
                 context,
                 title: strings.emotionalCompanionSectionTitle,
-                expanded: _isAiCompanionExpanded,
-                onExpandedChanged: (expanded) {
-                  setState(() => _isAiCompanionExpanded = expanded);
-                },
-                child: _buildAiTextPanel(
-                  context,
-                  value: suggestion.emotionalSupportText!,
-                ),
+                value: aiSuggestion.emotionalSupportText!,
               ),
             ],
             if (showProblemSuggestions &&
-                !_isAiSectionTextEmpty(suggestion.questionSuggestionText)) ...[
+                !_isAiSectionTextEmpty(
+                    aiSuggestion.questionSuggestionText)) ...[
               const SizedBox(height: 12),
-              _buildAiGroup(
+              _buildAiTextSection(
                 context,
                 title: strings.problemSuggestionSectionTitle,
-                expanded: _isAiProblemExpanded,
-                onExpandedChanged: (expanded) {
-                  setState(() => _isAiProblemExpanded = expanded);
-                },
-                child: _buildAiTextPanel(
-                  context,
-                  value: suggestion.questionSuggestionText!,
-                ),
+                value: aiSuggestion.questionSuggestionText!,
               ),
             ],
+            const SizedBox(height: 12),
+            _buildAiTagSection(
+              context,
+              strings,
+              colorScheme: colorScheme,
+              suggestedTags: suggestedTags,
+            ),
+          ] else ...[
+            Text(
+              strings.diaryAiToolsHint,
+              style: theme.textTheme.bodySmall?.copyWith(
+                color: colorScheme.onSurfaceVariant,
+                height: 1.4,
+              ),
+            ),
           ],
         ],
       ),
@@ -750,9 +723,14 @@ class _EditorPageState extends ConsumerState<EditorPage> {
     required bool expanded,
     required ValueChanged<bool> onExpandedChanged,
     Widget? headerAction,
+    TextStyle? titleStyle,
     required Widget child,
   }) {
     final theme = Theme.of(context);
+    final resolvedTitleStyle = titleStyle ??
+        theme.textTheme.titleMedium?.copyWith(
+          fontWeight: FontWeight.w700,
+        );
 
     return Card(
       clipBehavior: Clip.antiAlias,
@@ -761,65 +739,93 @@ class _EditorPageState extends ConsumerState<EditorPage> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Expanded(
-                  child: InkWell(
-                    borderRadius: BorderRadius.circular(16),
-                    onTap: () => onExpandedChanged(!expanded),
-                    child: Padding(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 2,
-                        vertical: 2,
-                      ),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Row(
-                            children: [
-                              Flexible(
-                                child: Text(
-                                  title,
-                                  style: theme.textTheme.titleMedium?.copyWith(
-                                    fontWeight: FontWeight.w700,
-                                  ),
-                                ),
-                              ),
-                              if (helpText != null) ...[
-                                const SizedBox(width: 4),
-                                ContextTooltip(message: helpText),
-                              ],
-                            ],
-                          ),
-                          if (summary != null && summary.trim().isNotEmpty) ...[
-                            const SizedBox(height: 6),
-                            Text(
-                              summary.trim(),
-                              maxLines: expanded ? 2 : 1,
-                              overflow: TextOverflow.ellipsis,
-                              style: theme.textTheme.bodySmall?.copyWith(
-                                color: theme.colorScheme.onSurfaceVariant,
-                                height: 1.35,
+            LayoutBuilder(
+              builder: (context, constraints) {
+                final stackHeaderAction =
+                    headerAction != null && constraints.maxWidth < 460;
+                final titleArea = InkWell(
+                  borderRadius: BorderRadius.circular(16),
+                  onTap: () => onExpandedChanged(!expanded),
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 2,
+                      vertical: 2,
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: [
+                            Flexible(
+                              child: Text(
+                                title,
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: resolvedTitleStyle,
                               ),
                             ),
+                            if (helpText != null) ...[
+                              const SizedBox(width: 4),
+                              ContextTooltip(message: helpText),
+                            ],
                           ],
+                        ),
+                        if (summary != null && summary.trim().isNotEmpty) ...[
+                          const SizedBox(height: 6),
+                          Text(
+                            summary.trim(),
+                            maxLines: expanded ? 2 : 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: theme.textTheme.bodySmall?.copyWith(
+                              color: theme.colorScheme.onSurfaceVariant,
+                              height: 1.35,
+                            ),
+                          ),
                         ],
-                      ),
+                      ],
                     ),
                   ),
-                ),
-                if (headerAction != null) ...[
-                  const SizedBox(width: 12),
-                  headerAction,
-                ],
-                IconButton(
-                  onPressed: () => onExpandedChanged(!expanded),
-                  icon: Icon(
-                    expanded ? Icons.expand_less : Icons.expand_more,
-                  ),
-                ),
-              ],
+                );
+
+                if (stackHeaderAction) {
+                  return Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Expanded(child: titleArea),
+                          IconButton(
+                            onPressed: () => onExpandedChanged(!expanded),
+                            icon: Icon(
+                              expanded ? Icons.expand_less : Icons.expand_more,
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 8),
+                      headerAction,
+                    ],
+                  );
+                }
+
+                return Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Expanded(child: titleArea),
+                    if (headerAction != null) ...[
+                      const SizedBox(width: 12),
+                      headerAction,
+                    ],
+                    IconButton(
+                      onPressed: () => onExpandedChanged(!expanded),
+                      icon: Icon(
+                        expanded ? Icons.expand_less : Icons.expand_more,
+                      ),
+                    ),
+                  ],
+                );
+              },
             ),
             if (expanded) ...[
               const SizedBox(height: 14),
@@ -870,82 +876,6 @@ class _EditorPageState extends ConsumerState<EditorPage> {
     );
   }
 
-  Widget _buildAiGroup(
-    BuildContext context, {
-    required String title,
-    String? summary,
-    required bool expanded,
-    required ValueChanged<bool> onExpandedChanged,
-    required Widget child,
-  }) {
-    final theme = Theme.of(context);
-    final normalizedSummary = summary?.trim() ?? '';
-    final showSummary = normalizedSummary.isNotEmpty;
-
-    return DecoratedBox(
-      decoration: BoxDecoration(
-        color:
-            theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.42),
-        borderRadius: BorderRadius.circular(18),
-        border: Border.all(
-          color: theme.colorScheme.outlineVariant.withValues(alpha: 0.4),
-        ),
-      ),
-      child: Padding(
-        padding: const EdgeInsets.all(12),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            InkWell(
-              borderRadius: BorderRadius.circular(14),
-              onTap: () => onExpandedChanged(!expanded),
-              child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 2, vertical: 2),
-                child: Row(
-                  children: [
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            title,
-                            style: theme.textTheme.labelLarge?.copyWith(
-                              fontWeight: FontWeight.w700,
-                            ),
-                          ),
-                          if (showSummary) ...[
-                            const SizedBox(height: 4),
-                            Text(
-                              normalizedSummary,
-                              maxLines: expanded ? 2 : 1,
-                              overflow: TextOverflow.ellipsis,
-                              style: theme.textTheme.bodySmall?.copyWith(
-                                color: theme.colorScheme.onSurfaceVariant,
-                                height: 1.35,
-                              ),
-                            ),
-                          ],
-                        ],
-                      ),
-                    ),
-                    Icon(
-                      expanded ? Icons.expand_less : Icons.expand_more,
-                      color: theme.colorScheme.onSurfaceVariant,
-                    ),
-                  ],
-                ),
-              ),
-            ),
-            if (expanded) ...[
-              const SizedBox(height: 12),
-              child,
-            ],
-          ],
-        ),
-      ),
-    );
-  }
-
   Widget _buildAiTextPanel(
     BuildContext context, {
     required String value,
@@ -969,6 +899,74 @@ class _EditorPageState extends ConsumerState<EditorPage> {
           ),
         ),
       ),
+    );
+  }
+
+  Widget _buildAiTextSection(
+    BuildContext context, {
+    required String title,
+    required String value,
+  }) {
+    final theme = Theme.of(context);
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          title,
+          style: theme.textTheme.labelLarge?.copyWith(
+            fontWeight: FontWeight.w700,
+          ),
+        ),
+        const SizedBox(height: 8),
+        _buildAiTextPanel(
+          context,
+          value: value,
+        ),
+      ],
+    );
+  }
+
+  Widget _buildAiTagSection(
+    BuildContext context,
+    AppStrings strings, {
+    required ColorScheme colorScheme,
+    required List<String> suggestedTags,
+  }) {
+    final theme = Theme.of(context);
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          strings.aiSuggestedTagsLabel,
+          style: theme.textTheme.labelLarge?.copyWith(
+            fontWeight: FontWeight.w700,
+          ),
+        ),
+        const SizedBox(height: 8),
+        if (suggestedTags.isEmpty)
+          Text(
+            strings.aiNoTagsSuggested,
+            style: theme.textTheme.bodySmall?.copyWith(
+              color: colorScheme.onSurfaceVariant,
+              height: 1.35,
+            ),
+          )
+        else
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: suggestedTags
+                .map(
+                  (tag) => _buildAiSuggestedTagChip(
+                    context,
+                    tag: tag,
+                  ),
+                )
+                .toList(growable: false),
+          ),
+      ],
     );
   }
 
@@ -1288,11 +1286,10 @@ class _EditorPageState extends ConsumerState<EditorPage> {
     setState(() {
       _isAnalyzingAi = false;
       if (result.ok) {
-        _aiSuggestion = result.suggestion;
+        _aiSuggestion = result.suggestion?.copyWith(
+          analyzedAt: DateTime.now(),
+        );
         _isAiExpanded = true;
-        _isAiSummaryExpanded = true;
-        _isAiCompanionExpanded = false;
-        _isAiProblemExpanded = false;
       }
     });
 
