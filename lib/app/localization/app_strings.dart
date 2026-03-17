@@ -53,6 +53,21 @@ class AppStrings {
   String get settingsTitle => isChinese ? '\u8bbe\u7f6e' : 'Settings';
   String get settingsTooltip =>
       isChinese ? '\u6253\u5f00\u8bbe\u7f6e' : 'Open settings';
+  String get diaryAiVisibilityLabel =>
+      isChinese ? '\u0041\u0049\u5206\u6790' : 'AI analysis';
+  String get diaryAiVisibilityHint => isChinese
+      ? '\u63a7\u5236\u5199\u65e5\u8bb0\u9875\u9762\u662f\u5426\u5c55\u793a AI \u5206\u6790\u52a9\u624b\u3002'
+      : 'Control whether the AI analysis assistant is shown on the editor page.';
+  String get enabledLabel => isChinese ? '\u5f00\u542f' : 'On';
+  String get disabledLabel => isChinese ? '\u5173\u95ed' : 'Off';
+  String diaryAiVisibilityStatus(bool enabled) =>
+      '$diaryAiVisibilityLabel\uff1a${enabled ? enabledLabel : disabledLabel}';
+  String get diaryAiVisibilityUpdated => isChinese
+      ? 'AI \u5206\u6790\u663e\u793a\u72b6\u6001\u5df2\u66f4\u65b0\u3002'
+      : 'AI analysis visibility updated.';
+  String diaryAiVisibilityUpdateFailed(Object error) => isChinese
+      ? '\u66f4\u65b0 AI \u5206\u6790\u663e\u793a\u72b6\u6001\u5931\u8d25\uff1a$error'
+      : 'Failed to update AI analysis visibility: $error';
   String get language => isChinese ? '\u8bed\u8a00' : 'Language';
   String get themeSettingsHint => isChinese
       ? '\u5207\u6362\u5e94\u7528\u4e3b\u9898\uff0c\u4e0d\u540c\u4e3b\u9898\u4f1a\u6709\u4e0d\u540c\u7684\u9996\u9875\u5934\u56fe\u548c\u80cc\u666f\u98ce\u683c\u3002'

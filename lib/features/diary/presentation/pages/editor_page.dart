@@ -12,6 +12,7 @@ import 'package:diary_mvp/features/diary/presentation/widgets/image_media_grid.d
 import 'package:diary_mvp/features/diary/presentation/widgets/mood_selector.dart';
 import 'package:diary_mvp/features/diary/presentation/widgets/video_attachment_card.dart';
 import 'package:diary_mvp/features/diary/services/diary_ai_service.dart';
+import 'package:diary_mvp/features/diary/services/diary_ai_settings.dart';
 import 'package:diary_mvp/features/diary/services/export_service.dart';
 import 'package:diary_mvp/features/diary/services/location_service.dart';
 import 'package:diary_mvp/features/diary/services/transcription_service.dart';
@@ -89,6 +90,8 @@ class _EditorPageState extends ConsumerState<EditorPage> {
     final strings = context.strings;
     final tagLibraryAsync = ref.watch(tagLibraryControllerProvider);
     final moodLibraryAsync = ref.watch(moodLibraryControllerProvider);
+    final showDiaryAiSection =
+        ref.watch(diaryAiVisibilityControllerProvider).valueOrNull ?? true;
     final imageMedia =
         _media.where((item) => item.type == MediaType.image).toList();
     final videoMedia =
@@ -135,18 +138,22 @@ class _EditorPageState extends ConsumerState<EditorPage> {
                 otherMedia: otherMedia,
                 moodLibraryAsync: moodLibraryAsync,
               );
-              final aiSection = _buildAiSection(
-                context,
-                strings,
-                moodLibraryAsync,
-              );
+              final aiSection = showDiaryAiSection
+                  ? _buildAiSection(
+                      context,
+                      strings,
+                      moodLibraryAsync,
+                    )
+                  : null;
 
               if (!showVideoSidebar) {
                 return ListView(
                   children: [
                     ...mainSections,
-                    const SizedBox(height: 24),
-                    aiSection,
+                    if (aiSection != null) ...[
+                      const SizedBox(height: 24),
+                      aiSection,
+                    ],
                     const SizedBox(height: 24),
                     _buildTagSection(context, strings, tagLibraryAsync),
                     const SizedBox(height: 24),
@@ -166,8 +173,10 @@ class _EditorPageState extends ConsumerState<EditorPage> {
                     width: 320,
                     child: ListView(
                       children: [
-                        aiSection,
-                        const SizedBox(height: 16),
+                        if (aiSection != null) ...[
+                          aiSection,
+                          const SizedBox(height: 16),
+                        ],
                         _buildTagSection(context, strings, tagLibraryAsync),
                         const SizedBox(height: 16),
                         _buildVideoSection(context, strings, videoMedia),

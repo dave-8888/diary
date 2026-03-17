@@ -5,8 +5,12 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
 
-final diaryAiApiKeyStorageProvider = Provider<DiaryAiApiKeyStorage>((ref) {
-  return DiaryAiApiKeyStorage();
+final diaryAiSettingsStorageProvider = Provider<DiaryAiSettingsStorage>((ref) {
+  return DiaryAiSettingsStorage();
+});
+
+final diaryAiApiKeyStorageProvider = Provider<DiaryAiSettingsStorage>((ref) {
+  return ref.read(diaryAiSettingsStorageProvider);
 });
 
 final diaryAiApiKeyControllerProvider =
@@ -14,41 +18,44 @@ final diaryAiApiKeyControllerProvider =
   DiaryAiApiKeyController.new,
 );
 
-class DiaryAiApiKeyStorage {
-  Future<String?> read() async {
-    final file = await _settingsFile();
-    if (!await file.exists()) return null;
+final diaryAiVisibilityControllerProvider =
+    AsyncNotifierProvider<DiaryAiVisibilityController, bool>(
+  DiaryAiVisibilityController.new,
+);
 
-    try {
-      final raw = jsonDecode(await file.readAsString());
-      if (raw is! Map<String, dynamic>) return null;
-      final value = raw['dashscope_api_key'];
-      if (value is! String) return null;
-      final normalized = value.trim();
-      return normalized.isEmpty ? null : normalized;
-    } on FormatException {
-      return null;
-    }
+class DiaryAiSettingsStorage {
+  Future<String?> read() async {
+    final raw = await _readRaw();
+    final value = raw['dashscope_api_key'];
+    if (value is! String) return null;
+    final normalized = value.trim();
+    return normalized.isEmpty ? null : normalized;
   }
 
   Future<void> write(String? apiKey) async {
     final normalized = apiKey?.trim();
-    final file = await _settingsFile();
+    final raw = await _readRaw();
 
     if (normalized == null || normalized.isEmpty) {
-      if (await file.exists()) {
-        await file.delete();
-      }
-      return;
+      raw.remove('dashscope_api_key');
+    } else {
+      raw['dashscope_api_key'] = normalized;
     }
 
-    await file.parent.create(recursive: true);
-    await file.writeAsString(
-      const JsonEncoder.withIndent('  ').convert({
-        'dashscope_api_key': normalized,
-      }),
-      flush: true,
-    );
+    await _writeRaw(raw);
+  }
+
+  Future<bool> readVisibility() async {
+    final raw = await _readRaw();
+    final value = raw['ai_analysis_enabled'];
+    if (value is bool) return value;
+    return true;
+  }
+
+  Future<void> writeVisibility(bool enabled) async {
+    final raw = await _readRaw();
+    raw['ai_analysis_enabled'] = enabled;
+    await _writeRaw(raw);
   }
 
   Future<File> _settingsFile() async {
@@ -58,10 +65,43 @@ class DiaryAiApiKeyStorage {
     );
     return File(p.join(settingsDir.path, 'diary_ai_settings.json'));
   }
+
+  Future<Map<String, dynamic>> _readRaw() async {
+    final file = await _settingsFile();
+    if (!await file.exists()) return <String, dynamic>{};
+
+    try {
+      final raw = jsonDecode(await file.readAsString());
+      if (raw is Map<String, dynamic>) {
+        return Map<String, dynamic>.from(raw);
+      }
+    } on FormatException {
+      return <String, dynamic>{};
+    }
+
+    return <String, dynamic>{};
+  }
+
+  Future<void> _writeRaw(Map<String, dynamic> raw) async {
+    final file = await _settingsFile();
+
+    if (raw.isEmpty) {
+      if (await file.exists()) {
+        await file.delete();
+      }
+      return;
+    }
+
+    await file.parent.create(recursive: true);
+    await file.writeAsString(
+      const JsonEncoder.withIndent('  ').convert(raw),
+      flush: true,
+    );
+  }
 }
 
 class DiaryAiApiKeyController extends AsyncNotifier<String?> {
-  DiaryAiApiKeyStorage get _storage => ref.read(diaryAiApiKeyStorageProvider);
+  DiaryAiSettingsStorage get _storage => ref.read(diaryAiApiKeyStorageProvider);
 
   @override
   Future<String?> build() {
@@ -98,6 +138,29 @@ class DiaryAiApiKeyController extends AsyncNotifier<String?> {
   String? _normalize(String raw) {
     final trimmed = raw.trim();
     return trimmed.isEmpty ? null : trimmed;
+  }
+}
+
+class DiaryAiVisibilityController extends AsyncNotifier<bool> {
+  DiaryAiSettingsStorage get _storage =>
+      ref.read(diaryAiSettingsStorageProvider);
+
+  @override
+  Future<bool> build() {
+    return _storage.readVisibility();
+  }
+
+  Future<void> setEnabled(bool enabled) async {
+    final previous = state.valueOrNull ?? true;
+    state = AsyncData(enabled);
+
+    try {
+      await _storage.writeVisibility(enabled);
+    } catch (error, stackTrace) {
+      state = AsyncError(error, stackTrace);
+      state = AsyncData(previous);
+      rethrow;
+    }
   }
 }
 

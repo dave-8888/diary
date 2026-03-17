@@ -43,6 +43,7 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
   bool _isChangingTheme = false;
   bool _isChangingLanguage = false;
   bool _isResettingMoods = false;
+  bool _isChangingDiaryAiVisibility = false;
   bool _showDiaryAiApiKey = false;
   bool _showApiKey = false;
 
@@ -71,6 +72,9 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
       customNameAsync: customAppNameAsync,
     );
     final diaryAiApiKeyAsync = ref.watch(diaryAiApiKeyControllerProvider);
+    final diaryAiVisibilityAsync =
+        ref.watch(diaryAiVisibilityControllerProvider);
+    final diaryAiVisible = diaryAiVisibilityAsync.valueOrNull ?? true;
     final apiKeyAsync = ref.watch(transcriptionApiKeyControllerProvider);
     final iconSelection =
         resolveAppIconSelection(ref.watch(appIconControllerProvider));
@@ -371,6 +375,60 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
+                    Container(
+                      decoration: BoxDecoration(
+                        color: Theme.of(context)
+                            .colorScheme
+                            .surfaceContainerHighest
+                            .withValues(alpha: 0.42),
+                        borderRadius: BorderRadius.circular(18),
+                      ),
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 14,
+                          vertical: 8,
+                        ),
+                        child: Row(
+                          children: [
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    strings.diaryAiVisibilityStatus(
+                                      diaryAiVisible,
+                                    ),
+                                    style:
+                                        Theme.of(context).textTheme.titleMedium,
+                                  ),
+                                  const SizedBox(height: 4),
+                                  Text(
+                                    strings.diaryAiVisibilityHint,
+                                    style: Theme.of(context)
+                                        .textTheme
+                                        .bodySmall
+                                        ?.copyWith(
+                                          color: Theme.of(context)
+                                              .colorScheme
+                                              .onSurfaceVariant,
+                                          height: 1.4,
+                                        ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            const SizedBox(width: 12),
+                            Switch.adaptive(
+                              value: diaryAiVisible,
+                              onChanged: _isChangingDiaryAiVisibility
+                                  ? null
+                                  : _changeDiaryAiVisibility,
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 16),
                     TextField(
                       controller: _diaryAiApiKeyController,
                       obscureText: !_showDiaryAiApiKey,
@@ -750,6 +808,29 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
       setState(() => _isResettingAppName = false);
       context.showAppSnackBar(
         strings.appNameUpdateFailed(error),
+        tone: AppSnackBarTone.error,
+      );
+    }
+  }
+
+  Future<void> _changeDiaryAiVisibility(bool enabled) async {
+    final strings = context.strings;
+    setState(() => _isChangingDiaryAiVisibility = true);
+    try {
+      await ref
+          .read(diaryAiVisibilityControllerProvider.notifier)
+          .setEnabled(enabled);
+      if (!mounted) return;
+      setState(() => _isChangingDiaryAiVisibility = false);
+      context.showAppSnackBar(
+        strings.diaryAiVisibilityUpdated,
+        tone: AppSnackBarTone.success,
+      );
+    } catch (error) {
+      if (!mounted) return;
+      setState(() => _isChangingDiaryAiVisibility = false);
+      context.showAppSnackBar(
+        strings.diaryAiVisibilityUpdateFailed(error),
         tone: AppSnackBarTone.error,
       );
     }
