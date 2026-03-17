@@ -95,6 +95,7 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
 
     return DiaryShell(
       title: strings.settingsTitle,
+      showAppBarTitle: false,
       child: Center(
         child: ConstrainedBox(
           constraints: const BoxConstraints(maxWidth: 980),

@@ -9,6 +9,7 @@ import 'package:diary_mvp/features/diary/presentation/pages/trash_preview_page.d
 import 'package:diary_mvp/features/diary/presentation/pages/timeline_page.dart';
 import 'package:diary_mvp/features/diary/presentation/pages/video_preview_page.dart';
 import 'package:diary_mvp/features/diary/domain/diary_entry.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
@@ -18,56 +19,150 @@ final appRouterProvider = Provider<GoRouter>((ref) {
     routes: [
       GoRoute(
         path: '/',
-        builder: (context, state) => const HomePage(),
+        pageBuilder: (context, state) => _buildSectionPage(
+          state: state,
+          child: const HomePage(),
+        ),
       ),
       GoRoute(
         path: '/editor',
-        builder: (context, state) => EditorPage(
-          entry: state.extra as DiaryEntry?,
+        pageBuilder: (context, state) => _buildSectionPage(
+          state: state,
+          child: EditorPage(
+            entry: state.extra as DiaryEntry?,
+          ),
         ),
       ),
       GoRoute(
         path: '/app-name',
-        builder: (context, state) => const AppNamePage(),
+        pageBuilder: (context, state) => _buildDetailPage(
+          state: state,
+          child: const AppNamePage(),
+        ),
       ),
       GoRoute(
         path: '/migration',
-        builder: (context, state) => const MigrationPage(),
+        pageBuilder: (context, state) => _buildDetailPage(
+          state: state,
+          child: const MigrationPage(),
+        ),
       ),
       GoRoute(
         path: '/settings',
-        builder: (context, state) => const SettingsPage(),
+        pageBuilder: (context, state) => _buildSectionPage(
+          state: state,
+          child: const SettingsPage(),
+        ),
       ),
       GoRoute(
         path: '/camera',
-        builder: (context, state) => CameraCapturePage(
-          initialMode: state.uri.queryParameters['mode'] == 'video'
-              ? CameraCaptureMode.video
-              : CameraCaptureMode.photo,
+        pageBuilder: (context, state) => _buildDetailPage(
+          state: state,
+          child: CameraCapturePage(
+            initialMode: state.uri.queryParameters['mode'] == 'video'
+                ? CameraCaptureMode.video
+                : CameraCaptureMode.photo,
+          ),
         ),
       ),
       GoRoute(
         path: '/timeline',
-        builder: (context, state) => const TimelinePage(),
+        pageBuilder: (context, state) => _buildSectionPage(
+          state: state,
+          child: const TimelinePage(),
+        ),
       ),
       GoRoute(
         path: '/trash',
-        builder: (context, state) => const TrashPage(),
+        pageBuilder: (context, state) => _buildSectionPage(
+          state: state,
+          child: const TrashPage(),
+        ),
         routes: [
           GoRoute(
             path: 'preview',
-            builder: (context, state) => TrashPreviewPage(
-              entry: state.extra as DiaryEntry?,
+            pageBuilder: (context, state) => _buildDetailPage(
+              state: state,
+              child: TrashPreviewPage(
+                entry: state.extra as DiaryEntry?,
+              ),
             ),
           ),
         ],
       ),
       GoRoute(
         path: '/video-preview',
-        builder: (context, state) => VideoPreviewPage(
-          media: state.extra as DiaryMedia?,
+        pageBuilder: (context, state) => _buildDetailPage(
+          state: state,
+          child: VideoPreviewPage(
+            media: state.extra as DiaryMedia?,
+          ),
         ),
       ),
     ],
   );
 });
+
+CustomTransitionPage<void> _buildSectionPage({
+  required GoRouterState state,
+  required Widget child,
+}) {
+  return CustomTransitionPage<void>(
+    key: state.pageKey,
+    transitionDuration: const Duration(milliseconds: 180),
+    reverseTransitionDuration: const Duration(milliseconds: 140),
+    child: child,
+    transitionsBuilder: (context, animation, secondaryAnimation, child) {
+      final curvedAnimation = CurvedAnimation(
+        parent: animation,
+        curve: Curves.easeOutCubic,
+        reverseCurve: Curves.easeInCubic,
+      );
+      return FadeTransition(
+        opacity: Tween<double>(
+          begin: 0.76,
+          end: 1,
+        ).animate(curvedAnimation),
+        child: SlideTransition(
+          position: Tween<Offset>(
+            begin: const Offset(0, 0.018),
+            end: Offset.zero,
+          ).animate(curvedAnimation),
+          child: child,
+        ),
+      );
+    },
+  );
+}
+
+CustomTransitionPage<void> _buildDetailPage({
+  required GoRouterState state,
+  required Widget child,
+}) {
+  return CustomTransitionPage<void>(
+    key: state.pageKey,
+    transitionDuration: const Duration(milliseconds: 220),
+    reverseTransitionDuration: const Duration(milliseconds: 170),
+    child: child,
+    transitionsBuilder: (context, animation, secondaryAnimation, child) {
+      final curvedAnimation = CurvedAnimation(
+        parent: animation,
+        curve: Curves.easeOutCubic,
+        reverseCurve: Curves.easeInCubic,
+      );
+      return FadeTransition(
+        opacity: Tween<double>(
+          begin: 0.7,
+          end: 1,
+        ).animate(curvedAnimation),
+        child: SlideTransition(
+          position: Tween<Offset>(
+            begin: const Offset(0.015, 0.02),
+            end: Offset.zero,
+          ).animate(curvedAnimation),
+          child: child,
+        ),
+      );
+    },
+  );
+}
