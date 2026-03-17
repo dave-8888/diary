@@ -23,6 +23,11 @@ final diaryAiVisibilityControllerProvider =
   DiaryAiVisibilityController.new,
 );
 
+final emotionalCompanionVisibilityControllerProvider =
+    AsyncNotifierProvider<EmotionalCompanionVisibilityController, bool>(
+  EmotionalCompanionVisibilityController.new,
+);
+
 class DiaryAiSettingsStorage {
   Future<String?> read() async {
     final raw = await _readRaw();
@@ -55,6 +60,19 @@ class DiaryAiSettingsStorage {
   Future<void> writeVisibility(bool enabled) async {
     final raw = await _readRaw();
     raw['ai_analysis_enabled'] = enabled;
+    await _writeRaw(raw);
+  }
+
+  Future<bool> readEmotionalCompanionVisibility() async {
+    final raw = await _readRaw();
+    final value = raw['emotional_companion_enabled'];
+    if (value is bool) return value;
+    return true;
+  }
+
+  Future<void> writeEmotionalCompanionVisibility(bool enabled) async {
+    final raw = await _readRaw();
+    raw['emotional_companion_enabled'] = enabled;
     await _writeRaw(raw);
   }
 
@@ -156,6 +174,29 @@ class DiaryAiVisibilityController extends AsyncNotifier<bool> {
 
     try {
       await _storage.writeVisibility(enabled);
+    } catch (error, stackTrace) {
+      state = AsyncError(error, stackTrace);
+      state = AsyncData(previous);
+      rethrow;
+    }
+  }
+}
+
+class EmotionalCompanionVisibilityController extends AsyncNotifier<bool> {
+  DiaryAiSettingsStorage get _storage =>
+      ref.read(diaryAiSettingsStorageProvider);
+
+  @override
+  Future<bool> build() {
+    return _storage.readEmotionalCompanionVisibility();
+  }
+
+  Future<void> setEnabled(bool enabled) async {
+    final previous = state.valueOrNull ?? true;
+    state = AsyncData(enabled);
+
+    try {
+      await _storage.writeEmotionalCompanionVisibility(enabled);
     } catch (error, stackTrace) {
       state = AsyncError(error, stackTrace);
       state = AsyncData(previous);

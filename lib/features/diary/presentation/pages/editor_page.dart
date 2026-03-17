@@ -452,6 +452,9 @@ class _EditorPageState extends ConsumerState<EditorPage> {
   ) {
     final suggestion = _aiSuggestion;
     final availableMoods = moodLibraryAsync.valueOrNull ?? DiaryMood.values;
+    final showEmotionalCompanion =
+        ref.watch(emotionalCompanionVisibilityControllerProvider).valueOrNull ??
+            true;
     final detectedMood = suggestion == null
         ? null
         : _resolveAiMood(availableMoods, suggestion.moodId);
@@ -547,6 +550,71 @@ class _EditorPageState extends ConsumerState<EditorPage> {
                           .toList(growable: false),
                     ),
             ),
+            if (showEmotionalCompanion) ...[
+              const SizedBox(height: 18),
+              Text(
+                strings.emotionalCompanionSectionTitle,
+                style: Theme.of(context).textTheme.titleMedium,
+              ),
+              const SizedBox(height: 12),
+              if (_isCompanionEmpty(suggestion))
+                _buildSidebarEmptyState(
+                  context,
+                  icon: Icons.favorite_outline,
+                  message: strings.emotionalCompanionEmpty,
+                )
+              else ...[
+                _buildAiResultBlock(
+                  context,
+                  label: strings.emotionCategoryLabel,
+                  child: Text(
+                    suggestion.emotionCategory.trim().isEmpty
+                        ? strings.moodLabel(
+                            detectedMood ?? DiaryMood.neutral,
+                          )
+                        : suggestion.emotionCategory,
+                    style: Theme.of(context).textTheme.bodyMedium,
+                  ),
+                ),
+                const SizedBox(height: 14),
+                _buildAiResultBlock(
+                  context,
+                  label: strings.companionStyleLabel,
+                  child: Text(
+                    suggestion.companionStyle.trim().isEmpty
+                        ? strings.notProvided
+                        : suggestion.companionStyle,
+                    style: Theme.of(context).textTheme.bodyMedium,
+                  ),
+                ),
+                const SizedBox(height: 14),
+                _buildAiResultBlock(
+                  context,
+                  label: strings.comfortReplyLabel,
+                  child: Text(
+                    suggestion.comfortReply.trim().isEmpty
+                        ? strings.notProvided
+                        : suggestion.comfortReply,
+                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                          height: 1.45,
+                        ),
+                  ),
+                ),
+                const SizedBox(height: 14),
+                _buildAiResultBlock(
+                  context,
+                  label: strings.priorityFeedbackLabel,
+                  child: Text(
+                    suggestion.priorityFeedback.trim().isEmpty
+                        ? strings.noPriorityFeedback
+                        : suggestion.priorityFeedback,
+                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                          height: 1.45,
+                        ),
+                  ),
+                ),
+              ],
+            ],
             const SizedBox(height: 16),
             Wrap(
               spacing: 10,
@@ -1042,12 +1110,16 @@ class _EditorPageState extends ConsumerState<EditorPage> {
     final strings = context.strings;
     final moods =
         ref.read(moodLibraryControllerProvider).valueOrNull ?? DiaryMood.values;
+    final includeEmotionalCompanion =
+        ref.read(emotionalCompanionVisibilityControllerProvider).valueOrNull ??
+            true;
 
     setState(() => _isAnalyzingAi = true);
     final result = await ref.read(diaryAiServiceProvider).analyzeEntry(
           draft: _buildDraftEntry(),
           availableMoods: moods,
           preferChinese: strings.isChinese,
+          includeEmotionalCompanion: includeEmotionalCompanion,
         );
 
     if (!mounted) return;
@@ -1555,5 +1627,12 @@ class _EditorPageState extends ConsumerState<EditorPage> {
       if (mood.id == rawMoodId) return mood;
     }
     return DiaryMood.byId(rawMoodId) ?? DiaryMood.byId(DiaryMood.neutralId);
+  }
+
+  bool _isCompanionEmpty(DiaryAiSuggestion suggestion) {
+    return suggestion.emotionCategory.trim().isEmpty &&
+        suggestion.comfortReply.trim().isEmpty &&
+        suggestion.companionStyle.trim().isEmpty &&
+        suggestion.priorityFeedback.trim().isEmpty;
   }
 }

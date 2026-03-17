@@ -23,18 +23,30 @@ class DiaryAiSuggestion {
     required this.title,
     required this.moodId,
     required this.tags,
+    required this.emotionCategory,
+    required this.comfortReply,
+    required this.companionStyle,
+    required this.priorityFeedback,
   });
 
   final String summary;
   final String title;
   final String moodId;
   final List<String> tags;
+  final String emotionCategory;
+  final String comfortReply;
+  final String companionStyle;
+  final String priorityFeedback;
 
   bool get isEmpty =>
       summary.trim().isEmpty &&
       title.trim().isEmpty &&
       tags.isEmpty &&
-      moodId.trim().isEmpty;
+      moodId.trim().isEmpty &&
+      emotionCategory.trim().isEmpty &&
+      comfortReply.trim().isEmpty &&
+      companionStyle.trim().isEmpty &&
+      priorityFeedback.trim().isEmpty;
 }
 
 class DiaryAiResult {
@@ -64,6 +76,7 @@ class DiaryAiService {
     required DiaryEntry draft,
     required List<DiaryMood> availableMoods,
     required bool preferChinese,
+    required bool includeEmotionalCompanion,
   }) async {
     final configuredApiKey =
         _ref.read(diaryAiApiKeyControllerProvider).valueOrNull;
@@ -108,6 +121,7 @@ class DiaryAiService {
                     'content': _buildSystemPrompt(
                       availableMoods: availableMoods,
                       preferChinese: preferChinese,
+                      includeEmotionalCompanion: includeEmotionalCompanion,
                     ),
                   },
                   {
@@ -168,6 +182,7 @@ class DiaryAiService {
   String _buildSystemPrompt({
     required List<DiaryMood> availableMoods,
     required bool preferChinese,
+    required bool includeEmotionalCompanion,
   }) {
     final toneInstruction = preferChinese
         ? 'Write title, summary, and tags in Simplified Chinese unless the diary is clearly written in another language.'
@@ -179,19 +194,28 @@ class DiaryAiService {
         )
         .join('\n');
 
+    final requiredKeys = includeEmotionalCompanion
+        ? '"title", "summary", "mood_id", "tags", "emotion_category", "comfort_reply", "companion_style", "priority_feedback"'
+        : '"title", "summary", "mood_id", "tags"';
+
     return '''
 You are a diary analysis assistant.
 Return JSON only.
-The JSON object must use exactly these keys: "title", "summary", "mood_id", "tags".
+The JSON object must use exactly these keys: $requiredKeys.
 "title" must be a string.
 "summary" must be a string.
 "mood_id" must be one of the allowed mood ids.
 "tags" must be an array of short strings.
+${includeEmotionalCompanion ? '"emotion_category" must be a short emotion classification phrase.' : ''}
+${includeEmotionalCompanion ? '"comfort_reply" must be a warm and helpful reply tailored to the diary tone.' : ''}
+${includeEmotionalCompanion ? '"companion_style" must be a short label describing the response style.' : ''}
+${includeEmotionalCompanion ? '"priority_feedback" must be extra supportive feedback for important emotions. Use an empty string if not needed.' : ''}
 Do not include markdown, code fences, or extra fields.
 $toneInstruction
 Keep the title concise and natural.
 Keep the summary to 1-3 sentences.
 Return 3-6 tags when possible, and avoid duplicates.
+${includeEmotionalCompanion ? 'The comforting reply should feel emotionally aware, and the style should adapt to the user tone.' : ''}
 Allowed mood ids:
 $moodGuide
 ''';
@@ -237,12 +261,29 @@ $moodGuide
         availableMoods,
       );
       final tags = _readTags(suggestionJson['tags']);
+      final emotionCategory = _readString(
+        suggestionJson['emotion_category'] ?? suggestionJson['emotionCategory'],
+      );
+      final comfortReply = _readString(
+        suggestionJson['comfort_reply'] ?? suggestionJson['comfortReply'],
+      );
+      final companionStyle = _readString(
+        suggestionJson['companion_style'] ?? suggestionJson['companionStyle'],
+      );
+      final priorityFeedback = _readString(
+        suggestionJson['priority_feedback'] ??
+            suggestionJson['priorityFeedback'],
+      );
 
       return DiaryAiSuggestion(
         summary: summary,
         title: title,
         moodId: moodId,
         tags: tags,
+        emotionCategory: emotionCategory,
+        comfortReply: comfortReply,
+        companionStyle: companionStyle,
+        priorityFeedback: priorityFeedback,
       );
     } on FormatException {
       return null;

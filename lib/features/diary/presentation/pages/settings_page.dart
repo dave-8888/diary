@@ -44,6 +44,7 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
   bool _isChangingLanguage = false;
   bool _isResettingMoods = false;
   bool _isChangingDiaryAiVisibility = false;
+  bool _isChangingEmotionalCompanionVisibility = false;
   bool _showDiaryAiApiKey = false;
   bool _showApiKey = false;
 
@@ -75,6 +76,11 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
     final diaryAiVisibilityAsync =
         ref.watch(diaryAiVisibilityControllerProvider);
     final diaryAiVisible = diaryAiVisibilityAsync.valueOrNull ?? true;
+    final emotionalCompanionVisibilityAsync = ref.watch(
+      emotionalCompanionVisibilityControllerProvider,
+    );
+    final emotionalCompanionVisible =
+        emotionalCompanionVisibilityAsync.valueOrNull ?? true;
     final apiKeyAsync = ref.watch(transcriptionApiKeyControllerProvider);
     final iconSelection =
         resolveAppIconSelection(ref.watch(appIconControllerProvider));
@@ -423,6 +429,60 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
                               onChanged: _isChangingDiaryAiVisibility
                                   ? null
                                   : _changeDiaryAiVisibility,
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    Container(
+                      decoration: BoxDecoration(
+                        color: Theme.of(context)
+                            .colorScheme
+                            .surfaceContainerHighest
+                            .withValues(alpha: 0.42),
+                        borderRadius: BorderRadius.circular(18),
+                      ),
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 14,
+                          vertical: 8,
+                        ),
+                        child: Row(
+                          children: [
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    strings.emotionalCompanionStatus(
+                                      emotionalCompanionVisible,
+                                    ),
+                                    style:
+                                        Theme.of(context).textTheme.titleMedium,
+                                  ),
+                                  const SizedBox(height: 4),
+                                  Text(
+                                    strings.emotionalCompanionHint,
+                                    style: Theme.of(context)
+                                        .textTheme
+                                        .bodySmall
+                                        ?.copyWith(
+                                          color: Theme.of(context)
+                                              .colorScheme
+                                              .onSurfaceVariant,
+                                          height: 1.4,
+                                        ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            const SizedBox(width: 12),
+                            Switch.adaptive(
+                              value: emotionalCompanionVisible,
+                              onChanged: _isChangingEmotionalCompanionVisibility
+                                  ? null
+                                  : _changeEmotionalCompanionVisibility,
                             ),
                           ],
                         ),
@@ -831,6 +891,29 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
       setState(() => _isChangingDiaryAiVisibility = false);
       context.showAppSnackBar(
         strings.diaryAiVisibilityUpdateFailed(error),
+        tone: AppSnackBarTone.error,
+      );
+    }
+  }
+
+  Future<void> _changeEmotionalCompanionVisibility(bool enabled) async {
+    final strings = context.strings;
+    setState(() => _isChangingEmotionalCompanionVisibility = true);
+    try {
+      await ref
+          .read(emotionalCompanionVisibilityControllerProvider.notifier)
+          .setEnabled(enabled);
+      if (!mounted) return;
+      setState(() => _isChangingEmotionalCompanionVisibility = false);
+      context.showAppSnackBar(
+        strings.emotionalCompanionUpdated,
+        tone: AppSnackBarTone.success,
+      );
+    } catch (error) {
+      if (!mounted) return;
+      setState(() => _isChangingEmotionalCompanionVisibility = false);
+      context.showAppSnackBar(
+        strings.emotionalCompanionUpdateFailed(error),
         tone: AppSnackBarTone.error,
       );
     }

@@ -68,6 +68,19 @@ class AppStrings {
   String diaryAiVisibilityUpdateFailed(Object error) => isChinese
       ? '\u66f4\u65b0 AI \u5206\u6790\u663e\u793a\u72b6\u6001\u5931\u8d25\uff1a$error'
       : 'Failed to update AI analysis visibility: $error';
+  String get emotionalCompanionLabel =>
+      isChinese ? '\u60c5\u7eea\u966a\u4f34' : 'Emotional companion';
+  String get emotionalCompanionHint => isChinese
+      ? '\u5728 AI \u5206\u6790\u7ed3\u679c\u4e2d\u589e\u52a0\u60c5\u7eea\u5206\u7c7b\u3001\u5b89\u629a\u56de\u590d\u3001\u98ce\u683c\u81ea\u9002\u5e94\u548c\u91cd\u8981\u60c5\u7eea\u589e\u5f3a\u53cd\u9988\u3002'
+      : 'Add emotion classification, comforting replies, adaptive style, and enhanced feedback for important emotions to AI results.';
+  String emotionalCompanionStatus(bool enabled) =>
+      '$emotionalCompanionLabel\uff1a${enabled ? enabledLabel : disabledLabel}';
+  String get emotionalCompanionUpdated => isChinese
+      ? '\u60c5\u7eea\u966a\u4f34\u663e\u793a\u72b6\u6001\u5df2\u66f4\u65b0\u3002'
+      : 'Emotional companion visibility updated.';
+  String emotionalCompanionUpdateFailed(Object error) => isChinese
+      ? '\u66f4\u65b0\u60c5\u7eea\u966a\u4f34\u663e\u793a\u72b6\u6001\u5931\u8d25\uff1a$error'
+      : 'Failed to update emotional companion visibility: $error';
   String get language => isChinese ? '\u8bed\u8a00' : 'Language';
   String get themeSettingsHint => isChinese
       ? '\u5207\u6362\u5e94\u7528\u4e3b\u9898\uff0c\u4e0d\u540c\u4e3b\u9898\u4f1a\u6709\u4e0d\u540c\u7684\u9996\u9875\u5934\u56fe\u548c\u80cc\u666f\u98ce\u683c\u3002'
@@ -526,6 +539,23 @@ class AppStrings {
   String get aiGeneratedTitleLabel => isChinese ? '推荐标题' : 'Suggested title';
   String get aiDetectedMoodLabel => isChinese ? '识别情绪' : 'Detected mood';
   String get aiSuggestedTagsLabel => isChinese ? '推荐标签' : 'Suggested tags';
+  String get emotionalCompanionSectionTitle =>
+      isChinese ? '\u60c5\u7eea\u966a\u4f34' : 'Emotional companion';
+  String get emotionCategoryLabel =>
+      isChinese ? '\u60c5\u7eea\u5206\u7c7b' : 'Emotion category';
+  String get comfortReplyLabel =>
+      isChinese ? '\u5b89\u629a\u56de\u590d' : 'Comforting reply';
+  String get companionStyleLabel =>
+      isChinese ? '\u98ce\u683c\u81ea\u9002\u5e94' : 'Adaptive style';
+  String get priorityFeedbackLabel => isChinese
+      ? '\u91cd\u8981\u60c5\u7eea\u589e\u5f3a\u53cd\u9988'
+      : 'Enhanced feedback';
+  String get emotionalCompanionEmpty => isChinese
+      ? '\u5f53\u524d\u8fd9\u6761\u65e5\u8bb0\u8fd8\u6ca1\u6709\u751f\u6210\u966a\u4f34\u53cd\u9988\u3002'
+      : 'No emotional companion feedback has been generated yet.';
+  String get noPriorityFeedback => isChinese
+      ? '\u5f53\u524d\u60c5\u7eea\u6682\u4e0d\u9700\u8981\u989d\u5916\u589e\u5f3a\u53cd\u9988\u3002'
+      : 'No extra enhanced feedback is needed for this emotion right now.';
   String get noAiSuggestionYet => isChinese
       ? '先写下一些标题、正文、地点或标签，再点击 AI 分析即可生成建议。'
       : 'Write a bit of title, content, location, or tags first, then run AI analysis.';
