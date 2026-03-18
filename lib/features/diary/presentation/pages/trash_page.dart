@@ -4,6 +4,7 @@ import 'package:diary_mvp/app/themed_snackbar.dart';
 import 'package:diary_mvp/features/diary/application/diary_controller.dart';
 import 'package:diary_mvp/features/diary/domain/diary_entry.dart';
 import 'package:diary_mvp/features/diary/presentation/widgets/diary_shell.dart';
+import 'package:diary_mvp/features/diary/presentation/widgets/entry_list_preview.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -244,6 +245,17 @@ class _TrashEntryCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final strings = context.strings;
+    final detailChips = <Widget>[
+      Chip(
+        avatar: Text(entry.mood.emoji),
+        label: Text(strings.moodLabel(entry.mood)),
+      ),
+      if (entry.trashedAt != null)
+        Chip(
+          avatar: const Icon(Icons.delete_outline, size: 18),
+          label: Text(strings.trashedAtLabel(entry.trashedAt!)),
+        ),
+    ];
 
     return Card(
       clipBehavior: Clip.antiAlias,
@@ -260,38 +272,9 @@ class _TrashEntryCard extends StatelessWidget {
               ),
               const SizedBox(width: 8),
               Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      entry.title,
-                      style: Theme.of(context).textTheme.titleLarge,
-                    ),
-                    const SizedBox(height: 6),
-                    Text(
-                      entry.content,
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                      style: Theme.of(context).textTheme.bodyMedium,
-                    ),
-                    const SizedBox(height: 10),
-                    Wrap(
-                      spacing: 8,
-                      runSpacing: 8,
-                      children: [
-                        Chip(
-                          avatar: Text(entry.mood.emoji),
-                          label: Text(strings.moodLabel(entry.mood)),
-                        ),
-                        if (entry.trashedAt != null)
-                          Chip(
-                            avatar: const Icon(Icons.delete_outline, size: 18),
-                            label:
-                                Text(strings.trashedAtLabel(entry.trashedAt!)),
-                          ),
-                      ],
-                    ),
-                  ],
+                child: EntryListPreview(
+                  entry: entry,
+                  extraChips: detailChips,
                 ),
               ),
               const SizedBox(width: 12),

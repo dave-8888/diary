@@ -60,6 +60,7 @@ class _EditorPageState extends ConsumerState<EditorPage> {
   bool _isAiExpanded = false;
   DateTime? _recordingStartedAt;
   DiaryEntryAiAnalysis? _aiSuggestion;
+  late final DateTime _draftCreatedAt;
 
   bool get _isEditing => widget.entry != null;
 
@@ -67,6 +68,7 @@ class _EditorPageState extends ConsumerState<EditorPage> {
   void initState() {
     super.initState();
     final entry = widget.entry;
+    _draftCreatedAt = entry?.createdAt ?? DateTime.now();
     if (entry == null) return;
 
     _titleController.text = entry.title;
@@ -355,21 +357,39 @@ class _EditorPageState extends ConsumerState<EditorPage> {
 
   Widget _buildEditorHeader(BuildContext context, AppStrings strings) {
     final theme = Theme.of(context);
+    final createdAtText =
+        '${strings.createdAtLabel} · ${strings.formatDateTime(_draftCreatedAt)}';
 
     return LayoutBuilder(
       builder: (context, constraints) {
         final actionButtons = _buildHeaderActionButtons(context, strings);
+        final titleBlock = Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              strings.whatHappenedToday,
+              style: theme.textTheme.titleLarge?.copyWith(
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+            const SizedBox(height: 6),
+            Text(
+              createdAtText,
+              key: const ValueKey('editor-created-at-label'),
+              style: theme.textTheme.bodySmall?.copyWith(
+                color: theme.colorScheme.onSurfaceVariant,
+                fontSize: 12,
+                height: 1.35,
+              ),
+            ),
+          ],
+        );
 
         if (constraints.maxWidth < 760) {
           return Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(
-                strings.whatHappenedToday,
-                style: theme.textTheme.titleLarge?.copyWith(
-                  fontWeight: FontWeight.w700,
-                ),
-              ),
+              titleBlock,
               const SizedBox(height: 10),
               actionButtons,
             ],
@@ -380,12 +400,7 @@ class _EditorPageState extends ConsumerState<EditorPage> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Expanded(
-              child: Text(
-                strings.whatHappenedToday,
-                style: theme.textTheme.titleLarge?.copyWith(
-                  fontWeight: FontWeight.w700,
-                ),
-              ),
+              child: titleBlock,
             ),
             const SizedBox(width: 16),
             Flexible(
@@ -583,33 +598,26 @@ class _EditorPageState extends ConsumerState<EditorPage> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Expanded(
-                child: TextField(
-                  controller: _tagController,
-                  textInputAction: TextInputAction.done,
-                  onSubmitted: (_) => _createTagFromInput(),
-                  decoration: InputDecoration(
-                    labelText: strings.tagsLabel,
-                    hintText: strings.tagHint,
-                  ),
-                ),
-              ),
-              const SizedBox(width: 12),
-              FilledButton.tonalIcon(
-                onPressed: _isManagingTags ? null : _createTagFromInput,
-                icon: _isManagingTags
-                    ? const SizedBox(
+          TextField(
+            key: const ValueKey('editor-tag-input'),
+            controller: _tagController,
+            enabled: !_isManagingTags,
+            textInputAction: TextInputAction.done,
+            onSubmitted: _isManagingTags ? null : (_) => _createTagFromInput(),
+            decoration: InputDecoration(
+              labelText: strings.tagsLabel,
+              hintText: strings.tagHint,
+              suffixIcon: _isManagingTags
+                  ? const Padding(
+                      padding: EdgeInsets.all(14),
+                      child: SizedBox(
                         width: 18,
                         height: 18,
                         child: CircularProgressIndicator(strokeWidth: 2),
-                      )
-                    : const Icon(Icons.add_rounded),
-                label: Text(strings.addTag),
-              ),
-            ],
+                      ),
+                    )
+                  : null,
+            ),
           ),
           const SizedBox(height: 18),
           Text(
@@ -804,7 +812,10 @@ class _EditorPageState extends ConsumerState<EditorPage> {
                         ],
                       ),
                       const SizedBox(height: 8),
-                      headerAction,
+                      Align(
+                        alignment: Alignment.centerRight,
+                        child: headerAction,
+                      ),
                     ],
                   );
                 }
@@ -813,16 +824,21 @@ class _EditorPageState extends ConsumerState<EditorPage> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Expanded(child: titleArea),
-                    if (headerAction != null) ...[
-                      const SizedBox(width: 12),
-                      headerAction,
-                    ],
                     IconButton(
                       onPressed: () => onExpandedChanged(!expanded),
                       icon: Icon(
                         expanded ? Icons.expand_less : Icons.expand_more,
                       ),
                     ),
+                    if (headerAction != null) ...[
+                      const SizedBox(width: 8),
+                      Flexible(
+                        child: Align(
+                          alignment: Alignment.topRight,
+                          child: headerAction,
+                        ),
+                      ),
+                    ],
                   ],
                 );
               },
@@ -1720,7 +1736,7 @@ class _EditorPageState extends ConsumerState<EditorPage> {
       mood: _resolveMoodFromLibrary(
         ref.read(moodLibraryControllerProvider).valueOrNull ?? DiaryMood.values,
       ),
-      createdAt: entry?.createdAt ?? DateTime.now(),
+      createdAt: _draftCreatedAt,
       location: location.isEmpty ? null : location,
       trashedAt: entry?.trashedAt,
       tags: List<String>.unmodifiable(_tags),

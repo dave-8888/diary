@@ -11,6 +11,7 @@ import 'package:diary_mvp/features/diary/presentation/pages/editor_page.dart';
 import 'package:diary_mvp/features/diary/presentation/pages/home_page.dart';
 import 'package:diary_mvp/features/diary/presentation/pages/image_preview_page.dart';
 import 'package:diary_mvp/features/diary/presentation/pages/settings_page.dart';
+import 'package:diary_mvp/features/diary/presentation/pages/trash_page.dart';
 import 'package:diary_mvp/features/diary/services/diary_ai_settings.dart';
 import 'package:diary_mvp/features/diary/services/transcription_settings.dart';
 import 'package:flutter/material.dart';
@@ -187,7 +188,270 @@ void main() {
     expect(find.textContaining('Last analyzed:'), findsNothing);
   });
 
-  testWidgets('settings page keeps advanced sections collapsed by default',
+  testWidgets(
+      'editor page keeps AI actions aligned right and shows created time',
+      (tester) async {
+    final repository = FakeDiaryRepository(
+      moods: DiaryMood.values,
+    );
+    final createdAt = DateTime(2026, 3, 16, 7, 45);
+
+    await pumpPage(
+      tester,
+      EditorPage(
+        entry: DiaryEntry(
+          id: 'entry-layout-check',
+          title: 'Layout check',
+          content: 'Check the editor header layout.',
+          mood: DiaryMood.calm,
+          createdAt: createdAt,
+          aiAnalysis: const DiaryEntryAiAnalysis(
+            overviewText: 'Layout ready',
+          ),
+        ),
+      ),
+      path: '/editor',
+      overrides: buildOverrides(repository: repository),
+    );
+
+    expect(
+      find.text(
+        '${strings.createdAtLabel} · ${strings.formatDateTime(createdAt)}',
+      ),
+      findsOneWidget,
+    );
+
+    await tester.scrollUntilVisible(
+      find.text(strings.diaryAiToolsTitle),
+      300,
+      scrollable: find.byType(Scrollable).first,
+    );
+    await tester.pumpAndSettle();
+
+    final aiCard = find
+        .ancestor(
+          of: find.text(strings.diaryAiToolsTitle),
+          matching: find.byType(Card),
+        )
+        .first;
+    final expandIcon = find.descendant(
+      of: aiCard,
+      matching: find.byIcon(Icons.expand_less),
+    );
+    final actionButton = find
+        .ancestor(
+          of: find.text(strings.reanalyzeDiaryWithAi),
+          matching: find.byType(FilledButton),
+        )
+        .first;
+    final cardRect = tester.getRect(aiCard);
+    final expandRect = tester.getRect(expandIcon);
+    final buttonRect = tester.getRect(actionButton);
+
+    expect(buttonRect.left, greaterThan(expandRect.right));
+    expect(cardRect.right - buttonRect.right, lessThan(32));
+  });
+
+  testWidgets('editor page adds tags on submit without add button',
+      (tester) async {
+    final repository = FakeDiaryRepository(
+      moods: DiaryMood.values,
+      tags: const ['#existing'],
+    );
+
+    await pumpPage(
+      tester,
+      const EditorPage(),
+      path: '/editor',
+      overrides: buildOverrides(repository: repository),
+    );
+
+    expect(find.text(strings.addTag), findsNothing);
+
+    await tester.scrollUntilVisible(
+      find.byKey(const ValueKey('editor-tag-input')),
+      300,
+      scrollable: find.byType(Scrollable).first,
+    );
+    await tester.tap(find.byKey(const ValueKey('editor-tag-input')));
+    await tester.enterText(
+      find.byKey(const ValueKey('editor-tag-input')),
+      'focus',
+    );
+    await tester.testTextInput.receiveAction(TextInputAction.done);
+    await tester.pumpAndSettle();
+
+    expect(find.text('#focus'), findsOneWidget);
+  });
+
+  testWidgets(
+      'home page keeps only the first image and video and scales text lines',
+      (tester) async {
+    final content = List.filled(
+      24,
+      'A long reflection that should wrap across several lines.',
+    ).join(' ');
+    final repository = FakeDiaryRepository(
+      entries: [
+        DiaryEntry(
+          id: 'both',
+          title: 'Mixed media',
+          content: content,
+          mood: DiaryMood.calm,
+          createdAt: DateTime(2026, 3, 18, 9),
+          tags: const ['#mixed'],
+          media: [
+            DiaryMedia(
+              id: 'image-1',
+              type: MediaType.image,
+              path:
+                  '${Directory.systemTemp.path}${Platform.pathSeparator}missing_compact_image_1.png',
+            ),
+            DiaryMedia(
+              id: 'image-2',
+              type: MediaType.image,
+              path:
+                  '${Directory.systemTemp.path}${Platform.pathSeparator}missing_compact_image_2.png',
+            ),
+            DiaryMedia(
+              id: 'video-1',
+              type: MediaType.video,
+              path:
+                  '${Directory.systemTemp.path}${Platform.pathSeparator}missing_compact_video_1.mp4',
+            ),
+            DiaryMedia(
+              id: 'video-2',
+              type: MediaType.video,
+              path:
+                  '${Directory.systemTemp.path}${Platform.pathSeparator}missing_compact_video_2.mp4',
+            ),
+          ],
+        ),
+        DiaryEntry(
+          id: 'single',
+          title: 'Single media',
+          content: content,
+          mood: DiaryMood.happy,
+          createdAt: DateTime(2026, 3, 17, 9),
+          tags: const ['#single'],
+          media: [
+            DiaryMedia(
+              id: 'image-3',
+              type: MediaType.image,
+              path:
+                  '${Directory.systemTemp.path}${Platform.pathSeparator}missing_compact_image_3.png',
+            ),
+          ],
+        ),
+      ],
+      moods: DiaryMood.values,
+    );
+
+    await pumpPage(
+      tester,
+      const HomePage(),
+      path: '/',
+      overrides: buildOverrides(repository: repository),
+    );
+
+    expect(find.byKey(const ValueKey('entry-compact-image-image-1')),
+        findsOneWidget);
+    expect(find.byKey(const ValueKey('entry-compact-image-image-2')),
+        findsNothing);
+    expect(find.byKey(const ValueKey('entry-compact-video-video-1')),
+        findsOneWidget);
+    expect(find.byKey(const ValueKey('entry-compact-video-video-2')),
+        findsNothing);
+
+    final bothContent = tester.widget<Text>(
+      find.byKey(
+        const ValueKey('entry-content-preview-both'),
+        skipOffstage: false,
+      ),
+    );
+    final singleContent = tester.widget<Text>(
+      find.byKey(
+        const ValueKey('entry-content-preview-single'),
+        skipOffstage: false,
+      ),
+    );
+
+    expect(bothContent.maxLines, greaterThan(singleContent.maxLines!));
+  });
+
+  testWidgets('trash page keeps compact previews with tags and actions',
+      (tester) async {
+    final repository = FakeDiaryRepository(
+      moods: DiaryMood.values,
+      trashedEntries: [
+        DiaryEntry(
+          id: 'trash-entry',
+          title: 'Trashed memory',
+          content: 'This entry should still show a compact preview.',
+          mood: DiaryMood.sad,
+          createdAt: DateTime(2026, 3, 15, 21),
+          trashedAt: DateTime(2026, 3, 16, 8),
+          tags: const ['#archive'],
+          media: [
+            DiaryMedia(
+              id: 'trash-image-1',
+              type: MediaType.image,
+              path:
+                  '${Directory.systemTemp.path}${Platform.pathSeparator}missing_trash_image_1.png',
+            ),
+            DiaryMedia(
+              id: 'trash-image-2',
+              type: MediaType.image,
+              path:
+                  '${Directory.systemTemp.path}${Platform.pathSeparator}missing_trash_image_2.png',
+            ),
+            DiaryMedia(
+              id: 'trash-video-1',
+              type: MediaType.video,
+              path:
+                  '${Directory.systemTemp.path}${Platform.pathSeparator}missing_trash_video_1.mp4',
+            ),
+            DiaryMedia(
+              id: 'trash-video-2',
+              type: MediaType.video,
+              path:
+                  '${Directory.systemTemp.path}${Platform.pathSeparator}missing_trash_video_2.mp4',
+            ),
+          ],
+        ),
+      ],
+    );
+
+    await pumpPage(
+      tester,
+      const TrashPage(),
+      path: '/trash',
+      overrides: buildOverrides(repository: repository),
+    );
+
+    expect(
+      find.byKey(const ValueKey('entry-compact-image-trash-image-1')),
+      findsOneWidget,
+    );
+    expect(
+      find.byKey(const ValueKey('entry-compact-image-trash-image-2')),
+      findsNothing,
+    );
+    expect(
+      find.byKey(const ValueKey('entry-compact-video-trash-video-1')),
+      findsOneWidget,
+    );
+    expect(
+      find.byKey(const ValueKey('entry-compact-video-trash-video-2')),
+      findsNothing,
+    );
+    expect(find.text('#archive'), findsOneWidget);
+    expect(find.text(strings.previewEntry), findsOneWidget);
+    expect(find.text(strings.restoreEntry), findsOneWidget);
+    expect(find.byType(Checkbox), findsOneWidget);
+  });
+
+  testWidgets('settings page keeps collapsible sections collapsed by default',
       (tester) async {
     final repository = FakeDiaryRepository(
       moods: DiaryMood.values,
@@ -200,9 +464,37 @@ void main() {
       overrides: buildOverrides(repository: repository),
     );
 
+    expect(find.text(strings.appNameLabel), findsNothing);
+    expect(find.text(strings.addMood), findsNothing);
     expect(find.text(strings.currentWindowIcon), findsNothing);
     expect(find.text(strings.aliyunApiKeyLabel), findsNothing);
     expect(find.text(strings.openAiApiKeyLabel), findsNothing);
+
+    await tester.scrollUntilVisible(
+      find.text(strings.appIdentityTitle),
+      300,
+      scrollable: find.byType(Scrollable).first,
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(find.text(strings.appIdentityTitle));
+    await tester.pumpAndSettle();
+    expect(find.text(strings.appNameLabel), findsOneWidget);
+
+    await tester.scrollUntilVisible(
+      find.text(strings.moodLibraryTitle),
+      300,
+      scrollable: find.byType(Scrollable).first,
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(find.text(strings.moodLibraryTitle));
+    await tester.pumpAndSettle();
+    expect(find.text(strings.addMood), findsOneWidget);
+    expect(find.byKey(const ValueKey('mood-library-wrap')), findsOneWidget);
+    expect(
+      find.byKey(ValueKey('mood-library-item-${DiaryMood.happyId}')),
+      findsOneWidget,
+    );
+    expect(find.byType(ListTile), findsNothing);
 
     await tester.scrollUntilVisible(
       find.text(strings.diaryAiSettingsTitle),

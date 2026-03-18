@@ -46,7 +46,9 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
   bool _isChangingDiaryAiVisibility = false;
   bool _isChangingEmotionalCompanionVisibility = false;
   bool _isChangingProblemSuggestionVisibility = false;
+  bool _isAppIdentitySectionExpanded = false;
   bool _isDiaryAiSectionExpanded = false;
+  bool _isMoodLibrarySectionExpanded = false;
   bool _isTranscriptionSectionExpanded = false;
   bool _isMigrationSectionExpanded = false;
   bool _showDiaryAiApiKey = false;
@@ -184,11 +186,16 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
                 ),
               ),
               const SizedBox(height: 18),
-              _buildSectionCard(
+              _buildExpandableSectionCard(
                 context: context,
                 icon: Icons.badge_outlined,
                 title: strings.appIdentityTitle,
                 subtitle: strings.appIdentityHint,
+                summary: currentAppName,
+                expanded: _isAppIdentitySectionExpanded,
+                onExpandedChanged: (expanded) {
+                  setState(() => _isAppIdentitySectionExpanded = expanded);
+                },
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
@@ -567,11 +574,16 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
                 ),
               ),
               const SizedBox(height: 18),
-              _buildSectionCard(
+              _buildExpandableSectionCard(
                 context: context,
                 icon: Icons.emoji_emotions_outlined,
                 title: strings.moodLibraryTitle,
                 subtitle: strings.moodLibraryHint,
+                summary: '',
+                expanded: _isMoodLibrarySectionExpanded,
+                onExpandedChanged: (expanded) {
+                  setState(() => _isMoodLibrarySectionExpanded = expanded);
+                },
                 child: moodLibraryAsync.when(
                   loading: () =>
                       const Center(child: CircularProgressIndicator()),
@@ -608,44 +620,88 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
                       if (moods.isEmpty)
                         Text(strings.moodLibraryEmpty)
                       else
-                        ...moods.map(
-                          (mood) => Padding(
-                            padding: const EdgeInsets.only(bottom: 12),
-                            child: ListTile(
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(18),
-                                side: BorderSide(
-                                  color: Theme.of(context)
-                                      .colorScheme
-                                      .outlineVariant
-                                      .withValues(alpha: 0.7),
+                        Wrap(
+                          key: const ValueKey('mood-library-wrap'),
+                          spacing: 12,
+                          runSpacing: 12,
+                          children: moods
+                              .map(
+                                (mood) => ConstrainedBox(
+                                  key: ValueKey('mood-library-item-${mood.id}'),
+                                  constraints: const BoxConstraints(
+                                    minWidth: 160,
+                                    maxWidth: 280,
+                                  ),
+                                  child: DecoratedBox(
+                                    decoration: BoxDecoration(
+                                      borderRadius: BorderRadius.circular(18),
+                                      border: Border.all(
+                                        color: Theme.of(context)
+                                            .colorScheme
+                                            .outlineVariant
+                                            .withValues(alpha: 0.7),
+                                      ),
+                                      color: Theme.of(context)
+                                          .colorScheme
+                                          .surfaceContainerLowest,
+                                    ),
+                                    child: Padding(
+                                      padding: const EdgeInsets.symmetric(
+                                        horizontal: 14,
+                                        vertical: 12,
+                                      ),
+                                      child: Row(
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.start,
+                                        children: [
+                                          Text(
+                                            mood.emoji,
+                                            style: const TextStyle(
+                                              fontSize: 24,
+                                              height: 1,
+                                            ),
+                                          ),
+                                          const SizedBox(width: 12),
+                                          Expanded(
+                                            child: Column(
+                                              crossAxisAlignment:
+                                                  CrossAxisAlignment.start,
+                                              children: [
+                                                Text(
+                                                  strings.moodLabel(mood),
+                                                  maxLines: 2,
+                                                  overflow:
+                                                      TextOverflow.ellipsis,
+                                                  style: Theme.of(context)
+                                                      .textTheme
+                                                      .titleSmall,
+                                                ),
+                                                const SizedBox(height: 8),
+                                                _buildStatusChip(
+                                                  context,
+                                                  mood.isDefault
+                                                      ? strings.defaultMoodBadge
+                                                      : strings.customMoodBadge,
+                                                ),
+                                              ],
+                                            ),
+                                          ),
+                                          const SizedBox(width: 8),
+                                          IconButton(
+                                            onPressed: () =>
+                                                _openMoodDialog(existing: mood),
+                                            tooltip: strings.editMood,
+                                            icon: const Icon(
+                                              Icons.edit_outlined,
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                  ),
                                 ),
-                              ),
-                              leading: Text(
-                                mood.emoji,
-                                style: const TextStyle(fontSize: 24, height: 1),
-                              ),
-                              title: Text(strings.moodLabel(mood)),
-                              trailing: Wrap(
-                                spacing: 8,
-                                crossAxisAlignment: WrapCrossAlignment.center,
-                                children: [
-                                  _buildStatusChip(
-                                    context,
-                                    mood.isDefault
-                                        ? strings.defaultMoodBadge
-                                        : strings.customMoodBadge,
-                                  ),
-                                  IconButton(
-                                    onPressed: () =>
-                                        _openMoodDialog(existing: mood),
-                                    tooltip: strings.editMood,
-                                    icon: const Icon(Icons.edit_outlined),
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ),
+                              )
+                              .toList(growable: false),
                         ),
                     ],
                   ),
