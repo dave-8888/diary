@@ -276,7 +276,25 @@ void Win32Window::OnDestroy() {
   // No-op; provided for subclasses.
 }
 
+void Win32Window::SetFrameThemePreference(
+    FrameThemePreference preference) {
+  frame_theme_preference_ = preference;
+  if (window_handle_ != nullptr) {
+    UpdateTheme(window_handle_);
+  }
+}
+
 void Win32Window::UpdateTheme(HWND const window) {
+  if (Win32Window* that = GetThisFromHandle(window)) {
+    if (that->frame_theme_preference_ != FrameThemePreference::kSystem) {
+      BOOL enable_dark_mode =
+          that->frame_theme_preference_ == FrameThemePreference::kDark;
+      DwmSetWindowAttribute(window, DWMWA_USE_IMMERSIVE_DARK_MODE,
+                            &enable_dark_mode, sizeof(enable_dark_mode));
+      return;
+    }
+  }
+
   DWORD light_mode;
   DWORD light_mode_size = sizeof(light_mode);
   LSTATUS result = RegGetValue(HKEY_CURRENT_USER, kGetPreferredBrightnessRegKey,

@@ -12,6 +12,12 @@
 // rendering and input handling
 class Win32Window {
  public:
+  enum class FrameThemePreference {
+    kSystem,
+    kDark,
+    kLight,
+  };
+
   struct Point {
     unsigned int x;
     unsigned int y;
@@ -74,6 +80,9 @@ class Win32Window {
   // Called when Destroy is called.
   virtual void OnDestroy();
 
+  // Sets the title bar theme preference.
+  void SetFrameThemePreference(FrameThemePreference preference);
+
  private:
   friend class WindowClassRegistrar;
 
@@ -100,6 +109,8 @@ class Win32Window {
 
   // window handle for hosted content.
   HWND child_content_ = nullptr;
+  FrameThemePreference frame_theme_preference_ =
+      FrameThemePreference::kSystem;
 };
 
 #endif  // RUNNER_WIN32_WINDOW_H_

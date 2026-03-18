@@ -3,8 +3,8 @@ import 'dart:io';
 import 'package:diary_mvp/app/app_display_name.dart';
 import 'package:diary_mvp/app/app_icon.dart';
 import 'package:diary_mvp/app/localization/app_strings.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:flutter/widgets.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 bool get supportsNativeWindowIdentityCustomization => Platform.isWindows;
@@ -28,10 +28,12 @@ class _WindowIdentitySyncState extends ConsumerState<WindowIdentitySync> {
 
   String? _lastTitle;
   String? _lastIconKey;
+  bool? _lastPreferDarkFrame;
 
   @override
   Widget build(BuildContext context) {
     final strings = context.strings;
+    final preferDarkFrame = Theme.of(context).brightness == Brightness.dark;
     final title = resolveAppDisplayName(
       strings: strings,
       customNameAsync: ref.watch(appDisplayNameControllerProvider),
@@ -41,7 +43,11 @@ class _WindowIdentitySyncState extends ConsumerState<WindowIdentitySync> {
     );
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      _syncWindowIdentity(title: title, iconSelection: iconSelection);
+      _syncWindowIdentity(
+        title: title,
+        iconSelection: iconSelection,
+        preferDarkFrame: preferDarkFrame,
+      );
     });
 
     return widget.child;
@@ -50,6 +56,7 @@ class _WindowIdentitySyncState extends ConsumerState<WindowIdentitySync> {
   Future<void> _syncWindowIdentity({
     required String title,
     required AppIconSelection iconSelection,
+    required bool preferDarkFrame,
   }) async {
     if (!mounted || !supportsNativeWindowIdentityCustomization) {
       return;
@@ -58,17 +65,21 @@ class _WindowIdentitySyncState extends ConsumerState<WindowIdentitySync> {
     final normalizedIconPath = iconSelection.windowIconPath.trim();
     final normalizedIconKey =
         normalizedIconPath.isEmpty ? null : iconSelection.cacheKey;
-    if (_lastTitle == title && _lastIconKey == normalizedIconKey) {
+    if (_lastTitle == title &&
+        _lastIconKey == normalizedIconKey &&
+        _lastPreferDarkFrame == preferDarkFrame) {
       return;
     }
 
     _lastTitle = title;
     _lastIconKey = normalizedIconKey;
+    _lastPreferDarkFrame = preferDarkFrame;
 
     try {
       await _channel.invokeMethod<void>('applyWindowIdentity', {
         'title': title,
         'iconPath': normalizedIconPath,
+        'preferDarkFrame': preferDarkFrame,
       });
     } catch (_) {
       // Keep startup resilient if the native platform doesn't support updates.

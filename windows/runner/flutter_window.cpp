@@ -22,6 +22,21 @@ std::string ReadStringArgument(const flutter::EncodableMap& arguments,
   return value == nullptr ? std::string() : *value;
 }
 
+std::optional<bool> ReadBoolArgument(const flutter::EncodableMap& arguments,
+                                     const char* key) {
+  const auto iterator = arguments.find(flutter::EncodableValue(key));
+  if (iterator == arguments.end()) {
+    return std::nullopt;
+  }
+
+  const auto* value = std::get_if<bool>(&iterator->second);
+  if (value == nullptr) {
+    return std::nullopt;
+  }
+
+  return *value;
+}
+
 HICON LoadDefaultIcon(int size) {
   return static_cast<HICON>(::LoadImageW(
       ::GetModuleHandle(nullptr), MAKEINTRESOURCEW(IDI_APP_ICON), IMAGE_ICON,
@@ -159,6 +174,16 @@ void FlutterWindow::RegisterWindowIdentityChannel() {
         const auto title = Utf16FromUtf8(ReadStringArgument(*arguments, "title"));
         const auto icon_path =
             Utf16FromUtf8(ReadStringArgument(*arguments, "iconPath"));
+        const auto prefer_dark_frame =
+            ReadBoolArgument(*arguments, "preferDarkFrame");
+
+        if (prefer_dark_frame.has_value()) {
+          SetFrameThemePreference(*prefer_dark_frame
+                                      ? FrameThemePreference::kDark
+                                      : FrameThemePreference::kLight);
+        } else {
+          SetFrameThemePreference(FrameThemePreference::kSystem);
+        }
 
         if (!title.empty()) {
           ApplyWindowTitle(title);
