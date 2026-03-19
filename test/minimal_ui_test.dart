@@ -4,6 +4,7 @@ import 'package:diary_mvp/app/app_display_name.dart';
 import 'package:diary_mvp/app/app_icon.dart';
 import 'package:diary_mvp/app/localization/app_locale.dart';
 import 'package:diary_mvp/app/localization/app_strings.dart';
+import 'package:diary_mvp/app/startup_lock_gate.dart';
 import 'package:diary_mvp/app/theme.dart';
 import 'package:diary_mvp/features/diary/data/diary_repository.dart';
 import 'package:diary_mvp/features/diary/domain/diary_entry.dart';
@@ -13,6 +14,7 @@ import 'package:diary_mvp/features/diary/presentation/pages/image_preview_page.d
 import 'package:diary_mvp/features/diary/presentation/pages/settings_page.dart';
 import 'package:diary_mvp/features/diary/presentation/pages/trash_page.dart';
 import 'package:diary_mvp/features/diary/services/diary_ai_settings.dart';
+import 'package:diary_mvp/features/diary/services/password_settings.dart';
 import 'package:diary_mvp/features/diary/services/transcription_settings.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
@@ -51,7 +53,8 @@ void main() {
     expect(find.text('#life'), findsWidgets);
   });
 
-  testWidgets('editor page keeps AI available and hides empty video panel',
+  testWidgets(
+      'editor page keeps AI available, removes transcription, and hides empty video panel',
       (tester) async {
     final repository = FakeDiaryRepository(
       moods: DiaryMood.values,
@@ -75,6 +78,7 @@ void main() {
     expect(find.text(strings.analyzeDiaryWithAi), findsOneWidget);
     expect(find.text(strings.noAiSuggestionYet), findsNothing);
     expect(find.text(strings.videoSidebarTitle), findsNothing);
+    expect(find.text(strings.transcribeLatestAudio), findsNothing);
   });
 
   testWidgets('editor page restores saved AI analysis in the requested order',
@@ -281,7 +285,61 @@ void main() {
     await tester.testTextInput.receiveAction(TextInputAction.done);
     await tester.pumpAndSettle();
 
-    expect(find.text('#focus'), findsOneWidget);
+    expect(find.text('#focus'), findsWidgets);
+  });
+
+  testWidgets('saving an entry keeps the editor page open', (tester) async {
+    final repository = FakeDiaryRepository(
+      moods: DiaryMood.values,
+    );
+
+    await pumpPage(
+      tester,
+      const EditorPage(),
+      path: '/editor',
+      overrides: buildOverrides(repository: repository),
+    );
+
+    await tester.enterText(find.byType(TextField).at(0), 'Saved draft');
+    await tester.enterText(find.byType(TextField).at(1), 'Keep me here.');
+    await tester.tap(find.byIcon(Icons.save_outlined));
+    await tester.pumpAndSettle();
+
+    expect(find.text(strings.whatHappenedToday), findsOneWidget);
+    expect(find.text(strings.entrySaved), findsOneWidget);
+    expect((await repository.listEntries()).length, 1);
+  });
+
+  testWidgets('editor page warns before switching pages with unsaved changes',
+      (tester) async {
+    final repository = FakeDiaryRepository(
+      moods: DiaryMood.values,
+    );
+
+    await pumpEditorNavigationApp(
+      tester,
+      initialLocation: '/editor',
+      overrides: buildOverrides(repository: repository),
+    );
+
+    await tester.enterText(find.byType(TextField).at(0), 'Unsaved draft');
+    await tester.tap(find.text(strings.homeNav));
+    await tester.pumpAndSettle();
+
+    expect(find.text(strings.unsavedChangesTitle), findsOneWidget);
+    expect(find.text(strings.unsavedChangesMessage), findsOneWidget);
+
+    await tester.tap(find.text(strings.stayOnPage));
+    await tester.pumpAndSettle();
+    expect(find.text(strings.whatHappenedToday), findsOneWidget);
+
+    await tester.tap(find.text(strings.homeNav));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text(strings.leaveWithoutSaving));
+    await tester.pumpAndSettle();
+
+    expect(find.text(strings.unsavedChangesTitle), findsNothing);
+    expect(find.text(strings.recentEntries), findsOneWidget);
   });
 
   testWidgets(
@@ -467,8 +525,8 @@ void main() {
     expect(find.text(strings.appNameLabel), findsNothing);
     expect(find.text(strings.addMood), findsNothing);
     expect(find.text(strings.currentWindowIcon), findsNothing);
+    expect(find.text(strings.newPasscodeLabel), findsNothing);
     expect(find.text(strings.aliyunApiKeyLabel), findsNothing);
-    expect(find.text(strings.openAiApiKeyLabel), findsNothing);
 
     await tester.scrollUntilVisible(
       find.text(strings.appIdentityTitle),
@@ -481,6 +539,16 @@ void main() {
     expect(find.text(strings.appNameLabel), findsOneWidget);
 
     await tester.scrollUntilVisible(
+      find.text(strings.passwordSettingsTitle),
+      300,
+      scrollable: find.byType(Scrollable).first,
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(find.text(strings.passwordSettingsTitle));
+    await tester.pumpAndSettle();
+    expect(find.text(strings.newPasscodeLabel), findsOneWidget);
+
+    await tester.scrollUntilVisible(
       find.text(strings.moodLibraryTitle),
       300,
       scrollable: find.byType(Scrollable).first,
@@ -491,7 +559,7 @@ void main() {
     expect(find.text(strings.addMood), findsOneWidget);
     expect(find.byKey(const ValueKey('mood-library-wrap')), findsOneWidget);
     expect(
-      find.byKey(ValueKey('mood-library-item-${DiaryMood.happyId}')),
+      find.byKey(const ValueKey('mood-library-item-${DiaryMood.happyId}')),
       findsOneWidget,
     );
     expect(find.byType(ListTile), findsNothing);
@@ -505,16 +573,145 @@ void main() {
     await tester.tap(find.text(strings.diaryAiSettingsTitle));
     await tester.pumpAndSettle();
     expect(find.text(strings.aliyunApiKeyLabel), findsOneWidget);
+  });
+
+  testWidgets('settings page can set a new startup passcode', (tester) async {
+    final repository = FakeDiaryRepository(
+      moods: DiaryMood.values,
+    );
+    final passwordStorage = FakePasswordSettingsStorage();
+
+    await pumpPage(
+      tester,
+      const SettingsPage(),
+      path: '/settings',
+      overrides: buildOverrides(
+        repository: repository,
+        passwordSettingsStorage: passwordStorage,
+      ),
+    );
 
     await tester.scrollUntilVisible(
-      find.text(strings.transcriptionSettingsTitle),
+      find.text(strings.passwordSettingsTitle),
       300,
       scrollable: find.byType(Scrollable).first,
     );
     await tester.pumpAndSettle();
-    await tester.tap(find.text(strings.transcriptionSettingsTitle));
+    await tester.tap(find.text(strings.passwordSettingsTitle));
     await tester.pumpAndSettle();
-    expect(find.text(strings.openAiApiKeyLabel), findsOneWidget);
+
+    await tester.enterText(
+      find.byKey(const ValueKey('settings-passcode-new')),
+      '123456',
+    );
+    await tester.enterText(
+      find.byKey(const ValueKey('settings-passcode-confirm')),
+      '123456',
+    );
+    await tester.tap(find.text(strings.saveAction));
+    await tester.pumpAndSettle();
+
+    final stored = await passwordStorage.read();
+    expect(find.text(strings.passcodeSaved), findsOneWidget);
+    expect(stored.hasPassword, isTrue);
+    expect(verifyPassword('123456', stored), isTrue);
+  });
+
+  testWidgets('settings page requires the current passcode before changing it',
+      (tester) async {
+    final repository = FakeDiaryRepository(
+      moods: DiaryMood.values,
+    );
+    final hashed = hashPassword('123456');
+    final passwordStorage = FakePasswordSettingsStorage(
+      PasswordSettingsState(
+        enabled: true,
+        salt: hashed.salt,
+        passwordHash: hashed.passwordHash,
+      ),
+    );
+
+    await pumpPage(
+      tester,
+      const SettingsPage(),
+      path: '/settings',
+      overrides: buildOverrides(
+        repository: repository,
+        passwordSettingsStorage: passwordStorage,
+      ),
+    );
+
+    await tester.scrollUntilVisible(
+      find.text(strings.passwordSettingsTitle),
+      300,
+      scrollable: find.byType(Scrollable).first,
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(find.text(strings.passwordSettingsTitle));
+    await tester.pumpAndSettle();
+
+    await tester.enterText(
+      find.byKey(const ValueKey('settings-passcode-current')),
+      '000000',
+    );
+    await tester.enterText(
+      find.byKey(const ValueKey('settings-passcode-new')),
+      '654321',
+    );
+    await tester.enterText(
+      find.byKey(const ValueKey('settings-passcode-confirm')),
+      '654321',
+    );
+    await tester.tap(find.text(strings.saveAction));
+    await tester.pumpAndSettle();
+
+    expect(find.text(strings.currentPasscodeIncorrect), findsOneWidget);
+    expect(verifyPassword('123456', await passwordStorage.read()), isTrue);
+  });
+
+  testWidgets('settings page can disable the startup passcode', (tester) async {
+    final repository = FakeDiaryRepository(
+      moods: DiaryMood.values,
+    );
+    final hashed = hashPassword('123456');
+    final passwordStorage = FakePasswordSettingsStorage(
+      PasswordSettingsState(
+        enabled: true,
+        salt: hashed.salt,
+        passwordHash: hashed.passwordHash,
+      ),
+    );
+
+    await pumpPage(
+      tester,
+      const SettingsPage(),
+      path: '/settings',
+      overrides: buildOverrides(
+        repository: repository,
+        passwordSettingsStorage: passwordStorage,
+      ),
+    );
+
+    await tester.scrollUntilVisible(
+      find.text(strings.passwordSettingsTitle),
+      300,
+      scrollable: find.byType(Scrollable).first,
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(find.text(strings.passwordSettingsTitle));
+    await tester.pumpAndSettle();
+
+    await tester.tap(
+      find.widgetWithText(OutlinedButton, strings.disablePasscode),
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(
+      find.widgetWithText(FilledButton, strings.confirmDisablePasscode),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text(strings.passcodeDisabled), findsOneWidget);
+    expect((await passwordStorage.read()).hasPassword, isFalse);
   });
 
   testWidgets('editor images open the dedicated preview page', (tester) async {
@@ -560,6 +757,7 @@ Future<void> pumpPage(
   Widget child, {
   required String path,
   required List<Override> overrides,
+  bool withStartupLockGate = false,
 }) async {
   final router = GoRouter(
     initialLocation: path,
@@ -587,6 +785,57 @@ Future<void> pumpPage(
         theme: buildDiaryTheme(DiaryThemePreset.daylight),
         supportedLocales: AppStrings.supportedLocales,
         localizationsDelegates: GlobalMaterialLocalizations.delegates,
+        builder: (context, appChild) {
+          final content = appChild ?? const SizedBox.shrink();
+          if (!withStartupLockGate) {
+            return content;
+          }
+          return AppStartupLockGate(child: content);
+        },
+      ),
+    ),
+  );
+
+  await tester.pump();
+  await tester.pump(const Duration(milliseconds: 200));
+}
+
+Future<void> pumpEditorNavigationApp(
+  WidgetTester tester, {
+  required String initialLocation,
+  required List<Override> overrides,
+}) async {
+  final router = GoRouter(
+    initialLocation: initialLocation,
+    routes: [
+      GoRoute(path: '/', builder: (context, state) => const HomePage()),
+      GoRoute(
+        path: '/editor',
+        builder: (context, state) => EditorPage(
+          entry: state.extra as DiaryEntry?,
+        ),
+      ),
+      GoRoute(
+          path: '/settings', builder: (context, state) => const SettingsPage()),
+      GoRoute(path: '/timeline', builder: (context, state) => const HomePage()),
+      GoRoute(path: '/trash', builder: (context, state) => const TrashPage()),
+      GoRoute(
+        path: '/image-preview',
+        builder: (context, state) => ImagePreviewPage(
+          media: state.extra as DiaryMedia?,
+        ),
+      ),
+    ],
+  );
+
+  await tester.pumpWidget(
+    ProviderScope(
+      overrides: overrides,
+      child: MaterialApp.router(
+        routerConfig: router,
+        theme: buildDiaryTheme(DiaryThemePreset.daylight),
+        supportedLocales: AppStrings.supportedLocales,
+        localizationsDelegates: GlobalMaterialLocalizations.delegates,
       ),
     ),
   );
@@ -597,7 +846,11 @@ Future<void> pumpPage(
 
 List<Override> buildOverrides({
   required FakeDiaryRepository repository,
+  FakePasswordSettingsStorage? passwordSettingsStorage,
 }) {
+  final effectivePasswordSettingsStorage =
+      passwordSettingsStorage ?? FakePasswordSettingsStorage();
+
   return [
     diaryRepositoryProvider.overrideWith((ref) => repository),
     appThemeStorageProvider.overrideWith(
@@ -625,6 +878,9 @@ List<Override> buildOverrides({
     diaryAiApiKeyStorageProvider.overrideWith(
       (ref) => FakeDiaryAiSettingsStorage(),
     ),
+    passwordSettingsStorageProvider.overrideWith(
+      (ref) => effectivePasswordSettingsStorage,
+    ),
     transcriptionApiKeyStorageProvider.overrideWith(
       (ref) => FakeTranscriptionApiKeyStorage(),
     ),
@@ -637,10 +893,10 @@ class FakeDiaryRepository implements DiaryRepository {
     List<DiaryEntry>? trashedEntries,
     List<String>? tags,
     List<DiaryMood>? moods,
-  })  : _entries = entries ?? const [],
-        _trashedEntries = trashedEntries ?? const [],
-        _tags = tags ?? const [],
-        _moods = moods ?? DiaryMood.values;
+  })  : _entries = List<DiaryEntry>.from(entries ?? const []),
+        _trashedEntries = List<DiaryEntry>.from(trashedEntries ?? const []),
+        _tags = List<String>.from(tags ?? const []),
+        _moods = List<DiaryMood>.from(moods ?? DiaryMood.values);
 
   final List<DiaryEntry> _entries;
   final List<DiaryEntry> _trashedEntries;
@@ -657,7 +913,19 @@ class FakeDiaryRepository implements DiaryRepository {
     required List<DiaryMedia> media,
     DiaryEntryAiAnalysis? aiAnalysis,
   }) async {
-    throw UnimplementedError();
+    final entry = DiaryEntry(
+      id: 'entry-${_entries.length + 1}',
+      title: title.trim().isEmpty ? 'Untitled entry' : title.trim(),
+      content: content.trim(),
+      mood: mood,
+      createdAt: DateTime(2026, 3, 19, 12),
+      location: location.trim().isEmpty ? null : location.trim(),
+      tags: List<String>.from(tags),
+      media: List<DiaryMedia>.from(media),
+      aiAnalysis: aiAnalysis,
+    );
+    _entries.insert(0, entry);
+    return entry;
   }
 
   @override
@@ -679,13 +947,25 @@ class FakeDiaryRepository implements DiaryRepository {
   Future<void> resetMoodLibraryToDefaults() async {}
 
   @override
-  Future<void> saveEntry(DiaryEntry entry) async {}
+  Future<void> saveEntry(DiaryEntry entry) async {
+    final existingIndex = _entries.indexWhere((item) => item.id == entry.id);
+    if (existingIndex >= 0) {
+      _entries[existingIndex] = entry;
+      return;
+    }
+    _entries.insert(0, entry);
+  }
 
   @override
   Future<void> saveMood(DiaryMood mood) async {}
 
   @override
-  Future<void> saveTag(String tag) async {}
+  Future<void> saveTag(String tag) async {
+    if (_tags.any((item) => item.toLowerCase() == tag.toLowerCase())) {
+      return;
+    }
+    _tags.insert(0, tag);
+  }
 
   @override
   Future<DiaryEntry> updateEntry({
@@ -698,11 +978,23 @@ class FakeDiaryRepository implements DiaryRepository {
     required List<DiaryMedia> media,
     DiaryEntryAiAnalysis? aiAnalysis,
   }) async {
-    return entry;
+    final updated = entry.copyWith(
+      title: title.trim().isEmpty ? 'Untitled entry' : title.trim(),
+      content: content.trim(),
+      mood: mood,
+      location: location.trim().isEmpty ? null : location.trim(),
+      tags: List<String>.from(tags),
+      media: List<DiaryMedia>.from(media),
+      aiAnalysis: aiAnalysis,
+    );
+    await saveEntry(updated);
+    return updated;
   }
 
   @override
-  Future<void> deleteTag(String tag) async {}
+  Future<void> deleteTag(String tag) async {
+    _tags.removeWhere((item) => item.toLowerCase() == tag.toLowerCase());
+  }
 }
 
 class FakeAppThemeStorage extends AppThemeStorage {
@@ -784,6 +1076,22 @@ class FakeDiaryAiSettingsStorage extends DiaryAiSettingsStorage {
 
   @override
   Future<void> writeVisibility(bool enabled) async {}
+}
+
+class FakePasswordSettingsStorage extends PasswordSettingsStorage {
+  FakePasswordSettingsStorage([
+    PasswordSettingsState? value,
+  ]) : _value = value ?? const PasswordSettingsState.disabled();
+
+  PasswordSettingsState _value;
+
+  @override
+  Future<PasswordSettingsState> read() async => _value;
+
+  @override
+  Future<void> write(PasswordSettingsState settings) async {
+    _value = settings;
+  }
 }
 
 class FakeTranscriptionApiKeyStorage extends TranscriptionApiKeyStorage {

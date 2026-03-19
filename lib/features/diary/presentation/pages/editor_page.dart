@@ -1,4 +1,6 @@
+import 'dart:convert';
 import 'dart:math';
+import 'dart:ui' as ui;
 
 import 'package:diary_mvp/app/context_tooltip.dart';
 import 'package:diary_mvp/app/localization/app_strings.dart';
@@ -16,7 +18,6 @@ import 'package:diary_mvp/features/diary/services/diary_ai_service.dart';
 import 'package:diary_mvp/features/diary/services/diary_ai_settings.dart';
 import 'package:diary_mvp/features/diary/services/export_service.dart';
 import 'package:diary_mvp/features/diary/services/location_service.dart';
-import 'package:diary_mvp/features/diary/services/transcription_service.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -37,7 +38,8 @@ class EditorPage extends ConsumerStatefulWidget {
   ConsumerState<EditorPage> createState() => _EditorPageState();
 }
 
-class _EditorPageState extends ConsumerState<EditorPage> {
+class _EditorPageState extends ConsumerState<EditorPage>
+    with WidgetsBindingObserver {
   final _titleController = TextEditingController();
   final _contentController = TextEditingController();
   final _locationController = TextEditingController();
@@ -53,36 +55,42 @@ class _EditorPageState extends ConsumerState<EditorPage> {
   bool _isDeleting = false;
   bool _isExporting = false;
   bool _isRecording = false;
-  bool _isTranscribing = false;
   bool _isAnalyzingAi = false;
   bool _isLocating = false;
   bool _isManagingTags = false;
   bool _isAiExpanded = false;
+  bool _allowNextPop = false;
   DateTime? _recordingStartedAt;
   DiaryEntryAiAnalysis? _aiSuggestion;
   late final DateTime _draftCreatedAt;
+  late String _lastSavedSignature;
 
   bool get _isEditing => widget.entry != null;
+  bool get _hasUnsavedChanges =>
+      _currentDraftSignature() != _lastSavedSignature;
 
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     final entry = widget.entry;
     _draftCreatedAt = entry?.createdAt ?? DateTime.now();
-    if (entry == null) return;
-
-    _titleController.text = entry.title;
-    _contentController.text = entry.content;
-    _locationController.text = entry.location ?? '';
-    _moodId = entry.mood.id;
-    _media.addAll(entry.media);
-    _tags.addAll(entry.tags);
-    _aiSuggestion = entry.aiAnalysis;
-    _isAiExpanded = entry.aiAnalysis != null;
+    if (entry != null) {
+      _titleController.text = entry.title;
+      _contentController.text = entry.content;
+      _locationController.text = entry.location ?? '';
+      _moodId = entry.mood.id;
+      _media.addAll(entry.media);
+      _tags.addAll(entry.tags);
+      _aiSuggestion = entry.aiAnalysis;
+      _isAiExpanded = entry.aiAnalysis != null;
+    }
+    _lastSavedSignature = _currentDraftSignature();
   }
 
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
     _titleController.dispose();
     _contentController.dispose();
     _locationController.dispose();
@@ -111,86 +119,108 @@ class _EditorPageState extends ConsumerState<EditorPage> {
             item.type != MediaType.video)
         .toList();
 
-    return DiaryShell(
-      title: _isEditing ? strings.editEntry : strings.newEntry,
-      showAppBarTitle: false,
-      compactBodyPadding:
-          const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
-      expandedBodyPadding:
-          const EdgeInsets.symmetric(horizontal: 14, vertical: 16),
-      child: LayoutBuilder(
-        builder: (context, constraints) {
-          final horizontalInset = _editorHorizontalInset(constraints.maxWidth);
-          final contentWidth =
-              max(0.0, constraints.maxWidth - (horizontalInset * 2));
-          final showVideoSidebar = contentWidth >= 1100;
-          final sidebarWidth = _editorSidebarWidth(contentWidth);
-          final sidebarGap = _editorSidebarGap(contentWidth);
-          final mainSections = _buildMainSections(
-            context: context,
-            strings: strings,
-            imageMedia: imageMedia,
-            audioMedia: audioMedia,
-            otherMedia: otherMedia,
-            moodLibraryAsync: moodLibraryAsync,
-          );
-          final aiSection = showDiaryAiSection
-              ? _buildAiSection(
-                  context,
-                  strings,
-                )
-              : null;
+    return PopScope<Object?>(
+      canPop: _allowNextPop ||
+          !_hasUnsavedChanges ||
+          _isSaving ||
+          _isDeleting ||
+          _isExporting,
+      onPopInvokedWithResult: (didPop, result) async {
+        if (didPop || _allowNextPop) {
+          return;
+        }
 
-          if (!showVideoSidebar) {
+        final shouldLeave = await _confirmLeaveEditor();
+        if (!shouldLeave || !context.mounted) {
+          return;
+        }
+
+        setState(() => _allowNextPop = true);
+        Navigator.of(context).pop(result);
+      },
+      child: DiaryShell(
+        title: _isEditing ? strings.editEntry : strings.newEntry,
+        showAppBarTitle: false,
+        compactBodyPadding:
+            const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+        expandedBodyPadding:
+            const EdgeInsets.symmetric(horizontal: 14, vertical: 16),
+        onNavigateRequest: _handleNavigationRequest,
+        child: LayoutBuilder(
+          builder: (context, constraints) {
+            final horizontalInset =
+                _editorHorizontalInset(constraints.maxWidth);
+            final contentWidth =
+                max(0.0, constraints.maxWidth - (horizontalInset * 2));
+            final showVideoSidebar = contentWidth >= 1100;
+            final sidebarWidth = _editorSidebarWidth(contentWidth);
+            final sidebarGap = _editorSidebarGap(contentWidth);
+            final mainSections = _buildMainSections(
+              context: context,
+              strings: strings,
+              imageMedia: imageMedia,
+              audioMedia: audioMedia,
+              otherMedia: otherMedia,
+              moodLibraryAsync: moodLibraryAsync,
+            );
+            final aiSection = showDiaryAiSection
+                ? _buildAiSection(
+                    context,
+                    strings,
+                  )
+                : null;
+
+            if (!showVideoSidebar) {
+              return Padding(
+                padding: EdgeInsets.symmetric(horizontal: horizontalInset),
+                child: ListView(
+                  children: [
+                    ...mainSections,
+                    if (aiSection != null) ...[
+                      const SizedBox(height: 20),
+                      aiSection,
+                    ],
+                    const SizedBox(height: 20),
+                    _buildTagSection(context, strings, tagLibraryAsync),
+                    if (videoMedia.isNotEmpty) ...[
+                      const SizedBox(height: 20),
+                      _buildVideoSection(context, strings, videoMedia),
+                    ],
+                  ],
+                ),
+              );
+            }
+
             return Padding(
               padding: EdgeInsets.symmetric(horizontal: horizontalInset),
-              child: ListView(
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  ...mainSections,
-                  if (aiSection != null) ...[
-                    const SizedBox(height: 20),
-                    aiSection,
-                  ],
-                  const SizedBox(height: 20),
-                  _buildTagSection(context, strings, tagLibraryAsync),
-                  if (videoMedia.isNotEmpty) ...[
-                    const SizedBox(height: 20),
-                    _buildVideoSection(context, strings, videoMedia),
-                  ],
+                  Expanded(
+                    child: ListView(children: mainSections),
+                  ),
+                  SizedBox(width: sidebarGap),
+                  SizedBox(
+                    width: sidebarWidth,
+                    child: ListView(
+                      children: [
+                        if (aiSection != null) ...[
+                          aiSection,
+                          const SizedBox(height: 16),
+                        ],
+                        _buildTagSection(context, strings, tagLibraryAsync),
+                        if (videoMedia.isNotEmpty) ...[
+                          const SizedBox(height: 16),
+                          _buildVideoSection(context, strings, videoMedia),
+                        ],
+                      ],
+                    ),
+                  ),
                 ],
               ),
             );
-          }
-
-          return Padding(
-            padding: EdgeInsets.symmetric(horizontal: horizontalInset),
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Expanded(
-                  child: ListView(children: mainSections),
-                ),
-                SizedBox(width: sidebarGap),
-                SizedBox(
-                  width: sidebarWidth,
-                  child: ListView(
-                    children: [
-                      if (aiSection != null) ...[
-                        aiSection,
-                        const SizedBox(height: 16),
-                      ],
-                      _buildTagSection(context, strings, tagLibraryAsync),
-                      if (videoMedia.isNotEmpty) ...[
-                        const SizedBox(height: 16),
-                        _buildVideoSection(context, strings, videoMedia),
-                      ],
-                    ],
-                  ),
-                ),
-              ],
-            ),
-          );
-        },
+          },
+        ),
       ),
     );
   }
@@ -240,15 +270,6 @@ class _EditorPageState extends ConsumerState<EditorPage> {
             ),
             label: Text(
               _isRecording ? strings.stopRecording : strings.startRecording,
-            ),
-          ),
-          FilledButton.tonalIcon(
-            onPressed: _isTranscribing ? null : _transcribeLatestAudio,
-            icon: const Icon(Icons.subtitles_outlined),
-            label: Text(
-              _isTranscribing
-                  ? strings.transcribing
-                  : strings.transcribeLatestAudio,
             ),
           ),
         ],
@@ -353,6 +374,47 @@ class _EditorPageState extends ConsumerState<EditorPage> {
         },
       ),
     ];
+  }
+
+  @override
+  Future<ui.AppExitResponse> didRequestAppExit() async {
+    final shouldExit = await _confirmLeaveEditor();
+    return shouldExit ? ui.AppExitResponse.exit : ui.AppExitResponse.cancel;
+  }
+
+  Future<bool> _handleNavigationRequest(String location) async {
+    if (location.startsWith('/editor')) {
+      return true;
+    }
+    return _confirmLeaveEditor();
+  }
+
+  Future<bool> _confirmLeaveEditor() async {
+    if (!_hasUnsavedChanges || _isSaving || _isDeleting || _isExporting) {
+      return true;
+    }
+
+    final strings = context.strings;
+    final shouldLeave = await showDialog<bool>(
+          context: context,
+          builder: (dialogContext) => AlertDialog(
+            title: Text(strings.unsavedChangesTitle),
+            content: Text(strings.unsavedChangesMessage),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.of(dialogContext).pop(false),
+                child: Text(strings.stayOnPage),
+              ),
+              FilledButton(
+                onPressed: () => Navigator.of(dialogContext).pop(true),
+                child: Text(strings.leaveWithoutSaving),
+              ),
+            ],
+          ),
+        ) ??
+        false;
+
+    return shouldLeave;
   }
 
   Widget _buildEditorHeader(BuildContext context, AppStrings strings) {
@@ -483,7 +545,7 @@ class _EditorPageState extends ConsumerState<EditorPage> {
   ) {
     final suggestion = _aiSuggestion;
     final hasAiSuggestion = suggestion != null && !suggestion.isEmpty;
-    final aiSuggestion = hasAiSuggestion ? suggestion! : null;
+    final aiSuggestion = hasAiSuggestion ? suggestion : null;
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
     final showEmotionalCompanion =
@@ -1244,43 +1306,6 @@ class _EditorPageState extends ConsumerState<EditorPage> {
     );
   }
 
-  Future<void> _transcribeLatestAudio() async {
-    final strings = context.strings;
-    final latestAudio = _findLatestAudio();
-    if (latestAudio == null) {
-      context.showAppSnackBar(
-        strings.pleaseRecordAudioFirst,
-        tone: AppSnackBarTone.warning,
-      );
-      return;
-    }
-
-    setState(() => _isTranscribing = true);
-    final service = ref.read(transcriptionServiceProvider);
-    final result = await service.transcribe(latestAudio.path);
-
-    if (!mounted) return;
-    setState(() => _isTranscribing = false);
-
-    if (!result.ok || result.text == null) {
-      context.showAppSnackBar(
-        _transcriptionFailureMessage(strings, result),
-        tone: AppSnackBarTone.error,
-      );
-      return;
-    }
-
-    final prefix = _contentController.text.trim().isEmpty ? '' : '\n\n';
-    _contentController.text = '${_contentController.text}$prefix${result.text}';
-    _contentController.selection =
-        TextSelection.collapsed(offset: _contentController.text.length);
-
-    context.showAppSnackBar(
-      strings.transcriptionInserted,
-      tone: AppSnackBarTone.success,
-    );
-  }
-
   Future<void> _analyzeWithAi() async {
     final strings = context.strings;
     final includeEmotionalCompanion =
@@ -1321,14 +1346,6 @@ class _EditorPageState extends ConsumerState<EditorPage> {
       strings.aiAnalysisReady,
       tone: AppSnackBarTone.success,
     );
-  }
-
-  DiaryMedia? _findLatestAudio() {
-    for (var index = _media.length - 1; index >= 0; index--) {
-      final item = _media[index];
-      if (item.type == MediaType.audio) return item;
-    }
-    return null;
   }
 
   Future<void> _createTagFromInput() async {
@@ -1445,11 +1462,11 @@ class _EditorPageState extends ConsumerState<EditorPage> {
 
     if (!mounted) return;
     setState(() => _isSaving = false);
+    _lastSavedSignature = _currentDraftSignature();
     context.showAppSnackBar(
       _isEditing ? strings.entryUpdated : strings.entrySaved,
       tone: AppSnackBarTone.success,
     );
-    context.go('/timeline');
   }
 
   Future<void> _confirmDelete() async {
@@ -1589,21 +1606,34 @@ class _EditorPageState extends ConsumerState<EditorPage> {
     return '$minutes:$seconds';
   }
 
-  String _transcriptionFailureMessage(
-    AppStrings strings,
-    TranscriptionResult result,
-  ) {
-    switch (result.failure) {
-      case TranscriptionFailure.apiKeyMissing:
-        return strings.apiKeyMissing;
-      case TranscriptionFailure.fileNotFound:
-        return strings.audioFileMissing;
-      case TranscriptionFailure.requestFailed:
-        return strings.transcriptionRequestFailed(result.statusCode);
-      case TranscriptionFailure.emptyResponse:
-      case null:
-        return strings.noTranscriptionText;
-    }
+  String _currentDraftSignature() {
+    return jsonEncode({
+      'title': _titleController.text.trim(),
+      'content': _contentController.text.trim(),
+      'location': _locationController.text.trim(),
+      'mood_id': _moodId,
+      'tags': List<String>.from(_tags),
+      'media': _media
+          .map(
+            (item) => {
+              'id': item.id,
+              'type': item.type.name,
+              'path': item.path,
+              'duration_label': item.durationLabel,
+              'captured_at': item.capturedAt?.millisecondsSinceEpoch,
+            },
+          )
+          .toList(growable: false),
+      'ai_analysis': _aiSuggestion == null
+          ? null
+          : {
+              'overview_text': _aiSuggestion!.overviewText,
+              'suggested_tags': _aiSuggestion!.suggestedTags,
+              'emotional_support_text': _aiSuggestion!.emotionalSupportText,
+              'question_suggestion_text': _aiSuggestion!.questionSuggestionText,
+              'analyzed_at': _aiSuggestion!.analyzedAt?.millisecondsSinceEpoch,
+            },
+    });
   }
 
   String _diaryAiFailureMessage(

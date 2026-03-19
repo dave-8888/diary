@@ -11,10 +11,11 @@ import 'package:diary_mvp/features/diary/application/diary_controller.dart';
 import 'package:diary_mvp/features/diary/domain/diary_entry.dart';
 import 'package:diary_mvp/features/diary/presentation/widgets/diary_shell.dart';
 import 'package:diary_mvp/features/diary/services/diary_ai_settings.dart';
-import 'package:diary_mvp/features/diary/services/transcription_settings.dart';
+import 'package:diary_mvp/features/diary/services/password_settings.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
 
 class SettingsPage extends ConsumerStatefulWidget {
@@ -27,16 +28,17 @@ class SettingsPage extends ConsumerStatefulWidget {
 class _SettingsPageState extends ConsumerState<SettingsPage> {
   late final TextEditingController _appNameController;
   late final TextEditingController _diaryAiApiKeyController;
-  late final TextEditingController _apiKeyController;
+  late final TextEditingController _currentPasscodeController;
+  late final TextEditingController _newPasscodeController;
+  late final TextEditingController _confirmPasscodeController;
   bool _appNameInitialized = false;
   bool _diaryAiApiKeyInitialized = false;
-  bool _apiKeyInitialized = false;
   bool _isSavingAppName = false;
   bool _isSavingDiaryAiApiKey = false;
-  bool _isSavingApiKey = false;
+  bool _isSavingPasscode = false;
   bool _isResettingAppName = false;
   bool _isResettingDiaryAiApiKey = false;
-  bool _isResettingApiKey = false;
+  bool _isDisablingPasscode = false;
   bool _isChangingIcon = false;
   bool _isSyncingBuildWindowIcon = false;
   bool _isResettingBuildWindowIcon = false;
@@ -46,27 +48,33 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
   bool _isChangingDiaryAiVisibility = false;
   bool _isChangingEmotionalCompanionVisibility = false;
   bool _isChangingProblemSuggestionVisibility = false;
+  bool _isPasswordSectionExpanded = false;
   bool _isAppIdentitySectionExpanded = false;
   bool _isDiaryAiSectionExpanded = false;
   bool _isMoodLibrarySectionExpanded = false;
-  bool _isTranscriptionSectionExpanded = false;
   bool _isMigrationSectionExpanded = false;
+  bool _showCurrentPasscode = false;
+  bool _showNewPasscode = false;
+  bool _showConfirmPasscode = false;
   bool _showDiaryAiApiKey = false;
-  bool _showApiKey = false;
 
   @override
   void initState() {
     super.initState();
     _appNameController = TextEditingController();
     _diaryAiApiKeyController = TextEditingController();
-    _apiKeyController = TextEditingController();
+    _currentPasscodeController = TextEditingController();
+    _newPasscodeController = TextEditingController();
+    _confirmPasscodeController = TextEditingController();
   }
 
   @override
   void dispose() {
     _appNameController.dispose();
     _diaryAiApiKeyController.dispose();
-    _apiKeyController.dispose();
+    _currentPasscodeController.dispose();
+    _newPasscodeController.dispose();
+    _confirmPasscodeController.dispose();
     super.dispose();
   }
 
@@ -92,7 +100,9 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
     );
     final problemSuggestionVisible =
         problemSuggestionVisibilityAsync.valueOrNull ?? true;
-    final apiKeyAsync = ref.watch(transcriptionApiKeyControllerProvider);
+    final passwordSettingsAsync = ref.watch(passwordSettingsControllerProvider);
+    final passwordEnabled =
+        passwordSettingsAsync.valueOrNull?.hasPassword ?? false;
     final iconSelection =
         resolveAppIconSelection(ref.watch(appIconControllerProvider));
     final iconPreset = iconSelection.preset;
@@ -121,13 +131,6 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
         offset: _diaryAiApiKeyController.text.length,
       );
       _diaryAiApiKeyInitialized = true;
-    }
-    if (!_apiKeyInitialized && apiKeyAsync.hasValue) {
-      _apiKeyController.text = apiKeyAsync.valueOrNull ?? '';
-      _apiKeyController.selection = TextSelection.collapsed(
-        offset: _apiKeyController.text.length,
-      );
-      _apiKeyInitialized = true;
     }
 
     return DiaryShell(
@@ -183,6 +186,26 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
                         ),
                       )
                       .toList(growable: false),
+                ),
+              ),
+              const SizedBox(height: 18),
+              _buildExpandableSectionCard(
+                context: context,
+                icon: Icons.lock_outline_rounded,
+                title: strings.passwordSettingsTitle,
+                subtitle: strings.passwordSettingsHint,
+                summary: strings.passwordStatus(passwordEnabled),
+                expanded: _isPasswordSectionExpanded,
+                onExpandedChanged: (expanded) {
+                  setState(() => _isPasswordSectionExpanded = expanded);
+                },
+                child: passwordSettingsAsync.when(
+                  loading: () =>
+                      const Center(child: CircularProgressIndicator()),
+                  error: (error, stack) =>
+                      Text(strings.passwordInitializationFailed(error)),
+                  data: (settings) =>
+                      _buildPasscodeSection(context, strings, settings),
                 ),
               ),
               const SizedBox(height: 18),
@@ -481,85 +504,6 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
                               ? null
                               : _saveDiaryAiApiKey,
                           child: _isSavingDiaryAiApiKey
-                              ? const SizedBox(
-                                  width: 18,
-                                  height: 18,
-                                  child:
-                                      CircularProgressIndicator(strokeWidth: 2),
-                                )
-                              : Text(strings.saveAction),
-                        ),
-                      ],
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(height: 18),
-              _buildExpandableSectionCard(
-                context: context,
-                icon: Icons.key_outlined,
-                title: strings.transcriptionSettingsTitle,
-                subtitle: strings.transcriptionSettingsHint,
-                summary: transcriptionEnvironmentApiKey.isNotEmpty
-                    ? strings.usingEnvironmentApiKey
-                    : strings.apiKeyEnvironmentHint,
-                expanded: _isTranscriptionSectionExpanded,
-                onExpandedChanged: (expanded) {
-                  setState(() => _isTranscriptionSectionExpanded = expanded);
-                },
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    TextField(
-                      controller: _apiKeyController,
-                      obscureText: !_showApiKey,
-                      decoration: InputDecoration(
-                        labelText: strings.openAiApiKeyLabel,
-                        hintText: strings.openAiApiKeyHint,
-                        suffixIcon: IconButton(
-                          onPressed: () {
-                            setState(() => _showApiKey = !_showApiKey);
-                          },
-                          icon: Icon(
-                            _showApiKey
-                                ? Icons.visibility_off_outlined
-                                : Icons.visibility_outlined,
-                          ),
-                        ),
-                      ),
-                      textInputAction: TextInputAction.done,
-                      onSubmitted: (_) => _saveApiKey(),
-                    ),
-                    const SizedBox(height: 12),
-                    Text(
-                      transcriptionEnvironmentApiKey.isNotEmpty
-                          ? strings.usingEnvironmentApiKey
-                          : strings.apiKeyEnvironmentHint,
-                      style: Theme.of(context).textTheme.bodySmall,
-                    ),
-                    const SizedBox(height: 16),
-                    Wrap(
-                      spacing: 12,
-                      runSpacing: 12,
-                      children: [
-                        OutlinedButton(
-                          onPressed: _isSavingApiKey || _isResettingApiKey
-                              ? null
-                              : _resetApiKey,
-                          child: _isResettingApiKey
-                              ? const SizedBox(
-                                  width: 18,
-                                  height: 18,
-                                  child:
-                                      CircularProgressIndicator(strokeWidth: 2),
-                                )
-                              : Text(strings.resetApiKey),
-                        ),
-                        FilledButton(
-                          onPressed: _isSavingApiKey || _isResettingApiKey
-                              ? null
-                              : _saveApiKey,
-                          child: _isSavingApiKey
                               ? const SizedBox(
                                   width: 18,
                                   height: 18,
@@ -904,6 +848,125 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
     );
   }
 
+  Widget _buildPasscodeSection(
+    BuildContext context,
+    AppStrings strings,
+    PasswordSettingsState settings,
+  ) {
+    final hasPassword = settings.hasPassword;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        if (hasPassword) ...[
+          _buildPasscodeField(
+            controller: _currentPasscodeController,
+            labelText: strings.currentPasscodeLabel,
+            hintText: strings.passcodeHint,
+            isVisible: _showCurrentPasscode,
+            onVisibilityChanged: () {
+              setState(() => _showCurrentPasscode = !_showCurrentPasscode);
+            },
+            valueKey: const ValueKey('settings-passcode-current'),
+            onSubmitted: (_) => _savePasscode(hasPassword: true),
+          ),
+          const SizedBox(height: 16),
+        ],
+        _buildPasscodeField(
+          controller: _newPasscodeController,
+          labelText: strings.newPasscodeLabel,
+          hintText: strings.passcodeHint,
+          isVisible: _showNewPasscode,
+          onVisibilityChanged: () {
+            setState(() => _showNewPasscode = !_showNewPasscode);
+          },
+          valueKey: const ValueKey('settings-passcode-new'),
+          onSubmitted: (_) => _savePasscode(hasPassword: hasPassword),
+        ),
+        const SizedBox(height: 16),
+        _buildPasscodeField(
+          controller: _confirmPasscodeController,
+          labelText: strings.confirmPasscodeLabel,
+          hintText: strings.passcodeHint,
+          isVisible: _showConfirmPasscode,
+          onVisibilityChanged: () {
+            setState(() => _showConfirmPasscode = !_showConfirmPasscode);
+          },
+          valueKey: const ValueKey('settings-passcode-confirm'),
+          onSubmitted: (_) => _savePasscode(hasPassword: hasPassword),
+        ),
+        const SizedBox(height: 16),
+        Wrap(
+          spacing: 12,
+          runSpacing: 12,
+          children: [
+            if (hasPassword)
+              OutlinedButton(
+                onPressed: _isSavingPasscode || _isDisablingPasscode
+                    ? null
+                    : _disablePasscode,
+                child: _isDisablingPasscode
+                    ? const SizedBox(
+                        width: 18,
+                        height: 18,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      )
+                    : Text(strings.disablePasscode),
+              ),
+            FilledButton(
+              onPressed: _isSavingPasscode || _isDisablingPasscode
+                  ? null
+                  : () => _savePasscode(hasPassword: hasPassword),
+              child: _isSavingPasscode
+                  ? const SizedBox(
+                      width: 18,
+                      height: 18,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    )
+                  : Text(strings.saveAction),
+            ),
+          ],
+        ),
+      ],
+    );
+  }
+
+  Widget _buildPasscodeField({
+    required TextEditingController controller,
+    required String labelText,
+    required String hintText,
+    required bool isVisible,
+    required VoidCallback onVisibilityChanged,
+    required ValueKey<String> valueKey,
+    required ValueChanged<String> onSubmitted,
+  }) {
+    return TextField(
+      key: valueKey,
+      controller: controller,
+      obscureText: !isVisible,
+      keyboardType: TextInputType.number,
+      inputFormatters: [
+        FilteringTextInputFormatter.digitsOnly,
+        LengthLimitingTextInputFormatter(6),
+      ],
+      textInputAction: TextInputAction.done,
+      decoration: InputDecoration(
+        labelText: labelText,
+        hintText: hintText,
+        counterText: '',
+        suffixIcon: IconButton(
+          onPressed: onVisibilityChanged,
+          icon: Icon(
+            isVisible
+                ? Icons.visibility_off_outlined
+                : Icons.visibility_outlined,
+          ),
+        ),
+      ),
+      onSubmitted: onSubmitted,
+    );
+  }
+
   Widget _buildStatusChip(BuildContext context, String label) {
     final theme = Theme.of(context);
 
@@ -920,6 +983,127 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
         ),
       ),
     );
+  }
+
+  Future<void> _savePasscode({
+    required bool hasPassword,
+  }) async {
+    final strings = context.strings;
+    final currentPasscode = _currentPasscodeController.text.trim();
+    final newPasscode = _newPasscodeController.text.trim();
+    final confirmPasscode = _confirmPasscodeController.text.trim();
+
+    if (!isValidSixDigitPassword(newPasscode) ||
+        !isValidSixDigitPassword(confirmPasscode) ||
+        (hasPassword && !isValidSixDigitPassword(currentPasscode))) {
+      context.showAppSnackBar(
+        strings.passcodeMustBeSixDigits,
+        tone: AppSnackBarTone.warning,
+      );
+      return;
+    }
+
+    if (newPasscode != confirmPasscode) {
+      context.showAppSnackBar(
+        strings.passcodeMismatch,
+        tone: AppSnackBarTone.warning,
+      );
+      return;
+    }
+
+    setState(() => _isSavingPasscode = true);
+    try {
+      if (hasPassword) {
+        await ref
+            .read(passwordSettingsControllerProvider.notifier)
+            .changePassword(
+              currentPassword: currentPasscode,
+              newPassword: newPasscode,
+            );
+      } else {
+        await ref.read(passwordSettingsControllerProvider.notifier).setPassword(
+              newPasscode,
+            );
+      }
+
+      ref.read(startupUnlockSessionControllerProvider.notifier).keepUnlocked();
+      _clearPasscodeFields();
+      if (!mounted) return;
+      setState(() => _isSavingPasscode = false);
+      context.showAppSnackBar(
+        hasPassword ? strings.passcodeUpdated : strings.passcodeSaved,
+        tone: AppSnackBarTone.success,
+      );
+    } on PasswordSettingsException catch (error) {
+      if (!mounted) return;
+      setState(() => _isSavingPasscode = false);
+      context.showAppSnackBar(
+        error.failure == PasswordSettingsFailure.invalidCurrentPassword
+            ? strings.currentPasscodeIncorrect
+            : strings.passcodeSaveFailed(error),
+        tone: AppSnackBarTone.error,
+      );
+    } catch (error) {
+      if (!mounted) return;
+      setState(() => _isSavingPasscode = false);
+      context.showAppSnackBar(
+        strings.passcodeSaveFailed(error),
+        tone: AppSnackBarTone.error,
+      );
+    }
+  }
+
+  Future<void> _disablePasscode() async {
+    final strings = context.strings;
+    final confirmed = await showDialog<bool>(
+          context: context,
+          builder: (dialogContext) => AlertDialog(
+            title: Text(strings.disablePasscodeTitle),
+            content: Text(strings.disablePasscodeMessage),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.of(dialogContext).pop(false),
+                child: Text(strings.cancelAction),
+              ),
+              FilledButton(
+                onPressed: () => Navigator.of(dialogContext).pop(true),
+                child: Text(strings.confirmDisablePasscode),
+              ),
+            ],
+          ),
+        ) ??
+        false;
+    if (!confirmed || !mounted) {
+      return;
+    }
+
+    setState(() => _isDisablingPasscode = true);
+    try {
+      await ref
+          .read(passwordSettingsControllerProvider.notifier)
+          .disablePassword();
+      ref.read(startupUnlockSessionControllerProvider.notifier).keepUnlocked();
+      _clearPasscodeFields();
+      if (!mounted) return;
+      setState(() => _isDisablingPasscode = false);
+      context.showAppSnackBar(
+        strings.passcodeDisabled,
+        tone: AppSnackBarTone.success,
+      );
+    } catch (error) {
+      if (!mounted) return;
+      setState(() => _isDisablingPasscode = false);
+      context.showAppSnackBar(
+        strings.passcodeSaveFailed(error),
+        tone: AppSnackBarTone.error,
+      );
+    }
+  }
+
+  void _clearPasscodeFields() {
+    _currentPasscodeController.clear();
+    _newPasscodeController.clear();
+    _confirmPasscodeController.clear();
   }
 
   Future<void> _saveAppName() async {
@@ -1118,51 +1302,6 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
       setState(() => _isResettingDiaryAiApiKey = false);
       context.showAppSnackBar(
         strings.diaryAiApiKeyUpdateFailed(error),
-        tone: AppSnackBarTone.error,
-      );
-    }
-  }
-
-  Future<void> _saveApiKey() async {
-    final strings = context.strings;
-    setState(() => _isSavingApiKey = true);
-    try {
-      await ref
-          .read(transcriptionApiKeyControllerProvider.notifier)
-          .save(_apiKeyController.text);
-      if (!mounted) return;
-      setState(() => _isSavingApiKey = false);
-      context.showAppSnackBar(
-        strings.apiKeyUpdated,
-        tone: AppSnackBarTone.success,
-      );
-    } catch (error) {
-      if (!mounted) return;
-      setState(() => _isSavingApiKey = false);
-      context.showAppSnackBar(
-        strings.apiKeyUpdateFailed(error),
-        tone: AppSnackBarTone.error,
-      );
-    }
-  }
-
-  Future<void> _resetApiKey() async {
-    final strings = context.strings;
-    setState(() => _isResettingApiKey = true);
-    try {
-      await ref.read(transcriptionApiKeyControllerProvider.notifier).reset();
-      _apiKeyController.clear();
-      if (!mounted) return;
-      setState(() => _isResettingApiKey = false);
-      context.showAppSnackBar(
-        strings.apiKeyReset,
-        tone: AppSnackBarTone.success,
-      );
-    } catch (error) {
-      if (!mounted) return;
-      setState(() => _isResettingApiKey = false);
-      context.showAppSnackBar(
-        strings.apiKeyUpdateFailed(error),
         tone: AppSnackBarTone.error,
       );
     }

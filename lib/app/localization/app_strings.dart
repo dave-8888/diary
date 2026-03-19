@@ -319,6 +319,62 @@ class AppStrings {
   String get usingEnvironmentApiKey => isChinese
       ? '\u5f53\u524d\u6b63\u5728\u4f7f\u7528\u542f\u52a8\u53c2\u6570\u4e2d\u7684 API Key\u3002'
       : 'Currently using the API key provided at launch.';
+  String get passwordSettingsTitle => isChinese ? '\u5bc6\u7801' : 'Passcode';
+  String get passwordSettingsHint => isChinese
+      ? '\u8bbe\u7f6e 6 \u4f4d\u6570\u5b57\u5bc6\u7801\uff0c\u5e94\u7528\u542f\u52a8\u65f6\u9700\u5148\u89e3\u9501\u3002'
+      : 'Set a 6-digit passcode to unlock the app at startup.';
+  String passwordStatus(bool enabled) =>
+      '$passwordSettingsTitle\uff1a${enabled ? enabledLabel : disabledLabel}';
+  String get currentPasscodeLabel =>
+      isChinese ? '\u5f53\u524d\u5bc6\u7801' : 'Current passcode';
+  String get newPasscodeLabel =>
+      isChinese ? '\u65b0\u5bc6\u7801' : 'New passcode';
+  String get confirmPasscodeLabel =>
+      isChinese ? '\u786e\u8ba4\u5bc6\u7801' : 'Confirm passcode';
+  String get passcodeLabel => isChinese ? '\u5bc6\u7801' : 'Passcode';
+  String get passcodeHint =>
+      isChinese ? '\u8f93\u5165 6 \u4f4d\u6570\u5b57' : 'Enter 6 digits';
+  String get passcodeSaved =>
+      isChinese ? '\u5bc6\u7801\u5df2\u4fdd\u5b58\u3002' : 'Passcode saved.';
+  String get passcodeUpdated =>
+      isChinese ? '\u5bc6\u7801\u5df2\u66f4\u65b0\u3002' : 'Passcode updated.';
+  String get passcodeDisabled => isChinese
+      ? '\u5bc6\u7801\u5df2\u5173\u95ed\u3002'
+      : 'Passcode turned off.';
+  String passcodeSaveFailed(Object error) => isChinese
+      ? '\u4fdd\u5b58\u5bc6\u7801\u5931\u8d25\uff1a$error'
+      : 'Failed to save the passcode: $error';
+  String get passcodeMustBeSixDigits => isChinese
+      ? '\u5bc6\u7801\u5fc5\u987b\u662f 6 \u4f4d\u6570\u5b57\u3002'
+      : 'Passcode must be exactly 6 digits.';
+  String get passcodeMismatch => isChinese
+      ? '\u4e24\u6b21\u8f93\u5165\u7684\u5bc6\u7801\u4e0d\u4e00\u81f4\u3002'
+      : 'The two passcodes do not match.';
+  String get currentPasscodeIncorrect => isChinese
+      ? '\u5f53\u524d\u5bc6\u7801\u4e0d\u6b63\u786e\u3002'
+      : 'Current passcode is incorrect.';
+  String get disablePasscode =>
+      isChinese ? '\u5173\u95ed\u5bc6\u7801' : 'Turn off passcode';
+  String get disablePasscodeTitle => isChinese
+      ? '\u5173\u95ed\u542f\u52a8\u5bc6\u7801\uff1f'
+      : 'Turn off the startup passcode?';
+  String get disablePasscodeMessage => isChinese
+      ? '\u5173\u95ed\u540e\uff0c\u4e0b\u6b21\u542f\u52a8\u5c06\u4e0d\u518d\u9700\u8981\u89e3\u9501\u3002'
+      : 'After turning it off, the app will no longer require unlocking on startup.';
+  String get confirmDisablePasscode =>
+      isChinese ? '\u5173\u95ed\u5bc6\u7801' : 'Turn off passcode';
+  String get unlockAppTitle =>
+      isChinese ? '\u89e3\u9501\u65e5\u8bb0' : 'Unlock diary';
+  String get unlockAppHint => isChinese
+      ? '\u8bf7\u8f93\u5165 6 \u4f4d\u6570\u5b57\u5bc6\u7801\u4ee5\u7ee7\u7eed\u3002'
+      : 'Enter your 6-digit passcode to continue.';
+  String get unlockAction => isChinese ? '\u89e3\u9501' : 'Unlock';
+  String get unlockFailed => isChinese
+      ? '\u5bc6\u7801\u9519\u8bef\uff0c\u8bf7\u91cd\u8bd5\u3002'
+      : 'Incorrect passcode. Please try again.';
+  String passwordInitializationFailed(Object error) => isChinese
+      ? '\u521d\u59cb\u5316\u5bc6\u7801\u72b6\u6001\u5931\u8d25\uff1a$error'
+      : 'Failed to initialize the passcode state: $error';
   String get moodLibraryTitle =>
       isChinese ? '\u60c5\u7eea\u5e93' : 'Mood library';
   String get moodLibraryHint => isChinese
@@ -791,6 +847,16 @@ class AppStrings {
   String get saveEntry => isChinese ? '\u4fdd\u5b58\u65e5\u8bb0' : 'Save entry';
   String get updateEntry =>
       isChinese ? '\u66f4\u65b0\u65e5\u8bb0' : 'Update entry';
+  String get unsavedChangesTitle => isChinese
+      ? '\u8fd8\u6709\u672a\u4fdd\u5b58\u7684\u5185\u5bb9'
+      : 'Unsaved changes';
+  String get unsavedChangesMessage => isChinese
+      ? '\u5f53\u524d\u65e5\u8bb0\u8fd8\u6ca1\u6709\u4fdd\u5b58\uff0c\u79bb\u5f00\u540e\u8fd9\u4e9b\u4fee\u6539\u4f1a\u4e22\u5931\u3002'
+      : 'This diary has unsaved changes. Leaving now will discard them.';
+  String get stayOnPage =>
+      isChinese ? '\u7ee7\u7eed\u7f16\u8f91' : 'Keep editing';
+  String get leaveWithoutSaving =>
+      isChinese ? '\u4e0d\u4fdd\u5b58\u79bb\u5f00' : 'Leave without saving';
   String importedImages(int count) => isChinese
       ? '\u5df2\u5bfc\u5165 $count \u5f20\u56fe\u7247\u3002'
       : 'Imported $count image file(s).';

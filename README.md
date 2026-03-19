@@ -1,13 +1,14 @@
 # Diary MVP
 
-Desktop-first Flutter diary app with local-first storage and AI transcription entry.
+Desktop-first Flutter diary app with local-first storage, startup passcode protection, and media-rich diary editing.
 
 ## Implemented
 
 - `drift` + SQLite persistence for diary entries and media records
 - local file storage for imported images and recorded audio
 - audio recording with `record`
-- transcription entry with OpenAI Audio API (optional via env define)
+- 6-digit startup passcode with local hashed storage
+- unsaved-change reminders before leaving the editor
 - responsive navigation (`NavigationRail` on desktop, `NavigationBar` on narrow layouts)
 
 ## Data and media paths
@@ -30,7 +31,7 @@ lib/
 - `app/` contains app shell, theme, and routes
 - `core/storage/` contains local file path management
 - `features/diary/data/local/` contains drift database access
-- `features/diary/services/` contains transcription integration
+- `features/diary/services/` contains local settings and service integrations
 
 ## Run
 
@@ -38,13 +39,3 @@ lib/
 flutter pub get
 flutter run -d windows
 ```
-
-## Optional: enable OpenAI transcription
-
-Pass an API key at runtime:
-
-```bash
-flutter run -d windows --dart-define=OPENAI_API_KEY=your_key_here
-```
-
-If no key is provided, the transcription button remains a valid entry point and will show a skip message.

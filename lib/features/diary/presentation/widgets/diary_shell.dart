@@ -15,6 +15,7 @@ class DiaryShell extends ConsumerWidget {
     this.showAppBarTitle = true,
     this.compactBodyPadding,
     this.expandedBodyPadding,
+    this.onNavigateRequest,
   });
 
   final String title;
@@ -24,6 +25,7 @@ class DiaryShell extends ConsumerWidget {
   final bool showAppBarTitle;
   final EdgeInsetsGeometry? compactBodyPadding;
   final EdgeInsetsGeometry? expandedBodyPadding;
+  final Future<bool> Function(String location)? onNavigateRequest;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -45,7 +47,7 @@ class DiaryShell extends ConsumerWidget {
           ...actions,
           if (useCompactLayout && !isSettingsPage)
             IconButton(
-              onPressed: () => context.push('/settings'),
+              onPressed: () => _openSettings(context, compact: true),
               tooltip: strings.settingsTooltip,
               icon: const Icon(Icons.settings_outlined),
             ),
@@ -165,7 +167,7 @@ class DiaryShell extends ConsumerWidget {
                                 : Icons.settings_outlined,
                             label: strings.settingsTitle,
                             selected: isSettingsPage,
-                            onTap: () => context.go('/settings'),
+                            onTap: () => _openSettings(context, compact: false),
                           ),
                         ),
                       ],
@@ -197,21 +199,61 @@ class DiaryShell extends ConsumerWidget {
     return 0;
   }
 
-  void _goToIndex(BuildContext context, int index) {
+  Future<void> _openSettings(
+    BuildContext context, {
+    required bool compact,
+  }) async {
+    if (!await _canNavigate(context, '/settings')) {
+      return;
+    }
+    if (!context.mounted) {
+      return;
+    }
+    if (compact) {
+      context.push('/settings');
+      return;
+    }
+    context.go('/settings');
+  }
+
+  Future<void> _goToIndex(BuildContext context, int index) async {
+    final destination = switch (index) {
+      0 => '/',
+      1 => '/editor',
+      2 => '/timeline',
+      3 => '/trash',
+      _ => '/',
+    };
+
+    if (!await _canNavigate(context, destination)) {
+      return;
+    }
+    if (!context.mounted) {
+      return;
+    }
+
     switch (index) {
       case 0:
-        context.go('/');
+        context.go(destination);
         break;
       case 1:
-        context.go('/editor');
+        context.go(destination);
         break;
       case 2:
-        context.go('/timeline');
+        context.go(destination);
         break;
       case 3:
-        context.go('/trash');
+        context.go(destination);
         break;
     }
+  }
+
+  Future<bool> _canNavigate(BuildContext context, String location) async {
+    final callback = onNavigateRequest;
+    if (callback == null) {
+      return true;
+    }
+    return callback(location);
   }
 }
 

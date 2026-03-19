@@ -1,6 +1,7 @@
 import 'package:diary_mvp/app/localization/app_locale.dart';
 import 'package:diary_mvp/app/localization/app_strings.dart';
 import 'package:diary_mvp/app/router.dart';
+import 'package:diary_mvp/app/startup_lock_gate.dart';
 import 'package:diary_mvp/app/theme.dart';
 import 'package:diary_mvp/app/window_identity.dart';
 import 'package:flutter/material.dart';
@@ -28,7 +29,9 @@ class DiaryApp extends ConsumerWidget {
       localizationsDelegates: GlobalMaterialLocalizations.delegates,
       builder: (context, child) {
         return WindowIdentitySync(
-          child: child ?? const SizedBox.shrink(),
+          child: AppStartupLockGate(
+            child: child ?? const SizedBox.shrink(),
+          ),
         );
       },
       debugShowCheckedModeBanner: false,
