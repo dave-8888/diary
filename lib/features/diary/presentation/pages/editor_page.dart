@@ -13,7 +13,6 @@ import 'package:diary_mvp/features/diary/presentation/widgets/audio_attachment_t
 import 'package:diary_mvp/features/diary/presentation/widgets/diary_shell.dart';
 import 'package:diary_mvp/features/diary/presentation/widgets/image_media_grid.dart';
 import 'package:diary_mvp/features/diary/presentation/widgets/mood_selector.dart';
-import 'package:diary_mvp/features/diary/presentation/widgets/video_attachment_card.dart';
 import 'package:diary_mvp/features/diary/services/diary_ai_service.dart';
 import 'package:diary_mvp/features/diary/services/diary_ai_settings.dart';
 import 'package:diary_mvp/features/diary/services/export_service.dart';
@@ -106,10 +105,10 @@ class _EditorPageState extends ConsumerState<EditorPage>
     final moodLibraryAsync = ref.watch(moodLibraryControllerProvider);
     final showDiaryAiSection =
         ref.watch(diaryAiVisibilityControllerProvider).valueOrNull ?? true;
-    final imageMedia =
-        _media.where((item) => item.type == MediaType.image).toList();
-    final videoMedia =
-        _media.where((item) => item.type == MediaType.video).toList();
+    final visualMedia = _media
+        .where((item) =>
+            item.type == MediaType.image || item.type == MediaType.video)
+        .toList();
     final audioMedia =
         _media.where((item) => item.type == MediaType.audio).toList();
     final otherMedia = _media
@@ -152,13 +151,13 @@ class _EditorPageState extends ConsumerState<EditorPage>
                 _editorHorizontalInset(constraints.maxWidth);
             final contentWidth =
                 max(0.0, constraints.maxWidth - (horizontalInset * 2));
-            final showVideoSidebar = contentWidth >= 1100;
+            final showSidebar = contentWidth >= 1100;
             final sidebarWidth = _editorSidebarWidth(contentWidth);
             final sidebarGap = _editorSidebarGap(contentWidth);
             final mainSections = _buildMainSections(
               context: context,
               strings: strings,
-              imageMedia: imageMedia,
+              visualMedia: visualMedia,
               audioMedia: audioMedia,
               otherMedia: otherMedia,
               moodLibraryAsync: moodLibraryAsync,
@@ -170,7 +169,7 @@ class _EditorPageState extends ConsumerState<EditorPage>
                   )
                 : null;
 
-            if (!showVideoSidebar) {
+            if (!showSidebar) {
               return Padding(
                 padding: EdgeInsets.symmetric(horizontal: horizontalInset),
                 child: ListView(
@@ -182,10 +181,6 @@ class _EditorPageState extends ConsumerState<EditorPage>
                     ],
                     const SizedBox(height: 20),
                     _buildTagSection(context, strings, tagLibraryAsync),
-                    if (videoMedia.isNotEmpty) ...[
-                      const SizedBox(height: 20),
-                      _buildVideoSection(context, strings, videoMedia),
-                    ],
                   ],
                 ),
               );
@@ -209,10 +204,6 @@ class _EditorPageState extends ConsumerState<EditorPage>
                           const SizedBox(height: 16),
                         ],
                         _buildTagSection(context, strings, tagLibraryAsync),
-                        if (videoMedia.isNotEmpty) ...[
-                          const SizedBox(height: 16),
-                          _buildVideoSection(context, strings, videoMedia),
-                        ],
                       ],
                     ),
                   ),
@@ -228,7 +219,7 @@ class _EditorPageState extends ConsumerState<EditorPage>
   List<Widget> _buildMainSections({
     required BuildContext context,
     required AppStrings strings,
-    required List<DiaryMedia> imageMedia,
+    required List<DiaryMedia> visualMedia,
     required List<DiaryMedia> audioMedia,
     required List<DiaryMedia> otherMedia,
     required AsyncValue<List<DiaryMood>> moodLibraryAsync,
@@ -274,16 +265,16 @@ class _EditorPageState extends ConsumerState<EditorPage>
           ),
         ],
       ),
-      if (imageMedia.isNotEmpty) ...[
+      if (visualMedia.isNotEmpty) ...[
         const SizedBox(height: 16),
         ImageMediaGrid(
-          media: imageMedia,
+          media: visualMedia,
           minColumns: 2,
           maxColumns: 4,
           targetTileWidth: 170,
           childAspectRatio: 1,
           constrainToTargetWidth: true,
-          onPreviewRequested: _openImagePreview,
+          onPreviewRequested: _openVisualMediaPreview,
           onDeleted: (media) => setState(() => _media.remove(media)),
         ),
       ],
@@ -754,33 +745,6 @@ class _EditorPageState extends ConsumerState<EditorPage>
             },
           ),
         ],
-      ),
-    );
-  }
-
-  Widget _buildVideoSection(
-    BuildContext context,
-    AppStrings strings,
-    List<DiaryMedia> videoMedia,
-  ) {
-    return _buildSectionCard(
-      context: context,
-      title: strings.videoSidebarTitle,
-      helpText: strings.videoSidebarHint,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: videoMedia
-            .map(
-              (media) => Padding(
-                padding: const EdgeInsets.only(bottom: 12),
-                child: VideoAttachmentCard(
-                  media: media,
-                  onTap: () => _openVideoPreview(media),
-                  onDeleted: () => setState(() => _media.remove(media)),
-                ),
-              ),
-            )
-            .toList(),
       ),
     );
   }
@@ -1577,6 +1541,14 @@ class _EditorPageState extends ConsumerState<EditorPage>
 
   void _openVideoPreview(DiaryMedia media) {
     context.push('/video-preview', extra: media);
+  }
+
+  void _openVisualMediaPreview(DiaryMedia media) {
+    if (media.type == MediaType.video) {
+      _openVideoPreview(media);
+      return;
+    }
+    _openImagePreview(media);
   }
 
   void _openImagePreview(DiaryMedia media) {

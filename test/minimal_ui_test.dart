@@ -12,7 +12,12 @@ import 'package:diary_mvp/features/diary/presentation/pages/editor_page.dart';
 import 'package:diary_mvp/features/diary/presentation/pages/home_page.dart';
 import 'package:diary_mvp/features/diary/presentation/pages/image_preview_page.dart';
 import 'package:diary_mvp/features/diary/presentation/pages/settings_page.dart';
+import 'package:diary_mvp/features/diary/presentation/pages/timeline_page.dart';
 import 'package:diary_mvp/features/diary/presentation/pages/trash_page.dart';
+import 'package:diary_mvp/features/diary/presentation/pages/video_preview_page.dart';
+import 'package:diary_mvp/features/diary/presentation/widgets/entry_list_preview.dart';
+import 'package:diary_mvp/features/diary/presentation/widgets/entry_readonly_view.dart';
+import 'package:diary_mvp/features/diary/presentation/widgets/image_media_grid.dart';
 import 'package:diary_mvp/features/diary/services/diary_ai_settings.dart';
 import 'package:diary_mvp/features/diary/services/password_settings.dart';
 import 'package:diary_mvp/features/diary/services/transcription_settings.dart';
@@ -79,6 +84,80 @@ void main() {
     expect(find.text(strings.noAiSuggestionYet), findsNothing);
     expect(find.text(strings.videoSidebarTitle), findsNothing);
     expect(find.text(strings.transcribeLatestAudio), findsNothing);
+  });
+
+  testWidgets(
+      'editor page keeps images and video in one media grid with overlay metadata',
+      (tester) async {
+    final repository = FakeDiaryRepository(
+      moods: DiaryMood.values,
+    );
+    final capturedAt = DateTime(2026, 3, 18, 21, 5);
+
+    await pumpPage(
+      tester,
+      EditorPage(
+        entry: DiaryEntry(
+          id: 'entry-with-visual-media',
+          title: 'Visual media',
+          content: 'One image and one video should stay together.',
+          mood: DiaryMood.calm,
+          createdAt: DateTime(2026, 3, 18, 9),
+          media: [
+            DiaryMedia(
+              id: 'image-1',
+              type: MediaType.image,
+              path:
+                  '${Directory.systemTemp.path}${Platform.pathSeparator}missing_editor_image_1.png',
+            ),
+            DiaryMedia(
+              id: 'video-1',
+              type: MediaType.video,
+              path:
+                  '${Directory.systemTemp.path}${Platform.pathSeparator}missing_editor_video_1.mp4',
+              capturedAt: capturedAt,
+              durationLabel: '00:23',
+            ),
+          ],
+        ),
+      ),
+      path: '/editor',
+      overrides: buildOverrides(repository: repository),
+    );
+
+    final imageTile = find.byKey(const ValueKey('image-media-tile-image-1'));
+    final videoTile = find.byKey(const ValueKey('video-media-tile-video-1'));
+
+    expect(imageTile, findsOneWidget);
+    expect(videoTile, findsOneWidget);
+    expect(find.text(strings.videoSidebarTitle), findsNothing);
+    expect(
+      find.descendant(
+        of: videoTile,
+        matching: find.text(strings.formatDateTime(capturedAt)),
+      ),
+      findsOneWidget,
+    );
+    expect(
+      find.descendant(
+        of: videoTile,
+        matching: find.text('00:23'),
+      ),
+      findsOneWidget,
+    );
+
+    await tester.tap(
+      find.descendant(
+        of: videoTile,
+        matching: find.byIcon(Icons.close_rounded),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(
+        find.byKey(const ValueKey('video-media-tile-video-1')), findsNothing);
+    expect(
+        find.byKey(const ValueKey('image-media-tile-image-1')), findsOneWidget);
   });
 
   testWidgets('editor page restores saved AI analysis in the requested order',
@@ -342,8 +421,7 @@ void main() {
     expect(find.text(strings.recentEntries), findsOneWidget);
   });
 
-  testWidgets(
-      'home page keeps only the first image and video and scales text lines',
+  testWidgets('home page keeps only the first image and video on one media row',
       (tester) async {
     final content = List.filled(
       24,
@@ -376,6 +454,8 @@ void main() {
               type: MediaType.video,
               path:
                   '${Directory.systemTemp.path}${Platform.pathSeparator}missing_compact_video_1.mp4',
+              capturedAt: DateTime(2026, 2, 1, 14, 30),
+              durationLabel: '00:42',
             ),
             DiaryMedia(
               id: 'video-2',
@@ -420,6 +500,26 @@ void main() {
         findsOneWidget);
     expect(find.byKey(const ValueKey('entry-compact-video-video-2')),
         findsNothing);
+    expect(
+      find.descendant(
+        of: find.byKey(const ValueKey('entry-compact-video-video-1')),
+        matching: find.text('2026-02-01'),
+      ),
+      findsOneWidget,
+    );
+    expect(
+      find.descendant(
+        of: find.byKey(const ValueKey('entry-compact-video-video-1')),
+        matching: find.text('00:42'),
+      ),
+      findsOneWidget,
+    );
+    final imageRect = tester.getRect(
+      find.byKey(const ValueKey('entry-compact-image-image-1')),
+    );
+    final videoRect = tester.getRect(
+      find.byKey(const ValueKey('entry-compact-video-video-1')),
+    );
 
     final bothContent = tester.widget<Text>(
       find.byKey(
@@ -434,7 +534,125 @@ void main() {
       ),
     );
 
-    expect(bothContent.maxLines, greaterThan(singleContent.maxLines!));
+    expect((imageRect.top - videoRect.top).abs(), lessThan(1));
+    expect(imageRect.right, lessThan(videoRect.left));
+    expect(bothContent.maxLines, singleContent.maxLines);
+  });
+
+  testWidgets('timeline page uses the same one-row media layout',
+      (tester) async {
+    final repository = FakeDiaryRepository(
+      entries: [
+        DiaryEntry(
+          id: 'timeline-entry',
+          title: 'Timeline media',
+          content: 'Timeline should also keep media on one line.',
+          mood: DiaryMood.calm,
+          createdAt: DateTime(2026, 3, 18, 9),
+          media: [
+            DiaryMedia(
+              id: 'timeline-image-1',
+              type: MediaType.image,
+              path:
+                  '${Directory.systemTemp.path}${Platform.pathSeparator}missing_timeline_image_1.png',
+            ),
+            DiaryMedia(
+              id: 'timeline-video-1',
+              type: MediaType.video,
+              path:
+                  '${Directory.systemTemp.path}${Platform.pathSeparator}missing_timeline_video_1.mp4',
+            ),
+          ],
+        ),
+      ],
+      moods: DiaryMood.values,
+    );
+
+    await pumpPage(
+      tester,
+      const TimelinePage(),
+      path: '/timeline',
+      overrides: buildOverrides(repository: repository),
+    );
+
+    final imageRect = tester.getRect(
+      find.byKey(const ValueKey('entry-compact-image-timeline-image-1')),
+    );
+    final videoRect = tester.getRect(
+      find.byKey(const ValueKey('entry-compact-video-timeline-video-1')),
+    );
+
+    expect((imageRect.top - videoRect.top).abs(), lessThan(1));
+    expect(imageRect.right, lessThan(videoRect.left));
+  });
+
+  testWidgets(
+      'compact list preview stacks media block above content on narrow widths',
+      (tester) async {
+    await tester.binding.setSurfaceSize(const Size(620, 1000));
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: buildDiaryTheme(DiaryThemePreset.daylight),
+        supportedLocales: AppStrings.supportedLocales,
+        localizationsDelegates: GlobalMaterialLocalizations.delegates,
+        home: Scaffold(
+          body: SizedBox(
+            width: 620,
+            child: EntryListPreview(
+              entry: DiaryEntry(
+                id: 'narrow-layout',
+                title: 'Narrow layout',
+                content:
+                    'The media row should stay horizontal while the text moves below it.',
+                mood: DiaryMood.calm,
+                createdAt: DateTime(2026, 3, 18, 9),
+                media: [
+                  DiaryMedia(
+                    id: 'narrow-image-1',
+                    type: MediaType.image,
+                    path:
+                        '${Directory.systemTemp.path}${Platform.pathSeparator}missing_narrow_image_1.png',
+                  ),
+                  DiaryMedia(
+                    id: 'narrow-video-1',
+                    type: MediaType.video,
+                    path:
+                        '${Directory.systemTemp.path}${Platform.pathSeparator}missing_narrow_video_1.mp4',
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+    await tester.pump();
+
+    final imageRect = tester.getRect(
+      find.byKey(const ValueKey('entry-compact-image-narrow-image-1')),
+    );
+    final videoRect = tester.getRect(
+      find.byKey(const ValueKey('entry-compact-video-narrow-video-1')),
+    );
+    final contentRect = tester.getRect(
+      find.byKey(
+        const ValueKey('entry-content-preview-narrow-layout'),
+        skipOffstage: false,
+      ),
+    );
+    final narrowContent = tester.widget<Text>(
+      find.byKey(
+        const ValueKey('entry-content-preview-narrow-layout'),
+        skipOffstage: false,
+      ),
+    );
+
+    expect((imageRect.top - videoRect.top).abs(), lessThan(1));
+    expect(imageRect.right, lessThan(videoRect.left));
+    expect(contentRect.top, greaterThan(imageRect.bottom));
+    expect(narrowContent.maxLines, 4);
   });
 
   testWidgets('trash page keeps compact previews with tags and actions',
@@ -503,10 +721,75 @@ void main() {
       find.byKey(const ValueKey('entry-compact-video-trash-video-2')),
       findsNothing,
     );
+    final imageRect = tester.getRect(
+      find.byKey(const ValueKey('entry-compact-image-trash-image-1')),
+    );
+    final videoRect = tester.getRect(
+      find.byKey(const ValueKey('entry-compact-video-trash-video-1')),
+    );
+
+    expect((imageRect.top - videoRect.top).abs(), lessThan(1));
+    expect(imageRect.right, lessThan(videoRect.left));
     expect(find.text('#archive'), findsOneWidget);
     expect(find.text(strings.previewEntry), findsOneWidget);
     expect(find.text(strings.restoreEntry), findsOneWidget);
     expect(find.byType(Checkbox), findsOneWidget);
+  });
+
+  testWidgets(
+      'entry readonly view keeps images and video in one shared media grid',
+      (tester) async {
+    final capturedAt = DateTime(2026, 3, 12, 8, 15);
+
+    await pumpReadonlyView(
+      tester,
+      DiaryEntry(
+        id: 'readonly-mixed-media',
+        title: 'Readonly mixed media',
+        content: 'Preview image and video together.',
+        mood: DiaryMood.calm,
+        createdAt: DateTime(2026, 3, 12, 8),
+        media: [
+          DiaryMedia(
+            id: 'image-readonly-1',
+            type: MediaType.image,
+            path:
+                '${Directory.systemTemp.path}${Platform.pathSeparator}missing_readonly_image_1.png',
+          ),
+          DiaryMedia(
+            id: 'video-readonly-1',
+            type: MediaType.video,
+            path:
+                '${Directory.systemTemp.path}${Platform.pathSeparator}missing_readonly_video_1.mp4',
+            capturedAt: capturedAt,
+            durationLabel: '01:14',
+          ),
+        ],
+      ),
+    );
+
+    final imageTile =
+        find.byKey(const ValueKey('image-media-tile-image-readonly-1'));
+    final videoTile =
+        find.byKey(const ValueKey('video-media-tile-video-readonly-1'));
+
+    expect(imageTile, findsOneWidget);
+    expect(videoTile, findsOneWidget);
+    expect(find.text(strings.videoSidebarTitle), findsNothing);
+    expect(
+      find.descendant(
+        of: videoTile,
+        matching: find.text(strings.formatDateTime(capturedAt)),
+      ),
+      findsOneWidget,
+    );
+    expect(
+      find.descendant(
+        of: videoTile,
+        matching: find.text('01:14'),
+      ),
+      findsOneWidget,
+    );
   });
 
   testWidgets('settings page keeps collapsible sections collapsed by default',
@@ -750,6 +1033,42 @@ void main() {
     expect(find.text(strings.imagePreviewPageTitle), findsOneWidget);
     expect(find.text(strings.previewPhoto), findsOneWidget);
   });
+
+  testWidgets('mixed media grid forwards video taps to the preview callback',
+      (tester) async {
+    DiaryMedia? tappedMedia;
+    final video = DiaryMedia(
+      id: 'video-grid-1',
+      type: MediaType.video,
+      path:
+          '${Directory.systemTemp.path}${Platform.pathSeparator}missing_grid_video_1.mp4',
+      capturedAt: DateTime(2026, 3, 11, 17, 45),
+      durationLabel: '00:08',
+    );
+
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: buildDiaryTheme(DiaryThemePreset.daylight),
+        supportedLocales: AppStrings.supportedLocales,
+        localizationsDelegates: GlobalMaterialLocalizations.delegates,
+        home: Scaffold(
+          body: ImageMediaGrid(
+            media: [video],
+            minColumns: 1,
+            maxColumns: 1,
+            onPreviewRequested: (media) => tappedMedia = media,
+          ),
+        ),
+      ),
+    );
+    await tester.pump();
+
+    await tester
+        .tap(find.byKey(const ValueKey('video-media-tile-video-grid-1')));
+    await tester.pump();
+
+    expect(tappedMedia?.id, 'video-grid-1');
+  });
 }
 
 Future<void> pumpPage(
@@ -771,6 +1090,12 @@ Future<void> pumpPage(
       GoRoute(
         path: '/image-preview',
         builder: (context, state) => ImagePreviewPage(
+          media: state.extra as DiaryMedia?,
+        ),
+      ),
+      GoRoute(
+        path: '/video-preview',
+        builder: (context, state) => VideoPreviewPage(
           media: state.extra as DiaryMedia?,
         ),
       ),
@@ -825,6 +1150,12 @@ Future<void> pumpEditorNavigationApp(
           media: state.extra as DiaryMedia?,
         ),
       ),
+      GoRoute(
+        path: '/video-preview',
+        builder: (context, state) => VideoPreviewPage(
+          media: state.extra as DiaryMedia?,
+        ),
+      ),
     ],
   );
 
@@ -836,6 +1167,29 @@ Future<void> pumpEditorNavigationApp(
         theme: buildDiaryTheme(DiaryThemePreset.daylight),
         supportedLocales: AppStrings.supportedLocales,
         localizationsDelegates: GlobalMaterialLocalizations.delegates,
+      ),
+    ),
+  );
+
+  await tester.pump();
+  await tester.pump(const Duration(milliseconds: 200));
+}
+
+Future<void> pumpReadonlyView(
+  WidgetTester tester,
+  DiaryEntry entry,
+) async {
+  await tester.pumpWidget(
+    MaterialApp(
+      theme: buildDiaryTheme(DiaryThemePreset.daylight),
+      supportedLocales: AppStrings.supportedLocales,
+      localizationsDelegates: GlobalMaterialLocalizations.delegates,
+      home: Scaffold(
+        body: ListView(
+          children: [
+            EntryReadonlyView(entry: entry),
+          ],
+        ),
       ),
     ),
   );

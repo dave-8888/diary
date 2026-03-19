@@ -1,14 +1,14 @@
-import 'dart:io';
-
 import 'package:diary_mvp/app/localization/app_strings.dart';
 import 'package:diary_mvp/features/diary/domain/diary_entry.dart';
 import 'package:diary_mvp/features/diary/presentation/widgets/audio_attachment_tile.dart';
-import 'package:diary_mvp/features/diary/presentation/widgets/local_video_player.dart';
+import 'package:diary_mvp/features/diary/presentation/widgets/image_media_grid.dart';
 import 'package:flutter/material.dart';
 import 'package:path/path.dart' as p;
 
 const double _compactMediaTileSize = 128;
+const double _compactMediaMinTileSize = 96;
 const double _compactMediaGap = 8;
+const double _compactLayoutBreakpoint = 680;
 
 class EntryListPreview extends StatelessWidget {
   const EntryListPreview({
@@ -45,29 +45,19 @@ class EntryListPreview extends StatelessWidget {
     final contentText = entry.content.trim();
     final contentStyle = theme.textTheme.bodyMedium?.copyWith(height: 1.45);
 
-    final previewTiles = <Widget>[
+    final previewTiles = <_CompactPreviewSpec>[
       if (imageMedia.isNotEmpty)
-        _CompactImagePreviewTile(
+        _CompactPreviewSpec(
           key: ValueKey('entry-compact-image-${imageMedia.first.id}'),
           media: imageMedia.first,
         ),
       if (videoMedia.isNotEmpty)
-        _CompactVideoPreviewTile(
+        _CompactPreviewSpec(
           key: ValueKey('entry-compact-video-${videoMedia.first.id}'),
           media: videoMedia.first,
+          videoTimestampStyle: VideoTimestampStyle.day,
         ),
     ];
-    final previewHeight = previewTiles.isEmpty
-        ? 0.0
-        : (previewTiles.length * _compactMediaTileSize) +
-            ((previewTiles.length - 1) * _compactMediaGap);
-    final contentMaxLines = previewTiles.isEmpty
-        ? 4
-        : _resolveContentMaxLines(
-            contentStyle: contentStyle,
-            previewHeight: previewHeight,
-          );
-
     final detailChips = <Widget>[
       ...extraChips,
       ...otherMedia.map(
@@ -121,42 +111,81 @@ class EntryListPreview extends StatelessWidget {
         ),
         if (previewTiles.isNotEmpty) ...[
           const SizedBox(height: 16),
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              SizedBox(
-                width: _compactMediaTileSize,
-                child: Column(
+          LayoutBuilder(
+            builder: (context, constraints) {
+              final isStacked = constraints.maxWidth < _compactLayoutBreakpoint;
+              final stripMetrics = _resolveMediaStripMetrics(
+                availableWidth: constraints.maxWidth,
+                tileCount: previewTiles.length,
+                stacked: isStacked,
+              );
+              final previewStrip = SizedBox(
+                key: ValueKey('entry-media-strip-${entry.id}'),
+                width: stripMetrics.width,
+                child: Row(
+                  key: ValueKey('entry-media-row-${entry.id}'),
                   children: [
                     for (var index = 0;
                         index < previewTiles.length;
                         index++) ...[
-                      if (index > 0) const SizedBox(height: _compactMediaGap),
-                      previewTiles[index],
+                      if (index > 0) SizedBox(width: stripMetrics.gap),
+                      _CompactMediaPreviewTile(
+                        media: previewTiles[index].media,
+                        videoTimestampStyle:
+                            previewTiles[index].videoTimestampStyle,
+                        dimension: stripMetrics.tileSize,
+                        key: previewTiles[index].key,
+                      ),
                     ],
                   ],
                 ),
-              ),
-              if (contentText.isNotEmpty) ...[
-                const SizedBox(width: 16),
-                Expanded(
-                  child: Text(
-                    contentText,
-                    key: ValueKey('entry-content-preview-${entry.id}'),
-                    maxLines: contentMaxLines,
-                    overflow: TextOverflow.ellipsis,
-                    style: contentStyle,
-                  ),
-                ),
-              ],
-            ],
+              );
+              final contentPreview = contentText.isEmpty
+                  ? null
+                  : Text(
+                      contentText,
+                      key: ValueKey('entry-content-preview-${entry.id}'),
+                      maxLines: isStacked
+                          ? 4
+                          : _resolveContentMaxLines(
+                              contentStyle: contentStyle,
+                              previewHeight: stripMetrics.tileSize,
+                            ),
+                      overflow: TextOverflow.ellipsis,
+                      style: contentStyle,
+                    );
+
+              if (contentPreview == null) {
+                return previewStrip;
+              }
+
+              if (isStacked) {
+                return Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    previewStrip,
+                    const SizedBox(height: 12),
+                    contentPreview,
+                  ],
+                );
+              }
+
+              return Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  previewStrip,
+                  const SizedBox(width: 16),
+                  Expanded(child: contentPreview),
+                ],
+              );
+            },
           ),
         ] else if (contentText.isNotEmpty) ...[
           const SizedBox(height: 16),
           Text(
             contentText,
             key: ValueKey('entry-content-preview-${entry.id}'),
-            maxLines: contentMaxLines,
+            maxLines: 4,
             overflow: TextOverflow.ellipsis,
             style: contentStyle,
           ),
@@ -202,6 +231,44 @@ class EntryListPreview extends StatelessWidget {
     return (previewHeight / effectiveLineHeight).floor().clamp(3, 10).toInt();
   }
 
+  _MediaStripMetrics _resolveMediaStripMetrics({
+    required double availableWidth,
+    required int tileCount,
+    required bool stacked,
+  }) {
+    final targetWidth = (tileCount * _compactMediaTileSize) +
+        ((tileCount - 1) * _compactMediaGap);
+    if (tileCount <= 0) {
+      return const _MediaStripMetrics(
+        width: 0,
+        tileSize: _compactMediaTileSize,
+        gap: _compactMediaGap,
+      );
+    }
+
+    if (!stacked) {
+      return _MediaStripMetrics(
+        width: targetWidth,
+        tileSize: _compactMediaTileSize,
+        gap: _compactMediaGap,
+      );
+    }
+
+    final maxUsableWidth =
+        availableWidth.isFinite ? availableWidth : targetWidth;
+    final availableForTiles =
+        maxUsableWidth - ((tileCount - 1) * _compactMediaGap);
+    final tileSize = (availableForTiles / tileCount)
+        .clamp(_compactMediaMinTileSize, _compactMediaTileSize)
+        .toDouble();
+    final width = (tileSize * tileCount) + ((tileCount - 1) * _compactMediaGap);
+    return _MediaStripMetrics(
+      width: width,
+      tileSize: tileSize,
+      gap: _compactMediaGap,
+    );
+  }
+
   IconData _iconForMedia(MediaType type) {
     switch (type) {
       case MediaType.image:
@@ -221,149 +288,52 @@ class EntryListPreview extends StatelessWidget {
   }
 }
 
-class _CompactImagePreviewTile extends StatelessWidget {
-  const _CompactImagePreviewTile({
+class _CompactMediaPreviewTile extends StatelessWidget {
+  const _CompactMediaPreviewTile({
     super.key,
     required this.media,
+    this.videoTimestampStyle = VideoTimestampStyle.dateTime,
+    this.dimension = _compactMediaTileSize,
   });
 
   final DiaryMedia media;
+  final VideoTimestampStyle videoTimestampStyle;
+  final double dimension;
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-
-    return _CompactMediaFrame(
-      child: Image.file(
-        File(media.path),
-        fit: BoxFit.cover,
-        errorBuilder: (_, __, ___) => ColoredBox(
-          color: theme.colorScheme.surfaceContainerHighest,
-          child: Icon(
-            Icons.broken_image_outlined,
-            size: 32,
-            color: theme.colorScheme.onSurfaceVariant,
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-class _CompactVideoPreviewTile extends StatelessWidget {
-  const _CompactVideoPreviewTile({
-    super.key,
-    required this.media,
-  });
-
-  final DiaryMedia media;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final fileExists = File(media.path).existsSync();
-
-    return _CompactMediaFrame(
-      child: Stack(
-        fit: StackFit.expand,
-        children: [
-          if (fileExists)
-            IgnorePointer(
-              child: LocalVideoPlayer(
-                path: media.path,
-                showControls: false,
-                fit: BoxFit.cover,
-              ),
-            )
-          else
-            ColoredBox(
-              color: theme.colorScheme.surfaceContainerHighest,
-              child: Icon(
-                Icons.videocam_off_outlined,
-                size: 30,
-                color: theme.colorScheme.onSurfaceVariant,
-              ),
-            ),
-          DecoratedBox(
-            decoration: BoxDecoration(
-              gradient: LinearGradient(
-                begin: Alignment.topCenter,
-                end: Alignment.bottomCenter,
-                colors: [
-                  Colors.black.withValues(alpha: 0.08),
-                  Colors.black.withValues(alpha: 0.32),
-                ],
-              ),
-            ),
-          ),
-          Center(
-            child: DecoratedBox(
-              decoration: BoxDecoration(
-                color: Colors.black.withValues(alpha: 0.28),
-                shape: BoxShape.circle,
-              ),
-              child: const Padding(
-                padding: EdgeInsets.all(10),
-                child: Icon(
-                  Icons.play_arrow_rounded,
-                  size: 28,
-                  color: Colors.white,
-                ),
-              ),
-            ),
-          ),
-          if (media.durationLabel != null)
-            Positioned(
-              left: 8,
-              bottom: 8,
-              child: DecoratedBox(
-                decoration: BoxDecoration(
-                  color: Colors.black.withValues(alpha: 0.68),
-                  borderRadius: BorderRadius.circular(999),
-                ),
-                child: Padding(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                  child: Text(
-                    media.durationLabel!,
-                    style: theme.textTheme.labelSmall?.copyWith(
-                      color: Colors.white,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                ),
-              ),
-            ),
-        ],
-      ),
-    );
-  }
-}
-
-class _CompactMediaFrame extends StatelessWidget {
-  const _CompactMediaFrame({
-    required this.child,
-  });
-
-  final Widget child;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final borderRadius = BorderRadius.circular(18);
-
     return SizedBox.square(
-      dimension: _compactMediaTileSize,
-      child: DecoratedBox(
-        decoration: BoxDecoration(
-          borderRadius: borderRadius,
-          border: Border.all(color: theme.colorScheme.outlineVariant),
-        ),
-        child: ClipRRect(
-          borderRadius: borderRadius,
-          child: child,
-        ),
+      dimension: dimension,
+      child: VisualMediaTile(
+        media: media,
+        density: MediaTileDensity.compact,
+        showHoverEffects: false,
+        videoTimestampStyle: videoTimestampStyle,
       ),
     );
   }
+}
+
+class _CompactPreviewSpec {
+  const _CompactPreviewSpec({
+    required this.key,
+    required this.media,
+    this.videoTimestampStyle = VideoTimestampStyle.dateTime,
+  });
+
+  final Key key;
+  final DiaryMedia media;
+  final VideoTimestampStyle videoTimestampStyle;
+}
+
+class _MediaStripMetrics {
+  const _MediaStripMetrics({
+    required this.width,
+    required this.tileSize,
+    required this.gap,
+  });
+
+  final double width;
+  final double tileSize;
+  final double gap;
 }

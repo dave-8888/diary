@@ -1,7 +1,19 @@
 import 'dart:io';
 
+import 'package:diary_mvp/app/localization/app_strings.dart';
 import 'package:diary_mvp/features/diary/domain/diary_entry.dart';
+import 'package:diary_mvp/features/diary/presentation/widgets/local_video_player.dart';
 import 'package:flutter/material.dart';
+
+enum VideoTimestampStyle {
+  dateTime,
+  day,
+}
+
+enum MediaTileDensity {
+  regular,
+  compact,
+}
 
 class ImageMediaGrid extends StatelessWidget {
   const ImageMediaGrid({
@@ -16,6 +28,7 @@ class ImageMediaGrid extends StatelessWidget {
     this.mainAxisSpacing = 12,
     this.childAspectRatio = 1.08,
     this.constrainToTargetWidth = false,
+    this.videoTimestampStyle = VideoTimestampStyle.dateTime,
   })  : assert(minColumns > 0),
         assert(maxColumns >= minColumns);
 
@@ -29,6 +42,7 @@ class ImageMediaGrid extends StatelessWidget {
   final double mainAxisSpacing;
   final double childAspectRatio;
   final bool constrainToTargetWidth;
+  final VideoTimestampStyle videoTimestampStyle;
 
   @override
   Widget build(BuildContext context) {
@@ -53,13 +67,14 @@ class ImageMediaGrid extends StatelessWidget {
           ),
           itemBuilder: (context, index) {
             final item = media[index];
-            return _ImageMediaTile(
-              key: ValueKey('image-media-tile-${item.id}'),
+            return VisualMediaTile(
+              key: ValueKey('${item.type.name}-media-tile-${item.id}'),
               media: item,
               onDeleted: onDeleted == null ? null : () => onDeleted!(item),
-              onPreviewRequested: onPreviewRequested == null
+              onTap: onPreviewRequested == null
                   ? null
                   : () => onPreviewRequested!(item),
+              videoTimestampStyle: videoTimestampStyle,
             );
           },
         );
@@ -97,45 +112,64 @@ class ImageMediaGrid extends StatelessWidget {
   }
 }
 
-class _ImageMediaTile extends StatelessWidget {
-  const _ImageMediaTile({
+class VisualMediaTile extends StatefulWidget {
+  const VisualMediaTile({
     super.key,
     required this.media,
+    this.onTap,
     this.onDeleted,
-    this.onPreviewRequested,
+    this.videoTimestampStyle = VideoTimestampStyle.dateTime,
+    this.density = MediaTileDensity.regular,
+    this.showHoverEffects = true,
+    this.borderRadius,
   });
 
   final DiaryMedia media;
+  final VoidCallback? onTap;
   final VoidCallback? onDeleted;
-  final VoidCallback? onPreviewRequested;
+  final VideoTimestampStyle videoTimestampStyle;
+  final MediaTileDensity density;
+  final bool showHoverEffects;
+  final BorderRadius? borderRadius;
+
+  @override
+  State<VisualMediaTile> createState() => _VisualMediaTileState();
+}
+
+class _VisualMediaTileState extends State<VisualMediaTile> {
+  bool _isHovered = false;
 
   @override
   Widget build(BuildContext context) {
-    final borderRadius = BorderRadius.circular(20);
     final theme = Theme.of(context);
+    final borderRadius = widget.borderRadius ?? _defaultBorderRadius();
+    final showHoverEffects = widget.showHoverEffects;
 
-    return DecoratedBox(
+    final tile = AnimatedContainer(
+      duration: const Duration(milliseconds: 180),
+      curve: Curves.easeOutCubic,
       decoration: BoxDecoration(
         borderRadius: borderRadius,
-        border: Border.all(color: theme.colorScheme.outlineVariant),
+        border: Border.all(
+          color: _isHovered && showHoverEffects
+              ? theme.colorScheme.primary.withValues(alpha: 0.45)
+              : theme.colorScheme.outlineVariant,
+        ),
+        boxShadow: [
+          if (_isHovered && showHoverEffects)
+            BoxShadow(
+              color: theme.colorScheme.shadow.withValues(alpha: 0.12),
+              blurRadius: widget.density == MediaTileDensity.compact ? 12 : 18,
+              offset: const Offset(0, 8),
+            ),
+        ],
       ),
       child: ClipRRect(
         borderRadius: borderRadius,
         child: Stack(
           fit: StackFit.expand,
           children: [
-            Image.file(
-              File(media.path),
-              fit: BoxFit.cover,
-              errorBuilder: (_, __, ___) => ColoredBox(
-                color: theme.colorScheme.surfaceContainerHighest,
-                child: Icon(
-                  Icons.broken_image_outlined,
-                  size: 36,
-                  color: theme.colorScheme.onSurfaceVariant,
-                ),
-              ),
-            ),
+            _buildBackground(theme),
             Positioned.fill(
               child: DecoratedBox(
                 decoration: BoxDecoration(
@@ -143,31 +177,43 @@ class _ImageMediaTile extends StatelessWidget {
                     begin: Alignment.topCenter,
                     end: Alignment.bottomCenter,
                     colors: [
-                      Colors.black.withValues(alpha: 0.02),
-                      Colors.black.withValues(alpha: 0.14),
+                      Colors.black.withValues(
+                        alpha: _isHovered && showHoverEffects ? 0.18 : 0.08,
+                      ),
+                      Colors.black.withValues(
+                        alpha: _isHovered && showHoverEffects ? 0.36 : 0.22,
+                      ),
                     ],
                   ),
                 ),
               ),
             ),
-            if (onPreviewRequested != null)
+            if (widget.media.type == MediaType.video) ...[
+              _buildVideoTimestamp(context),
+              _buildVideoDuration(theme),
+              _buildPlayOverlay(),
+            ],
+            if (widget.onTap != null)
               Positioned.fill(
                 child: Material(
                   color: Colors.transparent,
                   child: InkWell(
-                    onTap: onPreviewRequested,
+                    onTap: widget.onTap,
                     child: const SizedBox.expand(),
                   ),
                 ),
               ),
-            if (onDeleted != null)
+            if (widget.onDeleted != null)
               Positioned(
-                top: 10,
-                right: 10,
+                top: _overlayInset,
+                right: _overlayInset,
                 child: IconButton.filledTonal(
-                  onPressed: onDeleted,
+                  onPressed: widget.onDeleted,
                   tooltip:
                       MaterialLocalizations.of(context).deleteButtonTooltip,
+                  visualDensity: widget.density == MediaTileDensity.compact
+                      ? VisualDensity.compact
+                      : VisualDensity.standard,
                   icon: const Icon(Icons.close_rounded),
                 ),
               ),
@@ -175,5 +221,175 @@ class _ImageMediaTile extends StatelessWidget {
         ),
       ),
     );
+
+    return MouseRegion(
+      onEnter:
+          showHoverEffects ? (_) => setState(() => _isHovered = true) : null,
+      onExit:
+          showHoverEffects ? (_) => setState(() => _isHovered = false) : null,
+      child: AnimatedScale(
+        duration: const Duration(milliseconds: 180),
+        curve: Curves.easeOutCubic,
+        scale: _isHovered && showHoverEffects ? 1.01 : 1,
+        child: tile,
+      ),
+    );
+  }
+
+  Widget _buildBackground(ThemeData theme) {
+    switch (widget.media.type) {
+      case MediaType.image:
+        return Image.file(
+          File(widget.media.path),
+          fit: BoxFit.cover,
+          errorBuilder: (_, __, ___) => ColoredBox(
+            color: theme.colorScheme.surfaceContainerHighest,
+            child: Icon(
+              Icons.broken_image_outlined,
+              size: widget.density == MediaTileDensity.compact ? 32 : 36,
+              color: theme.colorScheme.onSurfaceVariant,
+            ),
+          ),
+        );
+      case MediaType.video:
+        final fileExists = File(widget.media.path).existsSync();
+        if (!fileExists) {
+          return ColoredBox(
+            color: theme.colorScheme.surfaceContainerHighest,
+            child: Icon(
+              Icons.videocam_off_outlined,
+              size: widget.density == MediaTileDensity.compact ? 30 : 36,
+              color: theme.colorScheme.onSurfaceVariant,
+            ),
+          );
+        }
+
+        return IgnorePointer(
+          child: LocalVideoPlayer(
+            path: widget.media.path,
+            showControls: false,
+            fit: BoxFit.cover,
+          ),
+        );
+      case MediaType.audio:
+        return ColoredBox(
+          color: theme.colorScheme.surfaceContainerHighest,
+          child: Icon(
+            Icons.mic_none,
+            size: widget.density == MediaTileDensity.compact ? 30 : 36,
+            color: theme.colorScheme.onSurfaceVariant,
+          ),
+        );
+    }
+  }
+
+  Widget _buildVideoTimestamp(BuildContext context) {
+    final timestamp = _videoTimestampText(context);
+    if (timestamp == null) {
+      return const SizedBox.shrink();
+    }
+
+    return Positioned(
+      top: _overlayInset,
+      left: _overlayInset,
+      right: widget.onDeleted != null ? 56 : _overlayInset,
+      child: Text(
+        timestamp,
+        maxLines: 1,
+        overflow: TextOverflow.ellipsis,
+        style: _overlayTextStyle(Theme.of(context)),
+      ),
+    );
+  }
+
+  Widget _buildVideoDuration(ThemeData theme) {
+    final duration = widget.media.durationLabel;
+    if (duration == null || duration.trim().isEmpty) {
+      return const SizedBox.shrink();
+    }
+
+    return Positioned(
+      left: _overlayInset,
+      right: _overlayInset,
+      bottom: _overlayInset,
+      child: Text(
+        duration,
+        maxLines: 1,
+        overflow: TextOverflow.ellipsis,
+        style: _overlayTextStyle(theme),
+      ),
+    );
+  }
+
+  Widget _buildPlayOverlay() {
+    final iconSize = widget.density == MediaTileDensity.compact ? 28.0 : 58.0;
+    final padding = widget.density == MediaTileDensity.compact ? 8.0 : 10.0;
+
+    return Center(
+      child: AnimatedScale(
+        duration: const Duration(milliseconds: 180),
+        curve: Curves.easeOutCubic,
+        scale: _isHovered && widget.showHoverEffects ? 1.08 : 1,
+        child: DecoratedBox(
+          decoration: BoxDecoration(
+            color: Colors.black.withValues(
+              alpha: _isHovered && widget.showHoverEffects ? 0.28 : 0.18,
+            ),
+            shape: BoxShape.circle,
+          ),
+          child: Padding(
+            padding: EdgeInsets.all(padding),
+            child: Icon(
+              widget.density == MediaTileDensity.compact
+                  ? Icons.play_arrow_rounded
+                  : Icons.play_circle_fill_rounded,
+              size: iconSize,
+              color: Colors.white,
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  String? _videoTimestampText(BuildContext context) {
+    final capturedAt = widget.media.capturedAt;
+    if (capturedAt == null) {
+      return null;
+    }
+
+    final strings = context.strings;
+    switch (widget.videoTimestampStyle) {
+      case VideoTimestampStyle.dateTime:
+        return strings.formatDateTime(capturedAt);
+      case VideoTimestampStyle.day:
+        return strings.formatDay(capturedAt);
+    }
+  }
+
+  TextStyle? _overlayTextStyle(ThemeData theme) {
+    final baseStyle = widget.density == MediaTileDensity.compact
+        ? theme.textTheme.labelSmall
+        : theme.textTheme.labelMedium;
+    return baseStyle?.copyWith(
+      color: Colors.white,
+      fontWeight: FontWeight.w600,
+      shadows: const [
+        Shadow(
+          color: Color(0x99000000),
+          blurRadius: 8,
+          offset: Offset(0, 1),
+        ),
+      ],
+    );
+  }
+
+  BorderRadius _defaultBorderRadius() {
+    final radius = widget.density == MediaTileDensity.compact ? 18.0 : 20.0;
+    return BorderRadius.circular(radius);
+  }
+
+  double get _overlayInset {
+    return widget.density == MediaTileDensity.compact ? 8 : 12;
   }
 }
