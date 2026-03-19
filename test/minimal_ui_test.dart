@@ -809,6 +809,7 @@ void main() {
     expect(find.text(strings.addMood), findsNothing);
     expect(find.text(strings.currentWindowIcon), findsNothing);
     expect(find.text(strings.newPasscodeLabel), findsNothing);
+    expect(find.text(strings.setPasscodeAction), findsNothing);
     expect(find.text(strings.aliyunApiKeyLabel), findsNothing);
 
     await tester.scrollUntilVisible(
@@ -829,7 +830,7 @@ void main() {
     await tester.pumpAndSettle();
     await tester.tap(find.text(strings.passwordSettingsTitle));
     await tester.pumpAndSettle();
-    expect(find.text(strings.newPasscodeLabel), findsOneWidget);
+    expect(find.text(strings.setPasscodeAction), findsOneWidget);
 
     await tester.scrollUntilVisible(
       find.text(strings.moodLibraryTitle),
@@ -858,7 +859,7 @@ void main() {
     expect(find.text(strings.aliyunApiKeyLabel), findsOneWidget);
   });
 
-  testWidgets('settings page can set a new startup passcode', (tester) async {
+  testWidgets('settings page can set a new startup password', (tester) async {
     final repository = FakeDiaryRepository(
       moods: DiaryMood.values,
     );
@@ -883,29 +884,34 @@ void main() {
     await tester.tap(find.text(strings.passwordSettingsTitle));
     await tester.pumpAndSettle();
 
+    await tester.tap(find.text(strings.setPasscodeAction));
+    await tester.pumpAndSettle();
+
     await tester.enterText(
       find.byKey(const ValueKey('settings-passcode-new')),
-      '123456',
+      'hello-123',
     );
     await tester.enterText(
       find.byKey(const ValueKey('settings-passcode-confirm')),
-      '123456',
+      'hello-123',
     );
-    await tester.tap(find.text(strings.saveAction));
+    await tester.tap(
+      find.byKey(const ValueKey('settings-passcode-dialog-submit')),
+    );
     await tester.pumpAndSettle();
 
     final stored = await passwordStorage.read();
     expect(find.text(strings.passcodeSaved), findsOneWidget);
     expect(stored.hasPassword, isTrue);
-    expect(verifyPassword('123456', stored), isTrue);
+    expect(verifyPassword('hello-123', stored), isTrue);
   });
 
-  testWidgets('settings page requires the current passcode before changing it',
+  testWidgets('settings page requires the current password before changing it',
       (tester) async {
     final repository = FakeDiaryRepository(
       moods: DiaryMood.values,
     );
-    final hashed = hashPassword('123456');
+    final hashed = hashPassword('hello-123');
     final passwordStorage = FakePasswordSettingsStorage(
       PasswordSettingsState(
         enabled: true,
@@ -933,30 +939,35 @@ void main() {
     await tester.tap(find.text(strings.passwordSettingsTitle));
     await tester.pumpAndSettle();
 
+    await tester.tap(find.text(strings.changePasscodeAction));
+    await tester.pumpAndSettle();
+
     await tester.enterText(
       find.byKey(const ValueKey('settings-passcode-current')),
-      '000000',
+      'wrong-password',
     );
     await tester.enterText(
       find.byKey(const ValueKey('settings-passcode-new')),
-      '654321',
+      'updated-secret',
     );
     await tester.enterText(
       find.byKey(const ValueKey('settings-passcode-confirm')),
-      '654321',
+      'updated-secret',
     );
-    await tester.tap(find.text(strings.saveAction));
+    await tester.tap(
+      find.byKey(const ValueKey('settings-passcode-dialog-submit')),
+    );
     await tester.pumpAndSettle();
 
     expect(find.text(strings.currentPasscodeIncorrect), findsOneWidget);
-    expect(verifyPassword('123456', await passwordStorage.read()), isTrue);
+    expect(verifyPassword('hello-123', await passwordStorage.read()), isTrue);
   });
 
   testWidgets('settings page can disable the startup passcode', (tester) async {
     final repository = FakeDiaryRepository(
       moods: DiaryMood.values,
     );
-    final hashed = hashPassword('123456');
+    final hashed = hashPassword('hello-123');
     final passwordStorage = FakePasswordSettingsStorage(
       PasswordSettingsState(
         enabled: true,
@@ -995,6 +1006,95 @@ void main() {
 
     expect(find.text(strings.passcodeDisabled), findsOneWidget);
     expect((await passwordStorage.read()).hasPassword, isFalse);
+  });
+
+  testWidgets('startup lock gate shows the passcode screen when enabled',
+      (tester) async {
+    final repository = FakeDiaryRepository(
+      entries: [
+        DiaryEntry(
+          id: 'locked-entry',
+          title: 'Locked entry',
+          content: 'Should stay hidden until unlocked.',
+          mood: DiaryMood.calm,
+          createdAt: DateTime(2026, 3, 19, 10),
+        ),
+      ],
+      moods: DiaryMood.values,
+    );
+    final hashed = hashPassword('hello-123');
+    final passwordStorage = FakePasswordSettingsStorage(
+      PasswordSettingsState(
+        enabled: true,
+        salt: hashed.salt,
+        passwordHash: hashed.passwordHash,
+      ),
+    );
+
+    await pumpPage(
+      tester,
+      const HomePage(),
+      path: '/',
+      overrides: buildOverrides(
+        repository: repository,
+        passwordSettingsStorage: passwordStorage,
+      ),
+      withStartupLockGate: true,
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text(strings.unlockAppTitle), findsOneWidget);
+    expect(
+        find.byKey(const ValueKey('startup-passcode-field')), findsOneWidget);
+    expect(find.text(strings.recentEntries), findsNothing);
+  });
+
+  testWidgets('startup lock gate unlocks the app with the correct passcode',
+      (tester) async {
+    final repository = FakeDiaryRepository(
+      entries: [
+        DiaryEntry(
+          id: 'unlock-entry',
+          title: 'Unlock me',
+          content: 'Visible after unlocking.',
+          mood: DiaryMood.calm,
+          createdAt: DateTime(2026, 3, 19, 10),
+        ),
+      ],
+      moods: DiaryMood.values,
+    );
+    final hashed = hashPassword('hello-123');
+    final passwordStorage = FakePasswordSettingsStorage(
+      PasswordSettingsState(
+        enabled: true,
+        salt: hashed.salt,
+        passwordHash: hashed.passwordHash,
+      ),
+    );
+
+    await pumpPage(
+      tester,
+      const HomePage(),
+      path: '/',
+      overrides: buildOverrides(
+        repository: repository,
+        passwordSettingsStorage: passwordStorage,
+      ),
+      withStartupLockGate: true,
+    );
+    await tester.pumpAndSettle();
+
+    await tester.enterText(
+      find.byKey(const ValueKey('startup-passcode-field')),
+      'hello-123',
+    );
+    await tester.tap(find.widgetWithText(FilledButton, strings.unlockAction));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 300));
+    await tester.pumpAndSettle();
+
+    expect(find.text(strings.unlockAppTitle), findsNothing);
+    expect(find.text(strings.recentEntries), findsOneWidget);
   });
 
   testWidgets('editor images open the dedicated preview page', (tester) async {

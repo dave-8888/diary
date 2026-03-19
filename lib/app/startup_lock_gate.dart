@@ -1,7 +1,6 @@
 import 'package:diary_mvp/app/localization/app_strings.dart';
 import 'package:diary_mvp/features/diary/services/password_settings.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 class AppStartupLockGate extends ConsumerWidget {
@@ -72,6 +71,7 @@ class AppStartupLockGate extends ConsumerWidget {
         ),
         Positioned.fill(
           child: Overlay(
+            key: _overlayKeyFor(overlay),
             initialEntries: [
               OverlayEntry(
                 builder: (context) => overlay,
@@ -81,6 +81,13 @@ class AppStartupLockGate extends ConsumerWidget {
         ),
       ],
     );
+  }
+
+  Key _overlayKeyFor(Widget overlay) {
+    if (overlay is _LockErrorView) {
+      return ValueKey<String>('lock-error:${overlay.message}');
+    }
+    return ValueKey<String>('lock-overlay:${overlay.runtimeType}');
   }
 }
 
@@ -152,18 +159,14 @@ class _StartupLockScreenState extends ConsumerState<_StartupLockScreen> {
                     controller: _passwordController,
                     obscureText: !_showPassword,
                     autofocus: true,
-                    enableInteractiveSelection: false,
-                    keyboardType: TextInputType.number,
+                    keyboardType: TextInputType.visiblePassword,
+                    enableSuggestions: false,
+                    autocorrect: false,
                     textInputAction: TextInputAction.done,
-                    inputFormatters: [
-                      FilteringTextInputFormatter.digitsOnly,
-                      LengthLimitingTextInputFormatter(6),
-                    ],
                     decoration: InputDecoration(
                       labelText: strings.passcodeLabel,
                       hintText: strings.passcodeHint,
                       errorText: _errorText,
-                      counterText: '',
                       suffixIcon: IconButton(
                         onPressed: () {
                           setState(() => _showPassword = !_showPassword);
@@ -202,9 +205,9 @@ class _StartupLockScreenState extends ConsumerState<_StartupLockScreen> {
 
   Future<void> _unlock() async {
     final strings = context.strings;
-    final password = _passwordController.text.trim();
-    if (!isValidSixDigitPassword(password)) {
-      setState(() => _errorText = strings.passcodeMustBeSixDigits);
+    final password = _passwordController.text;
+    if (!isValidPassword(password)) {
+      setState(() => _errorText = strings.passcodeCannotBeEmpty);
       return;
     }
 

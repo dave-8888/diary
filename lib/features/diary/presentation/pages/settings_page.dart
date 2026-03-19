@@ -15,7 +15,6 @@ import 'package:diary_mvp/features/diary/services/password_settings.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
 
 class SettingsPage extends ConsumerStatefulWidget {
@@ -28,14 +27,10 @@ class SettingsPage extends ConsumerStatefulWidget {
 class _SettingsPageState extends ConsumerState<SettingsPage> {
   late final TextEditingController _appNameController;
   late final TextEditingController _diaryAiApiKeyController;
-  late final TextEditingController _currentPasscodeController;
-  late final TextEditingController _newPasscodeController;
-  late final TextEditingController _confirmPasscodeController;
   bool _appNameInitialized = false;
   bool _diaryAiApiKeyInitialized = false;
   bool _isSavingAppName = false;
   bool _isSavingDiaryAiApiKey = false;
-  bool _isSavingPasscode = false;
   bool _isResettingAppName = false;
   bool _isResettingDiaryAiApiKey = false;
   bool _isDisablingPasscode = false;
@@ -53,9 +48,6 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
   bool _isDiaryAiSectionExpanded = false;
   bool _isMoodLibrarySectionExpanded = false;
   bool _isMigrationSectionExpanded = false;
-  bool _showCurrentPasscode = false;
-  bool _showNewPasscode = false;
-  bool _showConfirmPasscode = false;
   bool _showDiaryAiApiKey = false;
 
   @override
@@ -63,18 +55,12 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
     super.initState();
     _appNameController = TextEditingController();
     _diaryAiApiKeyController = TextEditingController();
-    _currentPasscodeController = TextEditingController();
-    _newPasscodeController = TextEditingController();
-    _confirmPasscodeController = TextEditingController();
   }
 
   @override
   void dispose() {
     _appNameController.dispose();
     _diaryAiApiKeyController.dispose();
-    _currentPasscodeController.dispose();
-    _newPasscodeController.dispose();
-    _confirmPasscodeController.dispose();
     super.dispose();
   }
 
@@ -854,57 +840,44 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
     PasswordSettingsState settings,
   ) {
     final hasPassword = settings.hasPassword;
+    final theme = Theme.of(context);
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        if (hasPassword) ...[
-          _buildPasscodeField(
-            controller: _currentPasscodeController,
-            labelText: strings.currentPasscodeLabel,
-            hintText: strings.passcodeHint,
-            isVisible: _showCurrentPasscode,
-            onVisibilityChanged: () {
-              setState(() => _showCurrentPasscode = !_showCurrentPasscode);
-            },
-            valueKey: const ValueKey('settings-passcode-current'),
-            onSubmitted: (_) => _savePasscode(hasPassword: true),
+        Text(
+          strings.passwordSettingsHint,
+          style: theme.textTheme.bodySmall?.copyWith(
+            color: theme.colorScheme.onSurfaceVariant,
+            height: 1.4,
           ),
-          const SizedBox(height: 16),
-        ],
-        _buildPasscodeField(
-          controller: _newPasscodeController,
-          labelText: strings.newPasscodeLabel,
-          hintText: strings.passcodeHint,
-          isVisible: _showNewPasscode,
-          onVisibilityChanged: () {
-            setState(() => _showNewPasscode = !_showNewPasscode);
-          },
-          valueKey: const ValueKey('settings-passcode-new'),
-          onSubmitted: (_) => _savePasscode(hasPassword: hasPassword),
-        ),
-        const SizedBox(height: 16),
-        _buildPasscodeField(
-          controller: _confirmPasscodeController,
-          labelText: strings.confirmPasscodeLabel,
-          hintText: strings.passcodeHint,
-          isVisible: _showConfirmPasscode,
-          onVisibilityChanged: () {
-            setState(() => _showConfirmPasscode = !_showConfirmPasscode);
-          },
-          valueKey: const ValueKey('settings-passcode-confirm'),
-          onSubmitted: (_) => _savePasscode(hasPassword: hasPassword),
         ),
         const SizedBox(height: 16),
         Wrap(
           spacing: 12,
           runSpacing: 12,
           children: [
+            FilledButton.icon(
+              key: ValueKey(
+                hasPassword
+                    ? 'settings-change-passcode-button'
+                    : 'settings-set-passcode-button',
+              ),
+              onPressed: _isDisablingPasscode
+                  ? null
+                  : () => _showPasscodeDialog(hasPassword: hasPassword),
+              icon: Icon(
+                hasPassword ? Icons.edit_outlined : Icons.lock_outline_rounded,
+              ),
+              label: Text(
+                hasPassword
+                    ? strings.changePasscodeAction
+                    : strings.setPasscodeAction,
+              ),
+            ),
             if (hasPassword)
               OutlinedButton(
-                onPressed: _isSavingPasscode || _isDisablingPasscode
-                    ? null
-                    : _disablePasscode,
+                onPressed: _isDisablingPasscode ? null : _disablePasscode,
                 child: _isDisablingPasscode
                     ? const SizedBox(
                         width: 18,
@@ -913,57 +886,9 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
                       )
                     : Text(strings.disablePasscode),
               ),
-            FilledButton(
-              onPressed: _isSavingPasscode || _isDisablingPasscode
-                  ? null
-                  : () => _savePasscode(hasPassword: hasPassword),
-              child: _isSavingPasscode
-                  ? const SizedBox(
-                      width: 18,
-                      height: 18,
-                      child: CircularProgressIndicator(strokeWidth: 2),
-                    )
-                  : Text(strings.saveAction),
-            ),
           ],
         ),
       ],
-    );
-  }
-
-  Widget _buildPasscodeField({
-    required TextEditingController controller,
-    required String labelText,
-    required String hintText,
-    required bool isVisible,
-    required VoidCallback onVisibilityChanged,
-    required ValueKey<String> valueKey,
-    required ValueChanged<String> onSubmitted,
-  }) {
-    return TextField(
-      key: valueKey,
-      controller: controller,
-      obscureText: !isVisible,
-      keyboardType: TextInputType.number,
-      inputFormatters: [
-        FilteringTextInputFormatter.digitsOnly,
-        LengthLimitingTextInputFormatter(6),
-      ],
-      textInputAction: TextInputAction.done,
-      decoration: InputDecoration(
-        labelText: labelText,
-        hintText: hintText,
-        counterText: '',
-        suffixIcon: IconButton(
-          onPressed: onVisibilityChanged,
-          icon: Icon(
-            isVisible
-                ? Icons.visibility_off_outlined
-                : Icons.visibility_outlined,
-          ),
-        ),
-      ),
-      onSubmitted: onSubmitted,
     );
   }
 
@@ -985,72 +910,23 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
     );
   }
 
-  Future<void> _savePasscode({
+  Future<void> _showPasscodeDialog({
     required bool hasPassword,
   }) async {
     final strings = context.strings;
-    final currentPasscode = _currentPasscodeController.text.trim();
-    final newPasscode = _newPasscodeController.text.trim();
-    final confirmPasscode = _confirmPasscodeController.text.trim();
+    final didSave = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => _PasscodeDialog(hasPassword: hasPassword),
+    );
 
-    if (!isValidSixDigitPassword(newPasscode) ||
-        !isValidSixDigitPassword(confirmPasscode) ||
-        (hasPassword && !isValidSixDigitPassword(currentPasscode))) {
-      context.showAppSnackBar(
-        strings.passcodeMustBeSixDigits,
-        tone: AppSnackBarTone.warning,
-      );
+    if (!mounted || didSave != true) {
       return;
     }
 
-    if (newPasscode != confirmPasscode) {
-      context.showAppSnackBar(
-        strings.passcodeMismatch,
-        tone: AppSnackBarTone.warning,
-      );
-      return;
-    }
-
-    setState(() => _isSavingPasscode = true);
-    try {
-      if (hasPassword) {
-        await ref
-            .read(passwordSettingsControllerProvider.notifier)
-            .changePassword(
-              currentPassword: currentPasscode,
-              newPassword: newPasscode,
-            );
-      } else {
-        await ref.read(passwordSettingsControllerProvider.notifier).setPassword(
-              newPasscode,
-            );
-      }
-
-      ref.read(startupUnlockSessionControllerProvider.notifier).keepUnlocked();
-      _clearPasscodeFields();
-      if (!mounted) return;
-      setState(() => _isSavingPasscode = false);
-      context.showAppSnackBar(
-        hasPassword ? strings.passcodeUpdated : strings.passcodeSaved,
-        tone: AppSnackBarTone.success,
-      );
-    } on PasswordSettingsException catch (error) {
-      if (!mounted) return;
-      setState(() => _isSavingPasscode = false);
-      context.showAppSnackBar(
-        error.failure == PasswordSettingsFailure.invalidCurrentPassword
-            ? strings.currentPasscodeIncorrect
-            : strings.passcodeSaveFailed(error),
-        tone: AppSnackBarTone.error,
-      );
-    } catch (error) {
-      if (!mounted) return;
-      setState(() => _isSavingPasscode = false);
-      context.showAppSnackBar(
-        strings.passcodeSaveFailed(error),
-        tone: AppSnackBarTone.error,
-      );
-    }
+    context.showAppSnackBar(
+      hasPassword ? strings.passcodeUpdated : strings.passcodeSaved,
+      tone: AppSnackBarTone.success,
+    );
   }
 
   Future<void> _disablePasscode() async {
@@ -1083,7 +959,6 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
           .read(passwordSettingsControllerProvider.notifier)
           .disablePassword();
       ref.read(startupUnlockSessionControllerProvider.notifier).keepUnlocked();
-      _clearPasscodeFields();
       if (!mounted) return;
       setState(() => _isDisablingPasscode = false);
       context.showAppSnackBar(
@@ -1098,12 +973,6 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
         tone: AppSnackBarTone.error,
       );
     }
-  }
-
-  void _clearPasscodeFields() {
-    _currentPasscodeController.clear();
-    _newPasscodeController.clear();
-    _confirmPasscodeController.clear();
   }
 
   Future<void> _saveAppName() async {
@@ -1599,6 +1468,272 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
       case DiaryThemePreset.spaceLines:
         return Icons.rocket_launch_outlined;
     }
+  }
+}
+
+class _PasscodeDialog extends ConsumerStatefulWidget {
+  const _PasscodeDialog({
+    required this.hasPassword,
+  });
+
+  final bool hasPassword;
+
+  @override
+  ConsumerState<_PasscodeDialog> createState() => _PasscodeDialogState();
+}
+
+class _PasscodeDialogState extends ConsumerState<_PasscodeDialog> {
+  late final TextEditingController _currentController;
+  late final TextEditingController _newController;
+  late final TextEditingController _confirmController;
+  bool _showCurrentPassword = false;
+  bool _showNewPassword = false;
+  bool _showConfirmPassword = false;
+  bool _isSaving = false;
+  String? _errorText;
+
+  @override
+  void initState() {
+    super.initState();
+    _currentController = TextEditingController();
+    _newController = TextEditingController();
+    _confirmController = TextEditingController();
+  }
+
+  @override
+  void dispose() {
+    _currentController.dispose();
+    _newController.dispose();
+    _confirmController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final strings = context.strings;
+
+    return AlertDialog(
+      title: Text(
+        widget.hasPassword
+            ? strings.changePasscodeAction
+            : strings.setPasscodeAction,
+      ),
+      content: ConstrainedBox(
+        constraints: const BoxConstraints(maxWidth: 420),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            if (widget.hasPassword) ...[
+              _PasswordDialogField(
+                controller: _currentController,
+                labelText: strings.currentPasscodeLabel,
+                hintText: strings.passcodeHint,
+                isVisible: _showCurrentPassword,
+                onVisibilityChanged: () {
+                  setState(() {
+                    _showCurrentPassword = !_showCurrentPassword;
+                  });
+                },
+                valueKey: const ValueKey('settings-passcode-current'),
+                textInputAction: TextInputAction.next,
+                autofocus: true,
+                onChanged: _clearErrorIfNeeded,
+                onSubmitted: (_) {},
+              ),
+              const SizedBox(height: 16),
+            ],
+            _PasswordDialogField(
+              controller: _newController,
+              labelText: strings.newPasscodeLabel,
+              hintText: strings.passcodeHint,
+              isVisible: _showNewPassword,
+              onVisibilityChanged: () {
+                setState(() {
+                  _showNewPassword = !_showNewPassword;
+                });
+              },
+              valueKey: const ValueKey('settings-passcode-new'),
+              textInputAction: TextInputAction.next,
+              autofocus: !widget.hasPassword,
+              onChanged: _clearErrorIfNeeded,
+              onSubmitted: (_) {},
+            ),
+            const SizedBox(height: 16),
+            _PasswordDialogField(
+              controller: _confirmController,
+              labelText: strings.confirmPasscodeLabel,
+              hintText: strings.passcodeHint,
+              isVisible: _showConfirmPassword,
+              onVisibilityChanged: () {
+                setState(() {
+                  _showConfirmPassword = !_showConfirmPassword;
+                });
+              },
+              valueKey: const ValueKey('settings-passcode-confirm'),
+              textInputAction: TextInputAction.done,
+              onChanged: _clearErrorIfNeeded,
+              onSubmitted: (_) => _submit(),
+            ),
+            if (_errorText != null) ...[
+              const SizedBox(height: 14),
+              Text(
+                _errorText!,
+                style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                      color: Theme.of(context).colorScheme.error,
+                    ),
+              ),
+            ],
+          ],
+        ),
+      ),
+      actions: [
+        TextButton(
+          onPressed: _isSaving ? null : () => Navigator.of(context).pop(false),
+          child: Text(strings.cancelAction),
+        ),
+        FilledButton(
+          key: const ValueKey('settings-passcode-dialog-submit'),
+          onPressed: _isSaving ? null : _submit,
+          child: _isSaving
+              ? const SizedBox(
+                  width: 18,
+                  height: 18,
+                  child: CircularProgressIndicator(strokeWidth: 2),
+                )
+              : Text(
+                  widget.hasPassword
+                      ? strings.changePasscodeAction
+                      : strings.setPasscodeAction,
+                ),
+        ),
+      ],
+    );
+  }
+
+  void _clearErrorIfNeeded(String _) {
+    if (_errorText == null) {
+      return;
+    }
+    setState(() => _errorText = null);
+  }
+
+  Future<void> _submit() async {
+    final strings = context.strings;
+    final currentPassword = _currentController.text;
+    final newPassword = _newController.text;
+    final confirmPassword = _confirmController.text;
+
+    if (!isValidPassword(newPassword) ||
+        !isValidPassword(confirmPassword) ||
+        (widget.hasPassword && !isValidPassword(currentPassword))) {
+      setState(() => _errorText = strings.passcodeCannotBeEmpty);
+      return;
+    }
+
+    if (newPassword != confirmPassword) {
+      setState(() => _errorText = strings.passcodeMismatch);
+      return;
+    }
+
+    setState(() {
+      _isSaving = true;
+      _errorText = null;
+    });
+
+    try {
+      if (widget.hasPassword) {
+        await ref
+            .read(passwordSettingsControllerProvider.notifier)
+            .changePassword(
+              currentPassword: currentPassword,
+              newPassword: newPassword,
+            );
+      } else {
+        await ref
+            .read(passwordSettingsControllerProvider.notifier)
+            .setPassword(newPassword);
+      }
+
+      ref.read(startupUnlockSessionControllerProvider.notifier).keepUnlocked();
+      if (!mounted) {
+        return;
+      }
+      Navigator.of(context).pop(true);
+    } on PasswordSettingsException catch (error) {
+      if (!mounted) {
+        return;
+      }
+      setState(() {
+        _isSaving = false;
+        _errorText =
+            error.failure == PasswordSettingsFailure.invalidCurrentPassword
+                ? strings.currentPasscodeIncorrect
+                : strings.passcodeSaveFailed(error);
+      });
+    } catch (error) {
+      if (!mounted) {
+        return;
+      }
+      setState(() {
+        _isSaving = false;
+        _errorText = strings.passcodeSaveFailed(error);
+      });
+    }
+  }
+}
+
+class _PasswordDialogField extends StatelessWidget {
+  const _PasswordDialogField({
+    required this.controller,
+    required this.labelText,
+    required this.hintText,
+    required this.isVisible,
+    required this.onVisibilityChanged,
+    required this.valueKey,
+    required this.textInputAction,
+    required this.onChanged,
+    required this.onSubmitted,
+    this.autofocus = false,
+  });
+
+  final TextEditingController controller;
+  final String labelText;
+  final String hintText;
+  final bool isVisible;
+  final VoidCallback onVisibilityChanged;
+  final Key valueKey;
+  final TextInputAction textInputAction;
+  final ValueChanged<String> onChanged;
+  final ValueChanged<String> onSubmitted;
+  final bool autofocus;
+
+  @override
+  Widget build(BuildContext context) {
+    return TextField(
+      key: valueKey,
+      controller: controller,
+      obscureText: !isVisible,
+      autofocus: autofocus,
+      keyboardType: TextInputType.visiblePassword,
+      enableSuggestions: false,
+      autocorrect: false,
+      textInputAction: textInputAction,
+      decoration: InputDecoration(
+        labelText: labelText,
+        hintText: hintText,
+        suffixIcon: IconButton(
+          onPressed: onVisibilityChanged,
+          icon: Icon(
+            isVisible
+                ? Icons.visibility_off_outlined
+                : Icons.visibility_outlined,
+          ),
+        ),
+      ),
+      onChanged: onChanged,
+      onSubmitted: onSubmitted,
+    );
   }
 }
 

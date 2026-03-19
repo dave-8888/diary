@@ -3,16 +3,16 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
-  test('password hashing verifies correct and incorrect passcodes', () {
-    final hashed = hashPassword('123456');
+  test('password hashing verifies correct and incorrect passwords', () {
+    final hashed = hashPassword('hello-123');
     final settings = PasswordSettingsState(
       enabled: true,
       salt: hashed.salt,
       passwordHash: hashed.passwordHash,
     );
 
-    expect(verifyPassword('123456', settings), isTrue);
-    expect(verifyPassword('000000', settings), isFalse);
+    expect(verifyPassword('hello-123', settings), isTrue);
+    expect(verifyPassword('wrong-password', settings), isFalse);
     expect(const PasswordSettingsState.disabled().hasPassword, isFalse);
   });
 
@@ -32,9 +32,9 @@ void main() {
     );
   });
 
-  test('startup unlock session locks until the correct passcode is entered',
+  test('startup unlock session locks until the correct password is entered',
       () async {
-    final hashed = hashPassword('123456');
+    final hashed = hashPassword('hello-123');
     final storage = InMemoryPasswordSettingsStorage(
       PasswordSettingsState(
         enabled: true,
@@ -57,7 +57,7 @@ void main() {
     expect(
       await container
           .read(startupUnlockSessionControllerProvider.notifier)
-          .unlock('000000'),
+          .unlock('wrong-password'),
       isFalse,
     );
     expect(
@@ -68,7 +68,7 @@ void main() {
     expect(
       await container
           .read(startupUnlockSessionControllerProvider.notifier)
-          .unlock('123456'),
+          .unlock('hello-123'),
       isTrue,
     );
     expect(
@@ -78,7 +78,7 @@ void main() {
   });
 
   test('disabling the passcode clears the stored password state', () async {
-    final hashed = hashPassword('123456');
+    final hashed = hashPassword('hello-123');
     final storage = InMemoryPasswordSettingsStorage(
       PasswordSettingsState(
         enabled: true,

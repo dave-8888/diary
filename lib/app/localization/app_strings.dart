@@ -319,62 +319,66 @@ class AppStrings {
   String get usingEnvironmentApiKey => isChinese
       ? '\u5f53\u524d\u6b63\u5728\u4f7f\u7528\u542f\u52a8\u53c2\u6570\u4e2d\u7684 API Key\u3002'
       : 'Currently using the API key provided at launch.';
-  String get passwordSettingsTitle => isChinese ? '\u5bc6\u7801' : 'Passcode';
+  String get passwordSettingsTitle => isChinese ? '\u5bc6\u7801' : 'Password';
   String get passwordSettingsHint => isChinese
-      ? '\u8bbe\u7f6e 6 \u4f4d\u6570\u5b57\u5bc6\u7801\uff0c\u5e94\u7528\u542f\u52a8\u65f6\u9700\u5148\u89e3\u9501\u3002'
-      : 'Set a 6-digit passcode to unlock the app at startup.';
+      ? '\u8bbe\u7f6e\u542f\u52a8\u5bc6\u7801\uff0c\u5e94\u7528\u6253\u5f00\u65f6\u9700\u5148\u89e3\u9501\uff0c\u652f\u6301\u6587\u672c\u3001\u6570\u5b57\u548c\u7b26\u53f7\u3002'
+      : 'Set a startup password to unlock the app when it opens. Letters, numbers, and symbols are supported.';
   String passwordStatus(bool enabled) =>
       '$passwordSettingsTitle\uff1a${enabled ? enabledLabel : disabledLabel}';
   String get currentPasscodeLabel =>
-      isChinese ? '\u5f53\u524d\u5bc6\u7801' : 'Current passcode';
+      isChinese ? '\u5f53\u524d\u5bc6\u7801' : 'Current password';
   String get newPasscodeLabel =>
-      isChinese ? '\u65b0\u5bc6\u7801' : 'New passcode';
+      isChinese ? '\u65b0\u5bc6\u7801' : 'New password';
   String get confirmPasscodeLabel =>
-      isChinese ? '\u786e\u8ba4\u5bc6\u7801' : 'Confirm passcode';
-  String get passcodeLabel => isChinese ? '\u5bc6\u7801' : 'Passcode';
+      isChinese ? '\u786e\u8ba4\u5bc6\u7801' : 'Confirm password';
+  String get passcodeLabel => isChinese ? '\u5bc6\u7801' : 'Password';
   String get passcodeHint =>
-      isChinese ? '\u8f93\u5165 6 \u4f4d\u6570\u5b57' : 'Enter 6 digits';
+      isChinese ? '\u8f93\u5165\u5bc6\u7801' : 'Enter password';
+  String get setPasscodeAction =>
+      isChinese ? '\u8bbe\u7f6e\u5bc6\u7801' : 'Set password';
+  String get changePasscodeAction =>
+      isChinese ? '\u4fee\u6539\u5bc6\u7801' : 'Change password';
   String get passcodeSaved =>
-      isChinese ? '\u5bc6\u7801\u5df2\u4fdd\u5b58\u3002' : 'Passcode saved.';
+      isChinese ? '\u5bc6\u7801\u5df2\u4fdd\u5b58\u3002' : 'Password saved.';
   String get passcodeUpdated =>
-      isChinese ? '\u5bc6\u7801\u5df2\u66f4\u65b0\u3002' : 'Passcode updated.';
+      isChinese ? '\u5bc6\u7801\u5df2\u66f4\u65b0\u3002' : 'Password updated.';
   String get passcodeDisabled => isChinese
       ? '\u5bc6\u7801\u5df2\u5173\u95ed\u3002'
-      : 'Passcode turned off.';
+      : 'Password turned off.';
   String passcodeSaveFailed(Object error) => isChinese
       ? '\u4fdd\u5b58\u5bc6\u7801\u5931\u8d25\uff1a$error'
-      : 'Failed to save the passcode: $error';
-  String get passcodeMustBeSixDigits => isChinese
-      ? '\u5bc6\u7801\u5fc5\u987b\u662f 6 \u4f4d\u6570\u5b57\u3002'
-      : 'Passcode must be exactly 6 digits.';
+      : 'Failed to save the password: $error';
+  String get passcodeCannotBeEmpty => isChinese
+      ? '\u5bc6\u7801\u4e0d\u80fd\u4e3a\u7a7a\u3002'
+      : 'Password cannot be empty.';
   String get passcodeMismatch => isChinese
       ? '\u4e24\u6b21\u8f93\u5165\u7684\u5bc6\u7801\u4e0d\u4e00\u81f4\u3002'
-      : 'The two passcodes do not match.';
+      : 'The two passwords do not match.';
   String get currentPasscodeIncorrect => isChinese
       ? '\u5f53\u524d\u5bc6\u7801\u4e0d\u6b63\u786e\u3002'
-      : 'Current passcode is incorrect.';
+      : 'Current password is incorrect.';
   String get disablePasscode =>
-      isChinese ? '\u5173\u95ed\u5bc6\u7801' : 'Turn off passcode';
+      isChinese ? '\u5173\u95ed\u5bc6\u7801' : 'Turn off password';
   String get disablePasscodeTitle => isChinese
       ? '\u5173\u95ed\u542f\u52a8\u5bc6\u7801\uff1f'
-      : 'Turn off the startup passcode?';
+      : 'Turn off the startup password?';
   String get disablePasscodeMessage => isChinese
       ? '\u5173\u95ed\u540e\uff0c\u4e0b\u6b21\u542f\u52a8\u5c06\u4e0d\u518d\u9700\u8981\u89e3\u9501\u3002'
       : 'After turning it off, the app will no longer require unlocking on startup.';
   String get confirmDisablePasscode =>
-      isChinese ? '\u5173\u95ed\u5bc6\u7801' : 'Turn off passcode';
+      isChinese ? '\u5173\u95ed\u5bc6\u7801' : 'Turn off password';
   String get unlockAppTitle =>
       isChinese ? '\u89e3\u9501\u65e5\u8bb0' : 'Unlock diary';
   String get unlockAppHint => isChinese
-      ? '\u8bf7\u8f93\u5165 6 \u4f4d\u6570\u5b57\u5bc6\u7801\u4ee5\u7ee7\u7eed\u3002'
-      : 'Enter your 6-digit passcode to continue.';
+      ? '\u8bf7\u8f93\u5165\u5bc6\u7801\u4ee5\u7ee7\u7eed\u3002'
+      : 'Enter your password to continue.';
   String get unlockAction => isChinese ? '\u89e3\u9501' : 'Unlock';
   String get unlockFailed => isChinese
       ? '\u5bc6\u7801\u9519\u8bef\uff0c\u8bf7\u91cd\u8bd5\u3002'
-      : 'Incorrect passcode. Please try again.';
+      : 'Incorrect password. Please try again.';
   String passwordInitializationFailed(Object error) => isChinese
       ? '\u521d\u59cb\u5316\u5bc6\u7801\u72b6\u6001\u5931\u8d25\uff1a$error'
-      : 'Failed to initialize the passcode state: $error';
+      : 'Failed to initialize the password state: $error';
   String get moodLibraryTitle =>
       isChinese ? '\u60c5\u7eea\u5e93' : 'Mood library';
   String get moodLibraryHint => isChinese

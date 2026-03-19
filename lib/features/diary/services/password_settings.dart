@@ -68,8 +68,8 @@ class PasswordSettingsException implements Exception {
   }
 }
 
-bool isValidSixDigitPassword(String value) {
-  return RegExp(r'^\d{6}$').hasMatch(value.trim());
+bool isValidPassword(String value) {
+  return value.trim().isNotEmpty;
 }
 
 PasswordHashData hashPassword(
@@ -77,9 +77,8 @@ PasswordHashData hashPassword(
   String? salt,
 }) {
   final resolvedSalt = salt ?? generatePasswordSalt();
-  final digest = sha256
-      .convert(utf8.encode('$resolvedSalt:${password.trim()}'))
-      .toString();
+  final digest =
+      sha256.convert(utf8.encode('$resolvedSalt:$password')).toString();
   return PasswordHashData(
     salt: resolvedSalt,
     passwordHash: digest,
