@@ -102,6 +102,23 @@ class AppStrings {
   String get languageSettingsHint => isChinese
       ? '\u9009\u62e9\u5e94\u7528\u754c\u9762\u8bed\u8a00\uff0c\u4e5f\u53ef\u4ee5\u8ddf\u968f\u7cfb\u7edf\u3002'
       : 'Choose the app language or follow the system setting.';
+  String get diaryListSettingsTitle =>
+      isChinese ? '\u65e5\u8bb0\u5217\u8868' : 'Diary list';
+  String get diaryListSettingsHint => isChinese
+      ? '\u63a7\u5236\u9996\u9875\u3001\u65f6\u95f4\u8f74\u548c\u5783\u573e\u6876\u5217\u8868\u4e2d\u662f\u5426\u663e\u793a\u56fe\u7247\u4e0e\u89c6\u9891\u9884\u89c8\u3002'
+      : 'Control whether image and video previews are shown in diary lists on Home, Timeline, and Trash.';
+  String get diaryListShowVisualMediaLabel => isChinese
+      ? '\u663e\u793a\u56fe\u7247\u548c\u89c6\u9891'
+      : 'Show images and videos';
+  String get diaryListShowVisualMediaHint => isChinese
+      ? '\u5173\u95ed\u540e\uff0c\u65e5\u8bb0\u5217\u8868\u5c06\u9690\u85cf\u56fe\u7247\u4e0e\u89c6\u9891\u9884\u89c8\uff0c\u4f46\u4e0d\u5f71\u54cd\u6b63\u6587\u548c\u97f3\u9891\u3002'
+      : 'When off, diary lists hide image and video previews without affecting text or audio.';
+  String get diaryListShowVisualMediaUpdated => isChinese
+      ? '\u65e5\u8bb0\u5217\u8868\u5a92\u4f53\u663e\u793a\u8bbe\u7f6e\u5df2\u66f4\u65b0\u3002'
+      : 'Diary list media visibility updated.';
+  String diaryListShowVisualMediaUpdateFailed(Object error) => isChinese
+      ? '\u66f4\u65b0\u65e5\u8bb0\u5217\u8868\u5a92\u4f53\u663e\u793a\u8bbe\u7f6e\u5931\u8d25\uff1a$error'
+      : 'Failed to update diary list media visibility: $error';
   String get languageUpdated =>
       isChinese ? '\u8bed\u8a00\u5df2\u66f4\u65b0\u3002' : 'Language updated.';
   String languageUpdateFailed(Object error) => isChinese

@@ -2,8 +2,10 @@ import 'package:diary_mvp/app/localization/app_strings.dart';
 import 'package:diary_mvp/features/diary/domain/diary_entry.dart';
 import 'package:diary_mvp/features/diary/presentation/widgets/entry_list_preview.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:diary_mvp/features/diary/services/diary_list_settings.dart';
 
-class DiaryCard extends StatelessWidget {
+class DiaryCard extends ConsumerWidget {
   const DiaryCard({
     super.key,
     required this.entry,
@@ -16,8 +18,12 @@ class DiaryCard extends StatelessWidget {
   final VoidCallback? onTap;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final strings = context.strings;
+    final showVisualMedia = ref
+            .watch(diaryListVisualMediaVisibilityControllerProvider)
+            .valueOrNull ??
+        true;
     final trailingActions = <Widget>[
       if (entry.location != null)
         Chip(
@@ -36,6 +42,7 @@ class DiaryCard extends StatelessWidget {
       padding: const EdgeInsets.all(20),
       child: EntryListPreview(
         entry: entry,
+        showVisualMedia: showVisualMedia,
         leading: Text(
           entry.mood.emoji,
           style: Theme.of(context).textTheme.headlineMedium,

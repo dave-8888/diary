@@ -17,12 +17,14 @@ class EntryListPreview extends StatelessWidget {
     this.leading,
     this.trailing,
     this.extraChips = const <Widget>[],
+    this.showVisualMedia = true,
   });
 
   final DiaryEntry entry;
   final Widget? leading;
   final Widget? trailing;
   final List<Widget> extraChips;
+  final bool showVisualMedia;
 
   @override
   Widget build(BuildContext context) {
@@ -45,19 +47,21 @@ class EntryListPreview extends StatelessWidget {
     final contentText = entry.content.trim();
     final contentStyle = theme.textTheme.bodyMedium?.copyWith(height: 1.45);
 
-    final previewTiles = <_CompactPreviewSpec>[
-      if (imageMedia.isNotEmpty)
-        _CompactPreviewSpec(
-          key: ValueKey('entry-compact-image-${imageMedia.first.id}'),
-          media: imageMedia.first,
-        ),
-      if (videoMedia.isNotEmpty)
-        _CompactPreviewSpec(
-          key: ValueKey('entry-compact-video-${videoMedia.first.id}'),
-          media: videoMedia.first,
-          videoTimestampStyle: VideoTimestampStyle.day,
-        ),
-    ];
+    final previewTiles = showVisualMedia
+        ? <_CompactPreviewSpec>[
+            if (imageMedia.isNotEmpty)
+              _CompactPreviewSpec(
+                key: ValueKey('entry-compact-image-${imageMedia.first.id}'),
+                media: imageMedia.first,
+              ),
+            if (videoMedia.isNotEmpty)
+              _CompactPreviewSpec(
+                key: ValueKey('entry-compact-video-${videoMedia.first.id}'),
+                media: videoMedia.first,
+                videoTimestampStyle: VideoTimestampStyle.day,
+              ),
+          ]
+        : const <_CompactPreviewSpec>[];
     final detailChips = <Widget>[
       ...extraChips,
       ...otherMedia.map(

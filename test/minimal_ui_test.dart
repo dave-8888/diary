@@ -19,6 +19,7 @@ import 'package:diary_mvp/features/diary/presentation/widgets/entry_list_preview
 import 'package:diary_mvp/features/diary/presentation/widgets/entry_readonly_view.dart';
 import 'package:diary_mvp/features/diary/presentation/widgets/image_media_grid.dart';
 import 'package:diary_mvp/features/diary/services/diary_ai_settings.dart';
+import 'package:diary_mvp/features/diary/services/diary_list_settings.dart';
 import 'package:diary_mvp/features/diary/services/password_settings.dart';
 import 'package:diary_mvp/features/diary/services/transcription_settings.dart';
 import 'package:flutter/material.dart';
@@ -587,6 +588,59 @@ void main() {
   });
 
   testWidgets(
+      'home page hides image and video previews when diary list media is disabled',
+      (tester) async {
+    final repository = FakeDiaryRepository(
+      entries: [
+        DiaryEntry(
+          id: 'hidden-media-entry',
+          title: 'Hidden media',
+          content: 'Only text should remain in the list preview.',
+          mood: DiaryMood.calm,
+          createdAt: DateTime(2026, 3, 18, 9),
+          media: [
+            DiaryMedia(
+              id: 'hidden-image-1',
+              type: MediaType.image,
+              path:
+                  '${Directory.systemTemp.path}${Platform.pathSeparator}missing_hidden_image_1.png',
+            ),
+            DiaryMedia(
+              id: 'hidden-video-1',
+              type: MediaType.video,
+              path:
+                  '${Directory.systemTemp.path}${Platform.pathSeparator}missing_hidden_video_1.mp4',
+            ),
+          ],
+        ),
+      ],
+      moods: DiaryMood.values,
+    );
+
+    await pumpPage(
+      tester,
+      const HomePage(),
+      path: '/',
+      overrides: buildOverrides(
+        repository: repository,
+        diaryListSettingsStorage: FakeDiaryListSettingsStorage(false),
+      ),
+    );
+
+    expect(find.byKey(const ValueKey('entry-compact-image-hidden-image-1')),
+        findsNothing);
+    expect(find.byKey(const ValueKey('entry-compact-video-hidden-video-1')),
+        findsNothing);
+    expect(
+      find.byKey(
+        const ValueKey('entry-content-preview-hidden-media-entry'),
+        skipOffstage: false,
+      ),
+      findsOneWidget,
+    );
+  });
+
+  testWidgets(
       'compact list preview stacks media block above content on narrow widths',
       (tester) async {
     await tester.binding.setSurfaceSize(const Size(620, 1000));
@@ -904,6 +958,45 @@ void main() {
     expect(find.text(strings.passcodeSaved), findsOneWidget);
     expect(stored.hasPassword, isTrue);
     expect(verifyPassword('hello-123', stored), isTrue);
+  });
+
+  testWidgets('settings page can toggle diary list media visibility',
+      (tester) async {
+    final repository = FakeDiaryRepository(
+      moods: DiaryMood.values,
+    );
+    final diaryListSettingsStorage = FakeDiaryListSettingsStorage();
+
+    await pumpPage(
+      tester,
+      const SettingsPage(),
+      path: '/settings',
+      overrides: buildOverrides(
+        repository: repository,
+        diaryListSettingsStorage: diaryListSettingsStorage,
+      ),
+    );
+
+    await tester.scrollUntilVisible(
+      find.text(strings.diaryListSettingsTitle),
+      300,
+      scrollable: find.byType(Scrollable).first,
+    );
+    await tester.pumpAndSettle();
+
+    expect(
+      await diaryListSettingsStorage.readShowVisualMedia(),
+      isTrue,
+    );
+
+    await tester.tap(find.byType(Switch).first);
+    await tester.pumpAndSettle();
+
+    expect(
+      await diaryListSettingsStorage.readShowVisualMedia(),
+      isFalse,
+    );
+    expect(find.text(strings.diaryListShowVisualMediaUpdated), findsOneWidget);
   });
 
   testWidgets('settings page requires the current password before changing it',
@@ -1300,8 +1393,11 @@ Future<void> pumpReadonlyView(
 
 List<Override> buildOverrides({
   required FakeDiaryRepository repository,
+  FakeDiaryListSettingsStorage? diaryListSettingsStorage,
   FakePasswordSettingsStorage? passwordSettingsStorage,
 }) {
+  final effectiveDiaryListSettingsStorage =
+      diaryListSettingsStorage ?? FakeDiaryListSettingsStorage();
   final effectivePasswordSettingsStorage =
       passwordSettingsStorage ?? FakePasswordSettingsStorage();
 
@@ -1331,6 +1427,9 @@ List<Override> buildOverrides({
     ),
     diaryAiApiKeyStorageProvider.overrideWith(
       (ref) => FakeDiaryAiSettingsStorage(),
+    ),
+    diaryListSettingsStorageProvider.overrideWith(
+      (ref) => effectiveDiaryListSettingsStorage,
     ),
     passwordSettingsStorageProvider.overrideWith(
       (ref) => effectivePasswordSettingsStorage,
@@ -1530,6 +1629,22 @@ class FakeDiaryAiSettingsStorage extends DiaryAiSettingsStorage {
 
   @override
   Future<void> writeVisibility(bool enabled) async {}
+}
+
+class FakeDiaryListSettingsStorage extends DiaryListSettingsStorage {
+  FakeDiaryListSettingsStorage([
+    bool value = true,
+  ]) : _showVisualMedia = value;
+
+  bool _showVisualMedia;
+
+  @override
+  Future<bool> readShowVisualMedia() async => _showVisualMedia;
+
+  @override
+  Future<void> writeShowVisualMedia(bool enabled) async {
+    _showVisualMedia = enabled;
+  }
 }
 
 class FakePasswordSettingsStorage extends PasswordSettingsStorage {

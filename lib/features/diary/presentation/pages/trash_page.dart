@@ -5,6 +5,7 @@ import 'package:diary_mvp/features/diary/application/diary_controller.dart';
 import 'package:diary_mvp/features/diary/domain/diary_entry.dart';
 import 'package:diary_mvp/features/diary/presentation/widgets/diary_shell.dart';
 import 'package:diary_mvp/features/diary/presentation/widgets/entry_list_preview.dart';
+import 'package:diary_mvp/features/diary/services/diary_list_settings.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -24,6 +25,10 @@ class _TrashPageState extends ConsumerState<TrashPage> {
   @override
   Widget build(BuildContext context) {
     final strings = context.strings;
+    final showVisualMedia = ref
+            .watch(diaryListVisualMediaVisibilityControllerProvider)
+            .valueOrNull ??
+        true;
     final trashAsync = ref.watch(trashDiaryControllerProvider);
 
     return DiaryShell(
@@ -126,6 +131,7 @@ class _TrashPageState extends ConsumerState<TrashPage> {
                   padding: const EdgeInsets.only(bottom: 12),
                   child: _TrashEntryCard(
                     entry: entry,
+                    showVisualMedia: showVisualMedia,
                     selected: _selectedIds.contains(entry.id),
                     onSelected: (selected) {
                       setState(() {
@@ -230,6 +236,7 @@ class _TrashPageState extends ConsumerState<TrashPage> {
 class _TrashEntryCard extends StatelessWidget {
   const _TrashEntryCard({
     required this.entry,
+    required this.showVisualMedia,
     required this.selected,
     required this.onSelected,
     required this.onPreview,
@@ -237,6 +244,7 @@ class _TrashEntryCard extends StatelessWidget {
   });
 
   final DiaryEntry entry;
+  final bool showVisualMedia;
   final bool selected;
   final ValueChanged<bool> onSelected;
   final VoidCallback onPreview;
@@ -275,6 +283,7 @@ class _TrashEntryCard extends StatelessWidget {
                 child: EntryListPreview(
                   entry: entry,
                   extraChips: detailChips,
+                  showVisualMedia: showVisualMedia,
                 ),
               ),
               const SizedBox(width: 12),

@@ -11,6 +11,7 @@ import 'package:diary_mvp/features/diary/application/diary_controller.dart';
 import 'package:diary_mvp/features/diary/domain/diary_entry.dart';
 import 'package:diary_mvp/features/diary/presentation/widgets/diary_shell.dart';
 import 'package:diary_mvp/features/diary/services/diary_ai_settings.dart';
+import 'package:diary_mvp/features/diary/services/diary_list_settings.dart';
 import 'package:diary_mvp/features/diary/services/password_settings.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
@@ -40,6 +41,7 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
   bool _isChangingTheme = false;
   bool _isChangingLanguage = false;
   bool _isResettingMoods = false;
+  bool _isChangingDiaryListVisualMediaVisibility = false;
   bool _isChangingDiaryAiVisibility = false;
   bool _isChangingEmotionalCompanionVisibility = false;
   bool _isChangingProblemSuggestionVisibility = false;
@@ -73,6 +75,11 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
       customNameAsync: customAppNameAsync,
     );
     final diaryAiApiKeyAsync = ref.watch(diaryAiApiKeyControllerProvider);
+    final diaryListVisualMediaVisibilityAsync = ref.watch(
+      diaryListVisualMediaVisibilityControllerProvider,
+    );
+    final diaryListShowVisualMedia =
+        diaryListVisualMediaVisibilityAsync.valueOrNull ?? true;
     final diaryAiVisibilityAsync =
         ref.watch(diaryAiVisibilityControllerProvider);
     final diaryAiVisible = diaryAiVisibilityAsync.valueOrNull ?? true;
@@ -172,6 +179,21 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
                         ),
                       )
                       .toList(growable: false),
+                ),
+              ),
+              const SizedBox(height: 18),
+              _buildSectionCard(
+                context: context,
+                icon: Icons.view_agenda_outlined,
+                title: strings.diaryListSettingsTitle,
+                subtitle: strings.diaryListSettingsHint,
+                child: _buildToggleSettingTile(
+                  context: context,
+                  title: strings.diaryListShowVisualMediaLabel,
+                  helpText: strings.diaryListShowVisualMediaHint,
+                  value: diaryListShowVisualMedia,
+                  enabled: !_isChangingDiaryListVisualMediaVisibility,
+                  onChanged: _changeDiaryListVisualMediaVisibility,
                 ),
               ),
               const SizedBox(height: 18),
@@ -1080,6 +1102,29 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
       setState(() => _isChangingDiaryAiVisibility = false);
       context.showAppSnackBar(
         strings.diaryAiVisibilityUpdateFailed(error),
+        tone: AppSnackBarTone.error,
+      );
+    }
+  }
+
+  Future<void> _changeDiaryListVisualMediaVisibility(bool enabled) async {
+    final strings = context.strings;
+    setState(() => _isChangingDiaryListVisualMediaVisibility = true);
+    try {
+      await ref
+          .read(diaryListVisualMediaVisibilityControllerProvider.notifier)
+          .setEnabled(enabled);
+      if (!mounted) return;
+      setState(() => _isChangingDiaryListVisualMediaVisibility = false);
+      context.showAppSnackBar(
+        strings.diaryListShowVisualMediaUpdated,
+        tone: AppSnackBarTone.success,
+      );
+    } catch (error) {
+      if (!mounted) return;
+      setState(() => _isChangingDiaryListVisualMediaVisibility = false);
+      context.showAppSnackBar(
+        strings.diaryListShowVisualMediaUpdateFailed(error),
         tone: AppSnackBarTone.error,
       );
     }
