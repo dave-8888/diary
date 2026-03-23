@@ -17,6 +17,7 @@ $resolvedOutputDir = if ($OutputDir) {
 } else {
   Join-Path $repoRoot "dist\windows-installer"
 }
+$stagingOutputDir = Join-Path ([System.IO.Path]::GetTempPath()) ("diary-installer\" + [guid]::NewGuid().ToString())
 $issPath = Join-Path $repoRoot "windows\installer\diary_setup.iss"
 
 Set-Location $repoRoot
@@ -65,10 +66,11 @@ if (-not (Test-Path $appExe)) {
 }
 
 New-Item -ItemType Directory -Force $resolvedOutputDir | Out-Null
+New-Item -ItemType Directory -Force $stagingOutputDir | Out-Null
 
 & $IsccExe `
   "/DReleaseDir=$releaseDir" `
-  "/DOutputDir=$resolvedOutputDir" `
+  "/DOutputDir=$stagingOutputDir" `
   "/DMyAppVersion=$installerVersion" `
   "/DMyOutputBaseFilename=$resolvedOutputBaseFilename" `
   $issPath
@@ -77,10 +79,14 @@ if ($LASTEXITCODE -ne 0) {
   throw "ISCC packaging failed."
 }
 
-$setupExe = Join-Path $resolvedOutputDir "$resolvedOutputBaseFilename.exe"
-if (-not (Test-Path $setupExe)) {
-  throw "Installer was not generated: $setupExe"
+$stagedSetupExe = Join-Path $stagingOutputDir "$resolvedOutputBaseFilename.exe"
+if (-not (Test-Path $stagedSetupExe)) {
+  throw "Installer was not generated: $stagedSetupExe"
 }
+
+$setupExe = Join-Path $resolvedOutputDir "$resolvedOutputBaseFilename.exe"
+Copy-Item -Path $stagedSetupExe -Destination $setupExe -Force
+Remove-Item -Path $stagingOutputDir -Recurse -Force
 
 Write-Host ""
 Write-Host "Installer created successfully:" -ForegroundColor Green

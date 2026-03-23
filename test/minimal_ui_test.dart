@@ -390,6 +390,33 @@ void main() {
     expect((await repository.listEntries()).length, 1);
   });
 
+  testWidgets('saving a new entry twice updates the same entry',
+      (tester) async {
+    final repository = FakeDiaryRepository(
+      moods: DiaryMood.values,
+    );
+
+    await pumpPage(
+      tester,
+      const EditorPage(),
+      path: '/editor',
+      overrides: buildOverrides(repository: repository),
+    );
+
+    await tester.enterText(find.byType(TextField).at(0), 'Saved draft');
+    await tester.enterText(find.byType(TextField).at(1), 'Keep me here.');
+    await tester.tap(find.byIcon(Icons.save_outlined));
+    await tester.pumpAndSettle();
+
+    expect((await repository.listEntries()).length, 1);
+
+    await tester.tap(find.byIcon(Icons.save_outlined));
+    await tester.pumpAndSettle();
+
+    expect(find.text(strings.entryUpdated), findsOneWidget);
+    expect((await repository.listEntries()).length, 1);
+  });
+
   testWidgets('editor page warns before switching pages with unsaved changes',
       (tester) async {
     final repository = FakeDiaryRepository(

@@ -49,6 +49,7 @@ class _EditorPageState extends ConsumerState<EditorPage>
   String _moodId = DiaryMood.defaultSelectionId;
   final List<DiaryMedia> _media = [];
   final List<String> _tags = [];
+  DiaryEntry? _activeEntry;
 
   bool _isSaving = false;
   bool _isDeleting = false;
@@ -61,10 +62,10 @@ class _EditorPageState extends ConsumerState<EditorPage>
   bool _allowNextPop = false;
   DateTime? _recordingStartedAt;
   DiaryEntryAiAnalysis? _aiSuggestion;
-  late final DateTime _draftCreatedAt;
+  late DateTime _draftCreatedAt;
   late String _lastSavedSignature;
 
-  bool get _isEditing => widget.entry != null;
+  bool get _isEditing => _activeEntry != null;
   bool get _hasUnsavedChanges =>
       _currentDraftSignature() != _lastSavedSignature;
 
@@ -72,7 +73,8 @@ class _EditorPageState extends ConsumerState<EditorPage>
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
-    final entry = widget.entry;
+    _activeEntry = widget.entry;
+    final entry = _activeEntry;
     _draftCreatedAt = entry?.createdAt ?? DateTime.now();
     if (entry != null) {
       _titleController.text = entry.title;
@@ -1383,6 +1385,7 @@ class _EditorPageState extends ConsumerState<EditorPage>
 
   Future<void> _save() async {
     final strings = context.strings;
+    final wasEditing = _isEditing;
     setState(() => _isSaving = true);
     final controller = ref.read(diaryControllerProvider.notifier);
     final media = List<DiaryMedia>.from(_media);
@@ -1392,28 +1395,33 @@ class _EditorPageState extends ConsumerState<EditorPage>
     );
 
     try {
-      if (_isEditing) {
-        await controller.updateEntry(
-          entry: widget.entry!,
-          title: _titleController.text,
-          content: _contentController.text,
-          mood: mood,
-          location: _locationController.text,
-          tags: tags,
-          media: media,
-          aiAnalysis: _aiSuggestion,
-        );
-      } else {
-        await controller.addEntry(
-          title: _titleController.text,
-          content: _contentController.text,
-          mood: mood,
-          location: _locationController.text,
-          tags: tags,
-          media: media,
-          aiAnalysis: _aiSuggestion,
-        );
-      }
+      final savedEntry = wasEditing
+          ? await controller.updateEntry(
+              entry: _activeEntry!,
+              title: _titleController.text,
+              content: _contentController.text,
+              mood: mood,
+              location: _locationController.text,
+              tags: tags,
+              media: media,
+              aiAnalysis: _aiSuggestion,
+            )
+          : await controller.addEntry(
+              title: _titleController.text,
+              content: _contentController.text,
+              mood: mood,
+              location: _locationController.text,
+              tags: tags,
+              media: media,
+              aiAnalysis: _aiSuggestion,
+            );
+
+      if (!mounted) return;
+      setState(() {
+        _isSaving = false;
+        _activeEntry = savedEntry;
+        _draftCreatedAt = savedEntry.createdAt;
+      });
     } catch (error) {
       if (!mounted) return;
       setState(() => _isSaving = false);
@@ -1424,17 +1432,15 @@ class _EditorPageState extends ConsumerState<EditorPage>
       return;
     }
 
-    if (!mounted) return;
-    setState(() => _isSaving = false);
     _lastSavedSignature = _currentDraftSignature();
     context.showAppSnackBar(
-      _isEditing ? strings.entryUpdated : strings.entrySaved,
+      wasEditing ? strings.entryUpdated : strings.entrySaved,
       tone: AppSnackBarTone.success,
     );
   }
 
   Future<void> _confirmDelete() async {
-    final entry = widget.entry;
+    final entry = _activeEntry;
     if (entry == null) return;
 
     final strings = context.strings;
@@ -1462,7 +1468,7 @@ class _EditorPageState extends ConsumerState<EditorPage>
   }
 
   Future<void> _deleteEntry() async {
-    final entry = widget.entry;
+    final entry = _activeEntry;
     if (entry == null) return;
 
     final strings = context.strings;
@@ -1726,7 +1732,7 @@ class _EditorPageState extends ConsumerState<EditorPage>
   }
 
   DiaryEntry _buildDraftEntry() {
-    final entry = widget.entry;
+    final entry = _activeEntry;
     final title = _titleController.text.trim();
     final content = _contentController.text.trim();
     final location = _locationController.text.trim();

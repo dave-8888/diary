@@ -22,7 +22,7 @@ class DiaryController extends AsyncNotifier<List<DiaryEntry>> {
     state = await AsyncValue.guard(_repository.listEntries);
   }
 
-  Future<void> addEntry({
+  Future<DiaryEntry> addEntry({
     required String title,
     required String content,
     required DiaryMood mood,
@@ -31,8 +31,8 @@ class DiaryController extends AsyncNotifier<List<DiaryEntry>> {
     required List<DiaryMedia> media,
     DiaryEntryAiAnalysis? aiAnalysis,
   }) async {
-    await _runMutation(() async {
-      await _repository.createEntry(
+    return _runMutation(() async {
+      final entry = await _repository.createEntry(
         title: title,
         content: content,
         mood: mood,
@@ -42,10 +42,11 @@ class DiaryController extends AsyncNotifier<List<DiaryEntry>> {
         aiAnalysis: aiAnalysis,
       );
       ref.invalidate(tagLibraryControllerProvider);
+      return entry;
     });
   }
 
-  Future<void> updateEntry({
+  Future<DiaryEntry> updateEntry({
     required DiaryEntry entry,
     required String title,
     required String content,
@@ -55,8 +56,8 @@ class DiaryController extends AsyncNotifier<List<DiaryEntry>> {
     required List<DiaryMedia> media,
     DiaryEntryAiAnalysis? aiAnalysis,
   }) async {
-    await _runMutation(() async {
-      await _repository.updateEntry(
+    return _runMutation(() async {
+      final updated = await _repository.updateEntry(
         entry: entry,
         title: title,
         content: content,
@@ -67,6 +68,7 @@ class DiaryController extends AsyncNotifier<List<DiaryEntry>> {
         aiAnalysis: aiAnalysis,
       );
       ref.invalidate(tagLibraryControllerProvider);
+      return updated;
     });
   }
 
@@ -95,11 +97,12 @@ class DiaryController extends AsyncNotifier<List<DiaryEntry>> {
     });
   }
 
-  Future<void> _runMutation(Future<void> Function() mutation) async {
+  Future<T> _runMutation<T>(Future<T> Function() mutation) async {
     state = const AsyncLoading();
     try {
-      await mutation();
+      final result = await mutation();
       state = AsyncData(await _repository.listEntries());
+      return result;
     } catch (error, stackTrace) {
       state = AsyncError(error, stackTrace);
       rethrow;
