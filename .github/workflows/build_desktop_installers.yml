@@ -1,0 +1,81 @@
+name: Build Desktop Installers
+
+on:
+  workflow_dispatch:
+  push:
+    tags:
+      - "v*"
+
+jobs:
+  windows:
+    name: Windows Installer
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+
+      - name: Enable Windows desktop
+        run: flutter config --enable-windows-desktop
+
+      - name: Install Flutter dependencies
+        run: flutter pub get
+
+      - name: Install Inno Setup
+        run: choco install innosetup -y
+
+      - name: Build Windows installer
+        shell: pwsh
+        run: |
+          $flutterExe = (Get-Command flutter).Source
+          $isccExe = "$env:ProgramFiles(x86)\Inno Setup 6\ISCC.exe"
+          if (-not (Test-Path $isccExe)) {
+            $isccExe = "$env:ProgramFiles\Inno Setup 6\ISCC.exe"
+          }
+
+          powershell -ExecutionPolicy Bypass -File .\tools\build_windows_installer.ps1 `
+            -FlutterExe $flutterExe `
+            -IsccExe $isccExe
+
+      - name: Upload Windows installer
+        uses: actions/upload-artifact@v4
+        with:
+          name: windows-installer
+          path: dist/windows-installer/*.exe
+          if-no-files-found: error
+
+  macos:
+    name: macOS Installer
+    runs-on: macos-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+
+      - name: Enable macOS desktop
+        run: flutter config --enable-macos-desktop
+
+      - name: Install Flutter dependencies
+        run: flutter pub get
+
+      - name: Build macOS DMG
+        run: |
+          chmod +x ./tools/build_macos_installer.sh
+          ./tools/build_macos_installer.sh
+
+      - name: Upload macOS installer
+        uses: actions/upload-artifact@v4
+        with:
+          name: macos-installer
+          path: dist/macos-installer/*.dmg
+          if-no-files-found: error

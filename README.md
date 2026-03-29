@@ -39,3 +39,25 @@ lib/
 flutter pub get
 flutter run -d windows
 ```
+
+## Desktop packaging
+
+Windows installer:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File .\tools\build_windows_installer.ps1
+```
+
+macOS DMG (must be run on a Mac or macOS CI runner):
+
+```bash
+chmod +x ./tools/build_macos_installer.sh
+./tools/build_macos_installer.sh
+```
+
+Build outputs:
+
+- `dist/windows-installer/*.exe`
+- `dist/macos-installer/*.dmg`
+
+If you want both artifacts from CI, use the GitHub Actions workflow at `.github/workflows/build_desktop_installers.yml`.
