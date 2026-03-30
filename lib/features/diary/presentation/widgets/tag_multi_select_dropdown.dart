@@ -58,6 +58,7 @@ class _TagMultiSelectDropdownState extends State<TagMultiSelectDropdown> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
+    final hasSelection = widget.selectedValues.isNotEmpty;
     final query = _searchController.text.trim().toLowerCase();
     final selectedKeys =
         widget.selectedValues.map((tag) => tag.toLowerCase()).toSet();
@@ -75,9 +76,11 @@ class _TagMultiSelectDropdownState extends State<TagMultiSelectDropdown> {
           onTap: widget.enabled ? _toggleExpanded : null,
           borderRadius: BorderRadius.circular(16),
           child: InputDecorator(
-            isEmpty: widget.selectedValues.isEmpty,
+            isEmpty: false,
+            isFocused: _expanded,
             decoration: InputDecoration(
               labelText: widget.labelText,
+              floatingLabelBehavior: FloatingLabelBehavior.always,
               enabled: widget.enabled,
               suffixIcon: Icon(
                 _expanded
@@ -89,11 +92,12 @@ class _TagMultiSelectDropdownState extends State<TagMultiSelectDropdown> {
               _displayText(),
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
-              style: widget.selectedValues.isEmpty
-                  ? theme.textTheme.bodyLarge?.copyWith(
-                      color: colorScheme.onSurfaceVariant,
-                    )
-                  : theme.textTheme.bodyLarge,
+              style: hasSelection
+                  ? theme.textTheme.bodyLarge
+                  : theme.textTheme.bodyLarge?.copyWith(
+                      color:
+                          colorScheme.onSurfaceVariant.withValues(alpha: 0.72),
+                    ),
             ),
           ),
         ),

@@ -18,6 +18,7 @@ import 'package:diary_mvp/features/diary/presentation/pages/video_preview_page.d
 import 'package:diary_mvp/features/diary/presentation/widgets/entry_list_preview.dart';
 import 'package:diary_mvp/features/diary/presentation/widgets/entry_readonly_view.dart';
 import 'package:diary_mvp/features/diary/presentation/widgets/image_media_grid.dart';
+import 'package:diary_mvp/features/diary/presentation/widgets/tag_multi_select_dropdown.dart';
 import 'package:diary_mvp/features/diary/services/diary_ai_settings.dart';
 import 'package:diary_mvp/features/diary/services/diary_list_settings.dart';
 import 'package:diary_mvp/features/diary/services/password_settings.dart';
@@ -30,6 +31,57 @@ import 'package:go_router/go_router.dart';
 
 void main() {
   const strings = AppStrings(Locale('en'));
+
+  testWidgets('shared tag dropdown keeps label above empty placeholder',
+      (tester) async {
+    List<String> selectedTags = const <String>[];
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: StatefulBuilder(
+          builder: (context, setState) {
+            return Scaffold(
+              body: Padding(
+                padding: const EdgeInsets.all(24),
+                child: TagMultiSelectDropdown(
+                  labelText: strings.filterByTag,
+                  hintText: strings.allTags,
+                  searchHintText: strings.searchTags,
+                  clearSelectionText: strings.clearSelection,
+                  noResultsText: strings.noMatchingTags,
+                  options: const ['#life', '#work'],
+                  selectedValues: selectedTags,
+                  onSelectionChanged: (next) {
+                    setState(() => selectedTags = next);
+                  },
+                ),
+              ),
+            );
+          },
+        ),
+      ),
+    );
+
+    final labelFinder = find.text(strings.filterByTag);
+    final hintFinder = find.text(strings.allTags);
+
+    expect(labelFinder, findsOneWidget);
+    expect(hintFinder, findsOneWidget);
+
+    final labelRect = tester.getRect(labelFinder);
+    final hintRect = tester.getRect(hintFinder);
+    expect(labelRect.bottom, lessThan(hintRect.top));
+
+    await tester.tap(hintFinder);
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('#life'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byIcon(Icons.expand_less_rounded));
+    await tester.pumpAndSettle();
+
+    expect(find.text(strings.allTags), findsNothing);
+    expect(find.text('#life'), findsOneWidget);
+  });
 
   testWidgets('home page uses searchable multi-select tag filter',
       (tester) async {
@@ -55,9 +107,14 @@ void main() {
     );
 
     expect(find.text(strings.filterByTag), findsOneWidget);
+    expect(find.text(strings.allTags), findsOneWidget);
     expect(find.text(strings.entryCountLabel(1)), findsOneWidget);
     expect(find.text(strings.tagStatusLabel(const <String>[])), findsOneWidget);
     expect(find.text('#life'), findsWidgets);
+
+    final filterLabelRect = tester.getRect(find.text(strings.filterByTag));
+    final filterHintRect = tester.getRect(find.text(strings.allTags));
+    expect(filterLabelRect.bottom, lessThan(filterHintRect.top));
   });
 
   testWidgets(
@@ -367,6 +424,46 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('#focus'), findsWidgets);
+  });
+
+  testWidgets('editor page keeps tag library label above placeholder',
+      (tester) async {
+    final repository = FakeDiaryRepository(
+      moods: DiaryMood.values,
+      tags: const ['#existing'],
+    );
+
+    await pumpPage(
+      tester,
+      const EditorPage(),
+      path: '/editor',
+      overrides: buildOverrides(repository: repository),
+    );
+
+    final dropdownFinder = find.byType(TagMultiSelectDropdown);
+
+    await tester.scrollUntilVisible(
+      dropdownFinder,
+      300,
+      scrollable: find.byType(Scrollable).first,
+    );
+    await tester.pumpAndSettle();
+
+    final labelFinder = find.descendant(
+      of: dropdownFinder,
+      matching: find.text(strings.tagLibraryLabel),
+    );
+    final hintFinder = find.descendant(
+      of: dropdownFinder,
+      matching: find.text(strings.searchTags),
+    );
+
+    expect(labelFinder, findsOneWidget);
+    expect(hintFinder, findsOneWidget);
+
+    final labelRect = tester.getRect(labelFinder);
+    final hintRect = tester.getRect(hintFinder);
+    expect(labelRect.bottom, lessThan(hintRect.top));
   });
 
   testWidgets('saving an entry keeps the editor page open', (tester) async {
