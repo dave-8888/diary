@@ -457,6 +457,8 @@ class AppStrings {
   String get allTags => isChinese ? '\u5168\u90e8\u6807\u7b7e' : 'All tags';
   String get filterByTag =>
       isChinese ? '\u6309\u6807\u7b7e\u7b5b\u9009' : 'Filter by tag';
+  String get searchTags =>
+      isChinese ? '\u68c0\u7d22\u6807\u7b7e' : 'Search tags';
   String get viewAll => isChinese ? '\u67e5\u770b\u5168\u90e8' : 'View all';
   String get previewEntry =>
       isChinese ? '\u9884\u89c8\u65e5\u8bb0' : 'Preview entry';
@@ -596,12 +598,35 @@ class AppStrings {
   String noEntriesForTag(String tag) => isChinese
       ? '\u8fd8\u6ca1\u6709\u5e26\u6709 $tag \u7684\u65e5\u8bb0\u3002'
       : 'No diary entries tagged with $tag yet.';
+  String noEntriesForTags(List<String> tags) {
+    if (tags.isEmpty) {
+      return noEntriesYet;
+    }
+    if (tags.length == 1) {
+      return noEntriesForTag(tags.first);
+    }
+    return isChinese
+        ? '\u8fd8\u6ca1\u6709\u5e26\u6709\u6240\u9009\u6807\u7b7e\u7684\u65e5\u8bb0\u3002'
+        : 'No diary entries match the selected tags yet.';
+  }
+
   String entryCountLabel(int count) => isChinese
       ? '\u65e5\u8bb0 $count \u7bc7'
       : '$count entr${count == 1 ? 'y' : 'ies'}';
-  String tagStatusLabel(String? tag) => isChinese
-      ? '\u6807\u7b7e\uff1a${tag ?? '\u5168\u90e8'}'
-      : 'Tag: ${tag ?? 'All'}';
+  String tagStatusLabel(List<String> tags) {
+    if (tags.isEmpty) {
+      return isChinese ? '\u6807\u7b7e\uff1a\u5168\u90e8' : 'Tags: All';
+    }
+    if (tags.length == 1) {
+      return isChinese
+          ? '\u6807\u7b7e\uff1a${tags.first}'
+          : 'Tag: ${tags.first}';
+    }
+    return isChinese
+        ? '\u6807\u7b7e\uff1a\u5df2\u9009 ${tags.length} \u4e2a'
+        : 'Tags: ${tags.length} selected';
+  }
+
   String moodStatusLabel(DiaryMood moodValue) =>
       '${isChinese ? '\u60c5\u7eea' : 'Mood'}: ${moodLabel(moodValue)}';
 
@@ -727,6 +752,9 @@ class AppStrings {
       ? '\u5f53\u524d\u65e5\u8bb0\u6682\u65e0\u6807\u7b7e\u3002'
       : 'This entry has no tags yet.';
   String get noTagsValue => isChinese ? '\u65e0\u6807\u7b7e' : 'No tags';
+  String get noMatchingTags => isChinese
+      ? '\u6ca1\u6709\u627e\u5230\u5339\u914d\u7684\u6807\u7b7e\u3002'
+      : 'No matching tags found.';
   String get tagAdded => isChinese
       ? '\u6807\u7b7e\u5df2\u52a0\u5165\u6807\u7b7e\u5e93\u3002'
       : 'Tag added to the library.';

@@ -13,6 +13,7 @@ import 'package:diary_mvp/features/diary/presentation/widgets/audio_attachment_t
 import 'package:diary_mvp/features/diary/presentation/widgets/diary_shell.dart';
 import 'package:diary_mvp/features/diary/presentation/widgets/image_media_grid.dart';
 import 'package:diary_mvp/features/diary/presentation/widgets/mood_selector.dart';
+import 'package:diary_mvp/features/diary/presentation/widgets/tag_multi_select_dropdown.dart';
 import 'package:diary_mvp/features/diary/services/diary_ai_service.dart';
 import 'package:diary_mvp/features/diary/services/diary_ai_settings.dart';
 import 'package:diary_mvp/features/diary/services/export_service.dart';
@@ -725,24 +726,27 @@ class _EditorPageState extends ConsumerState<EditorPage>
                 );
               }
 
-              return Wrap(
-                spacing: 6,
-                runSpacing: 6,
-                children: tags
-                    .map(
-                      (tag) => _buildLibraryTagChip(
-                        context,
-                        tag: tag,
-                        selected: _hasTag(tag),
-                        onSelected: _isManagingTags
-                            ? null
-                            : () => setState(() => _toggleTag(tag)),
-                        onDeleted: _isManagingTags
-                            ? null
-                            : () => _confirmDeleteLibraryTag(tag),
-                      ),
-                    )
-                    .toList(),
+              return TagMultiSelectDropdown(
+                labelText: strings.tagLibraryLabel,
+                hintText: strings.searchTags,
+                searchHintText: strings.searchTags,
+                clearSelectionText: strings.clearSelection,
+                noResultsText: strings.noMatchingTags,
+                emptyOptionsText: strings.noTagsYet,
+                deleteOptionTooltipText: strings.removeTagFromLibrary,
+                enabled: !_isManagingTags,
+                options: tags,
+                selectedValues: List<String>.unmodifiable(_tags),
+                onSelectionChanged: (next) {
+                  setState(() {
+                    _tags
+                      ..clear()
+                      ..addAll(next);
+                  });
+                },
+                onDeleteOption: _isManagingTags
+                    ? null
+                    : (tag) => _confirmDeleteLibraryTag(tag),
               );
             },
           ),
@@ -1103,41 +1107,6 @@ class _EditorPageState extends ConsumerState<EditorPage>
       padding: EdgeInsets.zero,
       labelPadding: const EdgeInsets.symmetric(horizontal: 4),
       deleteIcon: const Icon(Icons.close_rounded, size: 14),
-      onDeleted: onDeleted,
-    );
-  }
-
-  Widget _buildLibraryTagChip(
-    BuildContext context, {
-    required String tag,
-    required bool selected,
-    required VoidCallback? onSelected,
-    required VoidCallback? onDeleted,
-  }) {
-    final theme = Theme.of(context);
-    final colorScheme = theme.colorScheme;
-
-    return InputChip(
-      selected: selected,
-      materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
-      visualDensity: const VisualDensity(horizontal: -2, vertical: -2),
-      padding: EdgeInsets.zero,
-      labelPadding: const EdgeInsets.symmetric(horizontal: 4),
-      label: Text(
-        tag,
-        style: theme.textTheme.labelSmall?.copyWith(
-          fontWeight: selected ? FontWeight.w700 : FontWeight.w600,
-        ),
-      ),
-      side: BorderSide(
-        color: selected
-            ? colorScheme.primary.withValues(alpha: 0.4)
-            : colorScheme.outlineVariant.withValues(alpha: 0.65),
-      ),
-      selectedColor: colorScheme.secondaryContainer.withValues(alpha: 0.72),
-      deleteIcon: const Icon(Icons.close_rounded, size: 14),
-      deleteButtonTooltipMessage: context.strings.removeTagFromLibrary,
-      onSelected: onSelected == null ? null : (_) => onSelected(),
       onDeleted: onDeleted,
     );
   }

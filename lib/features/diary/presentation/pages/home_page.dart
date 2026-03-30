@@ -16,7 +16,7 @@ class HomePage extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final strings = context.strings;
     final entriesAsync = ref.watch(diaryControllerProvider);
-    final selectedTag = ref.watch(selectedTagFilterProvider);
+    final selectedTags = ref.watch(selectedTagFilterProvider);
     final customAppNameAsync = ref.watch(appDisplayNameControllerProvider);
     final showTagFilters = ref.watch(tagLibraryControllerProvider).maybeWhen(
           data: (tags) => tags.isNotEmpty,
@@ -44,7 +44,7 @@ class HomePage extends ConsumerWidget {
         ),
         data: (entries) => _HomeList(
           entries: entries,
-          selectedTag: selectedTag,
+          selectedTags: selectedTags,
           showTagFilters: showTagFilters,
         ),
       ),
@@ -55,23 +55,25 @@ class HomePage extends ConsumerWidget {
 class _HomeList extends StatelessWidget {
   const _HomeList({
     required this.entries,
-    required this.selectedTag,
+    required this.selectedTags,
     required this.showTagFilters,
   });
 
   final List<DiaryEntry> entries;
-  final String? selectedTag;
+  final List<String> selectedTags;
   final bool showTagFilters;
 
   @override
   Widget build(BuildContext context) {
     final strings = context.strings;
-    final filteredEntries = selectedTag == null
+    final selectedTagKeys =
+        selectedTags.map((tag) => tag.toLowerCase()).toSet();
+    final filteredEntries = selectedTagKeys.isEmpty
         ? entries
         : entries
             .where(
               (entry) => entry.tags.any(
-                (tag) => tag.toLowerCase() == selectedTag!.toLowerCase(),
+                (tag) => selectedTagKeys.contains(tag.toLowerCase()),
               ),
             )
             .toList(growable: false);
@@ -82,7 +84,7 @@ class _HomeList extends StatelessWidget {
         _CompactSummaryCard(
           latest: latest,
           entryCount: filteredEntries.length,
-          selectedTag: selectedTag,
+          selectedTags: selectedTags,
         ),
         const SizedBox(height: 16),
         if (showTagFilters) ...[
@@ -108,9 +110,9 @@ class _HomeList extends StatelessWidget {
           Padding(
             padding: const EdgeInsets.only(top: 4),
             child: Text(
-              selectedTag == null
+              selectedTags.isEmpty
                   ? strings.noEntriesYet
-                  : strings.noEntriesForTag(selectedTag!),
+                  : strings.noEntriesForTags(selectedTags),
             ),
           )
         else
@@ -137,12 +139,12 @@ class _CompactSummaryCard extends StatelessWidget {
   const _CompactSummaryCard({
     required this.latest,
     required this.entryCount,
-    required this.selectedTag,
+    required this.selectedTags,
   });
 
   final DiaryEntry? latest;
   final int entryCount;
-  final String? selectedTag;
+  final List<String> selectedTags;
 
   @override
   Widget build(BuildContext context) {
@@ -181,7 +183,7 @@ class _CompactSummaryCard extends StatelessWidget {
                 ),
                 _SummaryChip(
                   icon: Icons.sell_outlined,
-                  label: strings.tagStatusLabel(selectedTag),
+                  label: strings.tagStatusLabel(selectedTags),
                 ),
                 if (latest != null)
                   _SummaryChip(

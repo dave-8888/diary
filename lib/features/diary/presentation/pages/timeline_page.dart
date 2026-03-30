@@ -15,7 +15,7 @@ class TimelinePage extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final strings = context.strings;
     final entriesAsync = ref.watch(diaryControllerProvider);
-    final selectedTag = ref.watch(selectedTagFilterProvider);
+    final selectedTags = ref.watch(selectedTagFilterProvider);
     final showTagFilters = ref.watch(tagLibraryControllerProvider).maybeWhen(
           data: (tags) => tags.isNotEmpty,
           loading: () => true,
@@ -32,7 +32,7 @@ class TimelinePage extends ConsumerWidget {
             Center(child: Text(strings.failedToLoadTimeline(error))),
         data: (entries) => _TimelineList(
           entries: entries,
-          selectedTag: selectedTag,
+          selectedTags: selectedTags,
           showTagFilters: showTagFilters,
         ),
       ),
@@ -43,23 +43,25 @@ class TimelinePage extends ConsumerWidget {
 class _TimelineList extends StatelessWidget {
   const _TimelineList({
     required this.entries,
-    required this.selectedTag,
+    required this.selectedTags,
     required this.showTagFilters,
   });
 
   final List<DiaryEntry> entries;
-  final String? selectedTag;
+  final List<String> selectedTags;
   final bool showTagFilters;
 
   @override
   Widget build(BuildContext context) {
     final strings = context.strings;
-    final filteredEntries = selectedTag == null
+    final selectedTagKeys =
+        selectedTags.map((tag) => tag.toLowerCase()).toSet();
+    final filteredEntries = selectedTagKeys.isEmpty
         ? entries
         : entries
             .where(
               (entry) => entry.tags.any(
-                (tag) => tag.toLowerCase() == selectedTag!.toLowerCase(),
+                (tag) => selectedTagKeys.contains(tag.toLowerCase()),
               ),
             )
             .toList(growable: false);
@@ -74,9 +76,9 @@ class _TimelineList extends StatelessWidget {
           Padding(
             padding: const EdgeInsets.only(top: 8),
             child: Text(
-              selectedTag == null
+              selectedTags.isEmpty
                   ? strings.noEntriesYet
-                  : strings.noEntriesForTag(selectedTag!),
+                  : strings.noEntriesForTags(selectedTags),
             ),
           )
         else

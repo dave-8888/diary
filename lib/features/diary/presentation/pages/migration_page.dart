@@ -272,6 +272,6 @@ class _MigrationPageState extends ConsumerState<MigrationPage> {
     ref.invalidate(trashDiaryControllerProvider);
     ref.invalidate(tagLibraryControllerProvider);
     ref.invalidate(moodLibraryControllerProvider);
-    ref.read(selectedTagFilterProvider.notifier).state = null;
+    ref.read(selectedTagFilterProvider.notifier).state = const <String>[];
   }
 }

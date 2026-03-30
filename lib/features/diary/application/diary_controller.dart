@@ -7,7 +7,8 @@ import 'package:uuid/uuid.dart';
 final diaryControllerProvider =
     AsyncNotifierProvider<DiaryController, List<DiaryEntry>>(
         DiaryController.new);
-final selectedTagFilterProvider = StateProvider<String?>((ref) => null);
+final selectedTagFilterProvider =
+    StateProvider<List<String>>((ref) => const <String>[]);
 
 class DiaryController extends AsyncNotifier<List<DiaryEntry>> {
   DiaryRepository get _repository => ref.read(diaryRepositoryProvider);
@@ -203,9 +204,12 @@ class TagLibraryController extends AsyncNotifier<List<String>> {
     state = const AsyncLoading();
     try {
       await _repository.deleteTag(tag);
-      final selectedTag = ref.read(selectedTagFilterProvider);
-      if (selectedTag?.toLowerCase() == tag.toLowerCase()) {
-        ref.read(selectedTagFilterProvider.notifier).state = null;
+      final selectedTags = ref.read(selectedTagFilterProvider);
+      final nextSelectedTags = selectedTags
+          .where((item) => item.toLowerCase() != tag.toLowerCase())
+          .toList(growable: false);
+      if (nextSelectedTags.length != selectedTags.length) {
+        ref.read(selectedTagFilterProvider.notifier).state = nextSelectedTags;
       }
       ref.invalidate(diaryControllerProvider);
       ref.invalidate(trashDiaryControllerProvider);

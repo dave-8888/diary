@@ -31,7 +31,8 @@ import 'package:go_router/go_router.dart';
 void main() {
   const strings = AppStrings(Locale('en'));
 
-  testWidgets('home page uses compact tag filter chips', (tester) async {
+  testWidgets('home page uses searchable multi-select tag filter',
+      (tester) async {
     final repository = FakeDiaryRepository(
       entries: [
         DiaryEntry(
@@ -53,9 +54,9 @@ void main() {
       overrides: buildOverrides(repository: repository),
     );
 
-    expect(find.text(strings.filterByTag), findsNothing);
+    expect(find.text(strings.filterByTag), findsOneWidget);
     expect(find.text(strings.entryCountLabel(1)), findsOneWidget);
-    expect(find.text(strings.tagStatusLabel(null)), findsOneWidget);
+    expect(find.text(strings.tagStatusLabel(const <String>[])), findsOneWidget);
     expect(find.text('#life'), findsWidgets);
   });
 
