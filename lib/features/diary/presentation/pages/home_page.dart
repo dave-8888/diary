@@ -4,7 +4,6 @@ import 'package:diary_mvp/features/diary/application/diary_controller.dart';
 import 'package:diary_mvp/features/diary/domain/diary_entry.dart';
 import 'package:diary_mvp/features/diary/presentation/widgets/diary_card.dart';
 import 'package:diary_mvp/features/diary/presentation/widgets/diary_shell.dart';
-import 'package:diary_mvp/features/diary/presentation/widgets/tag_filter_bar.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -16,14 +15,7 @@ class HomePage extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final strings = context.strings;
     final entriesAsync = ref.watch(diaryControllerProvider);
-    final selectedTags = ref.watch(selectedTagFilterProvider);
     final customAppNameAsync = ref.watch(appDisplayNameControllerProvider);
-    final showTagFilters = ref.watch(tagLibraryControllerProvider).maybeWhen(
-          data: (tags) => tags.isNotEmpty,
-          loading: () => true,
-          error: (_, __) => true,
-          orElse: () => false,
-        );
     final appTitle = resolveAppDisplayName(
       strings: strings,
       customNameAsync: customAppNameAsync,
@@ -44,8 +36,6 @@ class HomePage extends ConsumerWidget {
         ),
         data: (entries) => _HomeList(
           entries: entries,
-          selectedTags: selectedTags,
-          showTagFilters: showTagFilters,
         ),
       ),
     );
@@ -55,58 +45,36 @@ class HomePage extends ConsumerWidget {
 class _HomeList extends StatelessWidget {
   const _HomeList({
     required this.entries,
-    required this.selectedTags,
-    required this.showTagFilters,
   });
 
   final List<DiaryEntry> entries;
-  final List<String> selectedTags;
-  final bool showTagFilters;
 
   @override
   Widget build(BuildContext context) {
     final strings = context.strings;
-    final selectedTagKeys =
-        selectedTags.map((tag) => tag.toLowerCase()).toSet();
-    final filteredEntries = selectedTagKeys.isEmpty
-        ? entries
-        : entries
-            .where(
-              (entry) => entry.tags.any(
-                (tag) => selectedTagKeys.contains(tag.toLowerCase()),
-              ),
-            )
-            .toList(growable: false);
-    final latest = filteredEntries.isNotEmpty ? filteredEntries.first : null;
+    final latest = entries.isNotEmpty ? entries.first : null;
 
     return ListView(
       children: [
         _CompactSummaryCard(
           latest: latest,
-          entryCount: filteredEntries.length,
-          selectedTags: selectedTags,
+          entryCount: entries.length,
         ),
         const SizedBox(height: 16),
-        if (showTagFilters) ...[
-          const TagFilterBar(),
-          const SizedBox(height: 16),
-        ],
         Text(
           strings.recentEntries,
           style: Theme.of(context).textTheme.titleMedium,
         ),
         const SizedBox(height: 12),
-        if (filteredEntries.isEmpty)
+        if (entries.isEmpty)
           Padding(
             padding: const EdgeInsets.only(top: 4),
             child: Text(
-              selectedTags.isEmpty
-                  ? strings.noEntriesYet
-                  : strings.noEntriesForTags(selectedTags),
+              strings.noEntriesYet,
             ),
           )
         else
-          ...filteredEntries.map(
+          ...entries.map(
             (entry) => Padding(
               padding: const EdgeInsets.only(bottom: 14),
               child: DiaryCard(
@@ -129,12 +97,10 @@ class _CompactSummaryCard extends StatelessWidget {
   const _CompactSummaryCard({
     required this.latest,
     required this.entryCount,
-    required this.selectedTags,
   });
 
   final DiaryEntry? latest;
   final int entryCount;
-  final List<String> selectedTags;
 
   @override
   Widget build(BuildContext context) {
@@ -170,10 +136,6 @@ class _CompactSummaryCard extends StatelessWidget {
                 _SummaryChip(
                   icon: Icons.menu_book_outlined,
                   label: strings.entryCountLabel(entryCount),
-                ),
-                _SummaryChip(
-                  icon: Icons.sell_outlined,
-                  label: strings.tagStatusLabel(selectedTags),
                 ),
                 if (latest != null)
                   _SummaryChip(

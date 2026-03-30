@@ -739,8 +739,8 @@ class AppStrings {
   String get tagLibraryLabel =>
       isChinese ? '\u53ef\u590d\u7528\u6807\u7b7e' : 'Tag library';
   String get tagSidebarHint => isChinese
-      ? '\u53ef\u4ee5\u65b0\u5efa\u53ef\u590d\u7528\u6807\u7b7e\uff0c\u4e5f\u53ef\u76f4\u63a5\u7ed9\u5f53\u524d\u65e5\u8bb0\u52fe\u9009\u3002'
-      : 'Create reusable tags or quickly apply them to this entry.';
+      ? '\u6807\u7b7e\u4f1a\u8ddf\u968f\u8fd9\u7bc7\u65e5\u8bb0\u4e00\u8d77\u4fdd\u5b58\uff0c\u4fbf\u4e8e\u540e\u7eed AI \u5206\u6790\u3002\u53ef\u4ee5\u624b\u52a8\u8f93\u5165\uff0c\u4e5f\u53ef\u4ee5\u4ece AI \u5efa\u8bae\u4e2d\u70b9\u9009\u6dfb\u52a0\u3002'
+      : 'Tags stay with this entry for later AI analysis. Add them manually or apply them from AI suggestions.';
   String get tagHint => isChinese
       ? '\u4f8b\u5982\uff1a#\u751f\u6d3b / \u5de5\u4f5c / \u65c5\u884c'
       : 'For example: #life / work / travel';

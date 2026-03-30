@@ -25,6 +25,7 @@ import 'package:diary_mvp/features/diary/services/password_settings.dart';
 import 'package:diary_mvp/features/diary/services/transcription_settings.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:go_router/go_router.dart';
@@ -83,7 +84,7 @@ void main() {
     expect(find.text('#life'), findsOneWidget);
   });
 
-  testWidgets('home page uses searchable multi-select tag filter',
+  testWidgets('home page hides tag filter and keeps entry list visible',
       (tester) async {
     final repository = FakeDiaryRepository(
       entries: [
@@ -106,15 +107,9 @@ void main() {
       overrides: buildOverrides(repository: repository),
     );
 
-    expect(find.text(strings.filterByTag), findsOneWidget);
-    expect(find.text(strings.allTags), findsOneWidget);
+    expect(find.text(strings.filterByTag), findsNothing);
     expect(find.text(strings.entryCountLabel(1)), findsOneWidget);
-    expect(find.text(strings.tagStatusLabel(const <String>[])), findsOneWidget);
     expect(find.text('#life'), findsWidgets);
-
-    final filterLabelRect = tester.getRect(find.text(strings.filterByTag));
-    final filterHintRect = tester.getRect(find.text(strings.allTags));
-    expect(filterLabelRect.bottom, lessThan(filterHintRect.top));
   });
 
   testWidgets(
@@ -426,8 +421,7 @@ void main() {
     expect(find.text('#focus'), findsWidgets);
   });
 
-  testWidgets('editor page keeps tag library label above placeholder',
-      (tester) async {
+  testWidgets('editor page removes reusable tag controls', (tester) async {
     final repository = FakeDiaryRepository(
       moods: DiaryMood.values,
       tags: const ['#existing'],
@@ -440,30 +434,55 @@ void main() {
       overrides: buildOverrides(repository: repository),
     );
 
-    final dropdownFinder = find.byType(TagMultiSelectDropdown);
-
     await tester.scrollUntilVisible(
-      dropdownFinder,
+      find.byKey(const ValueKey('editor-tag-input')),
       300,
       scrollable: find.byType(Scrollable).first,
     );
     await tester.pumpAndSettle();
 
-    final labelFinder = find.descendant(
-      of: dropdownFinder,
-      matching: find.text(strings.tagLibraryLabel),
-    );
-    final hintFinder = find.descendant(
-      of: dropdownFinder,
-      matching: find.text(strings.searchTags),
+    expect(find.byType(TagMultiSelectDropdown), findsNothing);
+    expect(find.text(strings.tagLibraryLabel), findsNothing);
+    expect(find.text(strings.selectedTagsLabel), findsOneWidget);
+  });
+
+  testWidgets('editor page lets users apply AI suggested tags', (tester) async {
+    final repository = FakeDiaryRepository(
+      moods: DiaryMood.values,
     );
 
-    expect(labelFinder, findsOneWidget);
-    expect(hintFinder, findsOneWidget);
+    await pumpPage(
+      tester,
+      EditorPage(
+        entry: DiaryEntry(
+          id: 'ai-tag-entry',
+          title: 'AI tags',
+          content: 'Suggestions should be tappable.',
+          mood: DiaryMood.calm,
+          createdAt: DateTime(2026, 3, 19, 8),
+          aiAnalysis: const DiaryEntryAiAnalysis(
+            overviewText: 'Suggested focus tags.',
+            suggestedTags: ['focus'],
+          ),
+        ),
+      ),
+      path: '/editor',
+      overrides: buildOverrides(repository: repository),
+    );
 
-    final labelRect = tester.getRect(labelFinder);
-    final hintRect = tester.getRect(hintFinder);
-    expect(labelRect.bottom, lessThan(hintRect.top));
+    await tester.scrollUntilVisible(
+      find.text('#focus'),
+      300,
+      scrollable: find.byType(Scrollable).first,
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text('#focus'), findsOneWidget);
+
+    await tester.tap(find.text('#focus'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('#focus'), findsNWidgets(2));
   });
 
   testWidgets('saving an entry keeps the editor page open', (tester) async {
@@ -486,6 +505,57 @@ void main() {
     expect(find.text(strings.whatHappenedToday), findsOneWidget);
     expect(find.text(strings.entrySaved), findsOneWidget);
     expect((await repository.listEntries()).length, 1);
+  });
+
+  testWidgets('editor page saves with Ctrl+S', (tester) async {
+    final repository = FakeDiaryRepository(
+      moods: DiaryMood.values,
+    );
+
+    await pumpPage(
+      tester,
+      const EditorPage(),
+      path: '/editor',
+      overrides: buildOverrides(repository: repository),
+    );
+
+    await tester.tap(find.byType(TextField).at(0));
+    await tester.pump();
+    await tester.enterText(find.byType(TextField).at(0), 'Shortcut save');
+    await tester.enterText(
+        find.byType(TextField).at(1), 'Saved from keyboard.');
+
+    await pressControlShortcut(tester, LogicalKeyboardKey.keyS);
+    await tester.pumpAndSettle();
+
+    expect(find.text(strings.entrySaved), findsOneWidget);
+    expect((await repository.listEntries()).length, 1);
+  });
+
+  testWidgets('editor page undoes text edits with Ctrl+Z', (tester) async {
+    final repository = FakeDiaryRepository(
+      moods: DiaryMood.values,
+    );
+
+    await pumpPage(
+      tester,
+      const EditorPage(),
+      path: '/editor',
+      overrides: buildOverrides(repository: repository),
+    );
+
+    final titleField = find.byType(TextField).at(0);
+    await tester.tap(titleField);
+    await tester.pump();
+    await tester.enterText(titleField, 'Undo me');
+    await tester.pump();
+
+    expect(editableTextController(tester, 0).text, 'Undo me');
+
+    await pressControlShortcut(tester, LogicalKeyboardKey.keyZ);
+    await tester.pump();
+
+    expect(editableTextController(tester, 0).text, isEmpty);
   });
 
   testWidgets('saving a new entry twice updates the same entry',
@@ -1441,6 +1511,24 @@ Future<void> pumpPage(
 
   await tester.pump();
   await tester.pump(const Duration(milliseconds: 200));
+}
+
+Future<void> pressControlShortcut(
+  WidgetTester tester,
+  LogicalKeyboardKey key,
+) async {
+  await tester.sendKeyDownEvent(LogicalKeyboardKey.controlLeft);
+  await tester.sendKeyEvent(key);
+  await tester.sendKeyUpEvent(LogicalKeyboardKey.controlLeft);
+}
+
+TextEditingController editableTextController(
+  WidgetTester tester,
+  int index,
+) {
+  return tester
+      .widget<EditableText>(find.byType(EditableText).at(index))
+      .controller;
 }
 
 Future<void> pumpEditorNavigationApp(

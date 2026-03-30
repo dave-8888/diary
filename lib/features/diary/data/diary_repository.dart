@@ -89,14 +89,12 @@ class DriftDiaryRepository implements DiaryRepository {
     );
 
     await _database.insertEntry(entry);
-    await _database.upsertTagLibrary(entry.tags);
     return entry;
   }
 
   @override
   Future<void> saveEntry(DiaryEntry entry) async {
     await _database.updateEntry(entry);
-    await _database.upsertTagLibrary(entry.tags);
   }
 
   @override

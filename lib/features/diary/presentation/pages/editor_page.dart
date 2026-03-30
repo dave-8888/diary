@@ -13,13 +13,13 @@ import 'package:diary_mvp/features/diary/presentation/widgets/audio_attachment_t
 import 'package:diary_mvp/features/diary/presentation/widgets/diary_shell.dart';
 import 'package:diary_mvp/features/diary/presentation/widgets/image_media_grid.dart';
 import 'package:diary_mvp/features/diary/presentation/widgets/mood_selector.dart';
-import 'package:diary_mvp/features/diary/presentation/widgets/tag_multi_select_dropdown.dart';
 import 'package:diary_mvp/features/diary/services/diary_ai_service.dart';
 import 'package:diary_mvp/features/diary/services/diary_ai_settings.dart';
 import 'package:diary_mvp/features/diary/services/export_service.dart';
 import 'package:diary_mvp/features/diary/services/location_service.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:path/path.dart' as p;
@@ -44,8 +44,20 @@ class _EditorPageState extends ConsumerState<EditorPage>
   final _contentController = TextEditingController();
   final _locationController = TextEditingController();
   final _tagController = TextEditingController();
+  final _titleFocusNode = FocusNode();
+  final _contentFocusNode = FocusNode();
+  final _locationFocusNode = FocusNode();
+  final _tagFocusNode = FocusNode();
+  final _titleUndoController = UndoHistoryController();
+  final _contentUndoController = UndoHistoryController();
+  final _locationUndoController = UndoHistoryController();
+  final _tagUndoController = UndoHistoryController();
   final _uuid = const Uuid();
   final AudioRecorder _audioRecorder = AudioRecorder();
+  final Map<TextEditingController, List<TextEditingValue>> _textHistory =
+      <TextEditingController, List<TextEditingValue>>{};
+  final Map<TextEditingController, int> _textHistoryIndex =
+      <TextEditingController, int>{};
 
   String _moodId = DiaryMood.defaultSelectionId;
   final List<DiaryMedia> _media = [];
@@ -58,9 +70,9 @@ class _EditorPageState extends ConsumerState<EditorPage>
   bool _isRecording = false;
   bool _isAnalyzingAi = false;
   bool _isLocating = false;
-  bool _isManagingTags = false;
   bool _isAiExpanded = false;
   bool _allowNextPop = false;
+  bool _isApplyingTextUndo = false;
   DateTime? _recordingStartedAt;
   DiaryEntryAiAnalysis? _aiSuggestion;
   late DateTime _draftCreatedAt;
@@ -87,6 +99,7 @@ class _EditorPageState extends ConsumerState<EditorPage>
       _aiSuggestion = entry.aiAnalysis;
       _isAiExpanded = entry.aiAnalysis != null;
     }
+    _initializeTextHistory();
     _lastSavedSignature = _currentDraftSignature();
   }
 
@@ -97,6 +110,14 @@ class _EditorPageState extends ConsumerState<EditorPage>
     _contentController.dispose();
     _locationController.dispose();
     _tagController.dispose();
+    _titleFocusNode.dispose();
+    _contentFocusNode.dispose();
+    _locationFocusNode.dispose();
+    _tagFocusNode.dispose();
+    _titleUndoController.dispose();
+    _contentUndoController.dispose();
+    _locationUndoController.dispose();
+    _tagUndoController.dispose();
     _audioRecorder.dispose();
     super.dispose();
   }
@@ -104,7 +125,6 @@ class _EditorPageState extends ConsumerState<EditorPage>
   @override
   Widget build(BuildContext context) {
     final strings = context.strings;
-    final tagLibraryAsync = ref.watch(tagLibraryControllerProvider);
     final moodLibraryAsync = ref.watch(moodLibraryControllerProvider);
     final showDiaryAiSection =
         ref.watch(diaryAiVisibilityControllerProvider).valueOrNull ?? true;
@@ -121,99 +141,114 @@ class _EditorPageState extends ConsumerState<EditorPage>
             item.type != MediaType.video)
         .toList();
 
-    return PopScope<Object?>(
-      canPop: _allowNextPop ||
-          !_hasUnsavedChanges ||
-          _isSaving ||
-          _isDeleting ||
-          _isExporting,
-      onPopInvokedWithResult: (didPop, result) async {
-        if (didPop || _allowNextPop) {
-          return;
-        }
-
-        final shouldLeave = await _confirmLeaveEditor();
-        if (!shouldLeave || !context.mounted) {
-          return;
-        }
-
-        setState(() => _allowNextPop = true);
-        Navigator.of(context).pop(result);
+    return CallbackShortcuts(
+      bindings: <ShortcutActivator, VoidCallback>{
+        const SingleActivator(LogicalKeyboardKey.keyS, control: true):
+            _handleSaveShortcut,
+        const SingleActivator(LogicalKeyboardKey.keyS, meta: true):
+            _handleSaveShortcut,
+        const SingleActivator(LogicalKeyboardKey.keyZ, control: true):
+            _handleUndoShortcut,
+        const SingleActivator(LogicalKeyboardKey.keyZ, meta: true):
+            _handleUndoShortcut,
       },
-      child: DiaryShell(
-        title: _isEditing ? strings.editEntry : strings.newEntry,
-        showAppBarTitle: false,
-        compactBodyPadding:
-            const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
-        expandedBodyPadding:
-            const EdgeInsets.symmetric(horizontal: 14, vertical: 16),
-        onNavigateRequest: _handleNavigationRequest,
-        child: LayoutBuilder(
-          builder: (context, constraints) {
-            final horizontalInset =
-                _editorHorizontalInset(constraints.maxWidth);
-            final contentWidth =
-                max(0.0, constraints.maxWidth - (horizontalInset * 2));
-            final showSidebar = contentWidth >= 1100;
-            final sidebarWidth = _editorSidebarWidth(contentWidth);
-            final sidebarGap = _editorSidebarGap(contentWidth);
-            final mainSections = _buildMainSections(
-              context: context,
-              strings: strings,
-              visualMedia: visualMedia,
-              audioMedia: audioMedia,
-              otherMedia: otherMedia,
-              moodLibraryAsync: moodLibraryAsync,
-            );
-            final aiSection = showDiaryAiSection
-                ? _buildAiSection(
-                    context,
-                    strings,
-                  )
-                : null;
+      child: PopScope<Object?>(
+        canPop: _allowNextPop ||
+            !_hasUnsavedChanges ||
+            _isSaving ||
+            _isDeleting ||
+            _isExporting,
+        onPopInvokedWithResult: (didPop, result) async {
+          if (didPop || _allowNextPop) {
+            return;
+          }
 
-            if (!showSidebar) {
-              return Padding(
-                padding: EdgeInsets.symmetric(horizontal: horizontalInset),
-                child: ListView(
-                  children: [
-                    ...mainSections,
-                    if (aiSection != null) ...[
-                      const SizedBox(height: 20),
-                      aiSection,
-                    ],
-                    const SizedBox(height: 20),
-                    _buildTagSection(context, strings, tagLibraryAsync),
-                  ],
-                ),
-              );
-            }
+          final shouldLeave = await _confirmLeaveEditor();
+          if (!shouldLeave || !context.mounted) {
+            return;
+          }
 
-            return Padding(
-              padding: EdgeInsets.symmetric(horizontal: horizontalInset),
-              child: Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Expanded(
-                    child: ListView(children: mainSections),
-                  ),
-                  SizedBox(width: sidebarGap),
-                  SizedBox(
-                    width: sidebarWidth,
+          setState(() => _allowNextPop = true);
+          Navigator.of(context).pop(result);
+        },
+        child: Focus(
+          autofocus: true,
+          child: DiaryShell(
+            title: _isEditing ? strings.editEntry : strings.newEntry,
+            showAppBarTitle: false,
+            compactBodyPadding:
+                const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+            expandedBodyPadding:
+                const EdgeInsets.symmetric(horizontal: 14, vertical: 16),
+            onNavigateRequest: _handleNavigationRequest,
+            child: LayoutBuilder(
+              builder: (context, constraints) {
+                final horizontalInset =
+                    _editorHorizontalInset(constraints.maxWidth);
+                final contentWidth =
+                    max(0.0, constraints.maxWidth - (horizontalInset * 2));
+                final showSidebar = contentWidth >= 1100;
+                final sidebarWidth = _editorSidebarWidth(contentWidth);
+                final sidebarGap = _editorSidebarGap(contentWidth);
+                final mainSections = _buildMainSections(
+                  context: context,
+                  strings: strings,
+                  visualMedia: visualMedia,
+                  audioMedia: audioMedia,
+                  otherMedia: otherMedia,
+                  moodLibraryAsync: moodLibraryAsync,
+                );
+                final aiSection = showDiaryAiSection
+                    ? _buildAiSection(
+                        context,
+                        strings,
+                      )
+                    : null;
+
+                if (!showSidebar) {
+                  return Padding(
+                    padding: EdgeInsets.symmetric(horizontal: horizontalInset),
                     child: ListView(
                       children: [
+                        ...mainSections,
                         if (aiSection != null) ...[
+                          const SizedBox(height: 20),
                           aiSection,
-                          const SizedBox(height: 16),
                         ],
-                        _buildTagSection(context, strings, tagLibraryAsync),
+                        const SizedBox(height: 20),
+                        _buildTagSection(context, strings),
                       ],
                     ),
+                  );
+                }
+
+                return Padding(
+                  padding: EdgeInsets.symmetric(horizontal: horizontalInset),
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Expanded(
+                        child: ListView(children: mainSections),
+                      ),
+                      SizedBox(width: sidebarGap),
+                      SizedBox(
+                        width: sidebarWidth,
+                        child: ListView(
+                          children: [
+                            if (aiSection != null) ...[
+                              aiSection,
+                              const SizedBox(height: 16),
+                            ],
+                            _buildTagSection(context, strings),
+                          ],
+                        ),
+                      ),
+                    ],
                   ),
-                ],
-              ),
-            );
-          },
+                );
+              },
+            ),
+          ),
         ),
       ),
     );
@@ -232,6 +267,8 @@ class _EditorPageState extends ConsumerState<EditorPage>
       const SizedBox(height: 16),
       TextField(
         controller: _titleController,
+        focusNode: _titleFocusNode,
+        undoController: _titleUndoController,
         decoration: InputDecoration(
           labelText: strings.titleLabel,
           hintText: strings.titleHint,
@@ -284,6 +321,8 @@ class _EditorPageState extends ConsumerState<EditorPage>
       const SizedBox(height: 16),
       TextField(
         controller: _contentController,
+        focusNode: _contentFocusNode,
+        undoController: _contentUndoController,
         maxLines: 12,
         decoration: InputDecoration(
           labelText: strings.contentLabel,
@@ -325,6 +364,8 @@ class _EditorPageState extends ConsumerState<EditorPage>
       const SizedBox(height: 16),
       TextField(
         controller: _locationController,
+        focusNode: _locationFocusNode,
+        undoController: _locationUndoController,
         decoration: InputDecoration(
           labelText: strings.locationLabel,
           hintText: strings.locationHint,
@@ -409,6 +450,85 @@ class _EditorPageState extends ConsumerState<EditorPage>
         false;
 
     return shouldLeave;
+  }
+
+  void _handleSaveShortcut() {
+    if (_isSaving || _isDeleting || _isExporting) {
+      return;
+    }
+    _save();
+  }
+
+  void _handleUndoShortcut() {
+    final controller = _focusedTextController;
+    if (controller == null) {
+      return;
+    }
+
+    final history = _textHistory[controller];
+    final index = _textHistoryIndex[controller];
+    if (history == null || index == null || index <= 0) {
+      return;
+    }
+
+    _isApplyingTextUndo = true;
+    final nextIndex = index - 1;
+    _textHistoryIndex[controller] = nextIndex;
+    controller.value = history[nextIndex];
+    _isApplyingTextUndo = false;
+  }
+
+  TextEditingController? get _focusedTextController {
+    if (_titleFocusNode.hasFocus) {
+      return _titleController;
+    }
+    if (_contentFocusNode.hasFocus) {
+      return _contentController;
+    }
+    if (_locationFocusNode.hasFocus) {
+      return _locationController;
+    }
+    if (_tagFocusNode.hasFocus) {
+      return _tagController;
+    }
+    return null;
+  }
+
+  void _initializeTextHistory() {
+    _registerTextHistory(_titleController);
+    _registerTextHistory(_contentController);
+    _registerTextHistory(_locationController);
+    _registerTextHistory(_tagController);
+  }
+
+  void _registerTextHistory(TextEditingController controller) {
+    _textHistory[controller] = <TextEditingValue>[controller.value];
+    _textHistoryIndex[controller] = 0;
+    controller.addListener(() => _recordTextHistory(controller));
+  }
+
+  void _recordTextHistory(TextEditingController controller) {
+    if (_isApplyingTextUndo) {
+      return;
+    }
+
+    final history = _textHistory[controller];
+    final index = _textHistoryIndex[controller];
+    if (history == null || index == null) {
+      return;
+    }
+
+    final value = controller.value;
+    if (history[index] == value) {
+      return;
+    }
+
+    if (index < history.length - 1) {
+      history.removeRange(index + 1, history.length);
+    }
+
+    history.add(value);
+    _textHistoryIndex[controller] = history.length - 1;
   }
 
   Widget _buildEditorHeader(BuildContext context, AppStrings strings) {
@@ -645,7 +765,6 @@ class _EditorPageState extends ConsumerState<EditorPage>
   Widget _buildTagSection(
     BuildContext context,
     AppStrings strings,
-    AsyncValue<List<String>> tagLibraryAsync,
   ) {
     return _buildSectionCard(
       context: context,
@@ -657,22 +776,13 @@ class _EditorPageState extends ConsumerState<EditorPage>
           TextField(
             key: const ValueKey('editor-tag-input'),
             controller: _tagController,
-            enabled: !_isManagingTags,
+            focusNode: _tagFocusNode,
+            undoController: _tagUndoController,
             textInputAction: TextInputAction.done,
-            onSubmitted: _isManagingTags ? null : (_) => _createTagFromInput(),
+            onSubmitted: (_) => _createTagFromInput(),
             decoration: InputDecoration(
               labelText: strings.tagsLabel,
               hintText: strings.tagHint,
-              suffixIcon: _isManagingTags
-                  ? const Padding(
-                      padding: EdgeInsets.all(14),
-                      child: SizedBox(
-                        width: 18,
-                        height: 18,
-                        child: CircularProgressIndicator(strokeWidth: 2),
-                      ),
-                    )
-                  : null,
             ),
           ),
           const SizedBox(height: 18),
@@ -701,55 +811,6 @@ class _EditorPageState extends ConsumerState<EditorPage>
               icon: Icons.label_outline,
               message: strings.noSelectedTags,
             ),
-          const SizedBox(height: 18),
-          Text(
-            strings.tagLibraryLabel,
-            style: Theme.of(context).textTheme.labelLarge,
-          ),
-          const SizedBox(height: 12),
-          tagLibraryAsync.when(
-            loading: () => const Align(
-              alignment: Alignment.centerLeft,
-              child: SizedBox(
-                width: 24,
-                height: 24,
-                child: CircularProgressIndicator(strokeWidth: 2),
-              ),
-            ),
-            error: (error, stack) => Text(strings.failedToLoadTags(error)),
-            data: (tags) {
-              if (tags.isEmpty) {
-                return _buildSidebarEmptyState(
-                  context,
-                  icon: Icons.inventory_2_outlined,
-                  message: strings.noTagsYet,
-                );
-              }
-
-              return TagMultiSelectDropdown(
-                labelText: strings.tagLibraryLabel,
-                hintText: strings.searchTags,
-                searchHintText: strings.searchTags,
-                clearSelectionText: strings.clearSelection,
-                noResultsText: strings.noMatchingTags,
-                emptyOptionsText: strings.noTagsYet,
-                deleteOptionTooltipText: strings.removeTagFromLibrary,
-                enabled: !_isManagingTags,
-                options: tags,
-                selectedValues: List<String>.unmodifiable(_tags),
-                onSelectionChanged: (next) {
-                  setState(() {
-                    _tags
-                      ..clear()
-                      ..addAll(next);
-                  });
-                },
-                onDeleteOption: _isManagingTags
-                    ? null
-                    : (tag) => _confirmDeleteLibraryTag(tag),
-              );
-            },
-          ),
         ],
       ),
     );
@@ -1287,39 +1348,12 @@ class _EditorPageState extends ConsumerState<EditorPage>
     final normalized = _normalizeTag(_tagController.text);
     _tagController.clear();
     if (normalized == null) return;
-    final alreadySelected = _hasTag(normalized);
 
     setState(() {
-      _isManagingTags = true;
-      if (!alreadySelected) {
+      if (!_hasTag(normalized)) {
         _tags.add(normalized);
       }
     });
-
-    final strings = context.strings;
-    try {
-      await ref.read(tagLibraryControllerProvider.notifier).saveTag(normalized);
-      if (!mounted) return;
-      setState(() => _isManagingTags = false);
-      context.showAppSnackBar(
-        strings.tagAdded,
-        tone: AppSnackBarTone.success,
-      );
-    } catch (error) {
-      if (!mounted) return;
-      setState(() {
-        _isManagingTags = false;
-        if (!alreadySelected) {
-          _tags.removeWhere(
-            (tag) => tag.toLowerCase() == normalized.toLowerCase(),
-          );
-        }
-      });
-      context.showAppSnackBar(
-        strings.tagSaveFailed(error),
-        tone: AppSnackBarTone.error,
-      );
-    }
   }
 
   Future<void> _fillCurrentLocation() async {
@@ -1614,51 +1648,6 @@ class _EditorPageState extends ConsumerState<EditorPage>
       case LocationLookupFailure.positionUnavailable:
       case null:
         return strings.locationLookupFailed(result.error);
-    }
-  }
-
-  Future<void> _confirmDeleteLibraryTag(String tag) async {
-    final strings = context.strings;
-    final confirmed = await showDialog<bool>(
-          context: context,
-          builder: (dialogContext) => AlertDialog(
-            title: Text(strings.deleteTagConfirmTitle),
-            content: Text(strings.deleteTagConfirmMessage(tag)),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.of(dialogContext).pop(false),
-                child: Text(strings.cancelAction),
-              ),
-              FilledButton(
-                onPressed: () => Navigator.of(dialogContext).pop(true),
-                child: Text(strings.confirmDeleteTag),
-              ),
-            ],
-          ),
-        ) ??
-        false;
-
-    if (!confirmed || !mounted) return;
-
-    setState(() => _isManagingTags = true);
-    try {
-      await ref.read(tagLibraryControllerProvider.notifier).deleteTag(tag);
-      if (!mounted) return;
-      setState(() {
-        _isManagingTags = false;
-        _tags.removeWhere((item) => item.toLowerCase() == tag.toLowerCase());
-      });
-      context.showAppSnackBar(
-        strings.tagDeleted,
-        tone: AppSnackBarTone.success,
-      );
-    } catch (error) {
-      if (!mounted) return;
-      setState(() => _isManagingTags = false);
-      context.showAppSnackBar(
-        strings.deleteTagFailed(error),
-        tone: AppSnackBarTone.error,
-      );
     }
   }
 
