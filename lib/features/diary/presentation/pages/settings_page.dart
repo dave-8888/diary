@@ -27,13 +27,15 @@ class SettingsPage extends ConsumerStatefulWidget {
 
 class _SettingsPageState extends ConsumerState<SettingsPage> {
   late final TextEditingController _appNameController;
+  late final TextEditingController _diaryAiBaseUrlController;
+  late final TextEditingController _diaryAiModelController;
   late final TextEditingController _diaryAiApiKeyController;
   bool _appNameInitialized = false;
-  bool _diaryAiApiKeyInitialized = false;
+  bool _diaryAiConfigInitialized = false;
   bool _isSavingAppName = false;
-  bool _isSavingDiaryAiApiKey = false;
+  bool _isSavingDiaryAiConfig = false;
   bool _isResettingAppName = false;
-  bool _isResettingDiaryAiApiKey = false;
+  bool _isResettingDiaryAiConfig = false;
   bool _isDisablingPasscode = false;
   bool _isChangingIcon = false;
   bool _isSyncingBuildWindowIcon = false;
@@ -51,17 +53,23 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
   bool _isMoodLibrarySectionExpanded = false;
   bool _isMigrationSectionExpanded = false;
   bool _showDiaryAiApiKey = false;
+  DiaryAiProviderPreset _selectedDiaryAiPreset =
+      DiaryAiProviderPreset.dashScope;
 
   @override
   void initState() {
     super.initState();
     _appNameController = TextEditingController();
+    _diaryAiBaseUrlController = TextEditingController();
+    _diaryAiModelController = TextEditingController();
     _diaryAiApiKeyController = TextEditingController();
   }
 
   @override
   void dispose() {
     _appNameController.dispose();
+    _diaryAiBaseUrlController.dispose();
+    _diaryAiModelController.dispose();
     _diaryAiApiKeyController.dispose();
     super.dispose();
   }
@@ -74,7 +82,9 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
       strings: strings,
       customNameAsync: customAppNameAsync,
     );
-    final diaryAiApiKeyAsync = ref.watch(diaryAiApiKeyControllerProvider);
+    final diaryAiConfigAsync = ref.watch(diaryAiConfigControllerProvider);
+    final diaryAiConfig = diaryAiConfigAsync.valueOrNull ??
+        DiaryAiProviderConfig.forPreset(DiaryAiProviderPreset.dashScope);
     final diaryListVisualMediaVisibilityAsync = ref.watch(
       diaryListVisualMediaVisibilityControllerProvider,
     );
@@ -118,12 +128,9 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
       );
       _appNameInitialized = true;
     }
-    if (!_diaryAiApiKeyInitialized && diaryAiApiKeyAsync.hasValue) {
-      _diaryAiApiKeyController.text = diaryAiApiKeyAsync.valueOrNull ?? '';
-      _diaryAiApiKeyController.selection = TextSelection.collapsed(
-        offset: _diaryAiApiKeyController.text.length,
-      );
-      _diaryAiApiKeyInitialized = true;
+    if (!_diaryAiConfigInitialized && diaryAiConfigAsync.hasValue) {
+      _applyDiaryAiConfigForm(diaryAiConfigAsync.valueOrNull!);
+      _diaryAiConfigInitialized = true;
     }
 
     return DiaryShell(
@@ -423,7 +430,7 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
                 title: strings.diaryAiSettingsTitle,
                 subtitle: strings.diaryAiSettingsHint,
                 summary:
-                    '${strings.diaryAiVisibilityLabel}: ${diaryAiVisible ? strings.enabledLabel : strings.disabledLabel}',
+                    '${strings.diaryAiVisibilityLabel}: ${diaryAiVisible ? strings.enabledLabel : strings.disabledLabel} · ${diaryAiConfig.preset.label} · ${diaryAiConfig.normalizedModel}',
                 expanded: _isDiaryAiSectionExpanded,
                 onExpandedChanged: (expanded) {
                   setState(() => _isDiaryAiSectionExpanded = expanded);
@@ -458,12 +465,60 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
                       onChanged: _changeProblemSuggestionVisibility,
                     ),
                     const SizedBox(height: 16),
+                    Text(
+                      strings.diaryAiCompatibilityHint,
+                      style: Theme.of(context).textTheme.bodySmall,
+                    ),
+                    const SizedBox(height: 16),
+                    Text(
+                      strings.diaryAiProviderLabel,
+                      style: Theme.of(context).textTheme.labelLarge,
+                    ),
+                    const SizedBox(height: 10),
+                    Wrap(
+                      spacing: 10,
+                      runSpacing: 10,
+                      children: DiaryAiProviderPreset.values
+                          .map(
+                            (preset) => ChoiceChip(
+                              selected: preset == _selectedDiaryAiPreset,
+                              onSelected: _isSavingDiaryAiConfig ||
+                                      _isResettingDiaryAiConfig
+                                  ? null
+                                  : (_) => _selectDiaryAiPreset(preset),
+                              label: Text(preset.label),
+                            ),
+                          )
+                          .toList(growable: false),
+                    ),
+                    const SizedBox(height: 16),
                     TextField(
+                      key: const ValueKey('settings-diary-ai-base-url'),
+                      controller: _diaryAiBaseUrlController,
+                      decoration: InputDecoration(
+                        labelText: strings.diaryAiBaseUrlLabel,
+                        hintText: strings.diaryAiBaseUrlHint,
+                      ),
+                      textInputAction: TextInputAction.next,
+                    ),
+                    const SizedBox(height: 16),
+                    TextField(
+                      key: const ValueKey('settings-diary-ai-model'),
+                      controller: _diaryAiModelController,
+                      decoration: InputDecoration(
+                        labelText: strings.diaryAiModelLabel,
+                        hintText: strings.diaryAiModelHint,
+                      ),
+                      textInputAction: TextInputAction.next,
+                    ),
+                    const SizedBox(height: 16),
+                    TextField(
+                      key: const ValueKey('settings-diary-ai-api-key'),
                       controller: _diaryAiApiKeyController,
                       obscureText: !_showDiaryAiApiKey,
                       decoration: InputDecoration(
-                        labelText: strings.aliyunApiKeyLabel,
-                        hintText: strings.aliyunApiKeyHint,
+                        labelText: strings.diaryAiApiKeyLabel,
+                        hintText: strings.diaryAiApiKeyHint,
                         suffixIcon: IconButton(
                           onPressed: () {
                             setState(
@@ -478,11 +533,12 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
                         ),
                       ),
                       textInputAction: TextInputAction.done,
-                      onSubmitted: (_) => _saveDiaryAiApiKey(),
+                      onSubmitted: (_) => _saveDiaryAiConfig(),
                     ),
                     const SizedBox(height: 12),
                     Text(
-                      diaryAiEnvironmentApiKey.isNotEmpty
+                      diaryAiEnvironmentApiKey.isNotEmpty ||
+                              legacyDiaryAiEnvironmentApiKey.isNotEmpty
                           ? strings.usingDiaryAiEnvironmentApiKey
                           : strings.diaryAiApiKeyEnvironmentHint,
                       style: Theme.of(context).textTheme.bodySmall,
@@ -493,25 +549,27 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
                       runSpacing: 12,
                       children: [
                         OutlinedButton(
-                          onPressed: _isSavingDiaryAiApiKey ||
-                                  _isResettingDiaryAiApiKey
+                          key: const ValueKey('settings-diary-ai-reset'),
+                          onPressed: _isSavingDiaryAiConfig ||
+                                  _isResettingDiaryAiConfig
                               ? null
-                              : _resetDiaryAiApiKey,
-                          child: _isResettingDiaryAiApiKey
+                              : _resetDiaryAiConfig,
+                          child: _isResettingDiaryAiConfig
                               ? const SizedBox(
                                   width: 18,
                                   height: 18,
                                   child:
                                       CircularProgressIndicator(strokeWidth: 2),
                                 )
-                              : Text(strings.resetApiKey),
+                              : Text(strings.resetDiaryAiConfig),
                         ),
                         FilledButton(
-                          onPressed: _isSavingDiaryAiApiKey ||
-                                  _isResettingDiaryAiApiKey
+                          key: const ValueKey('settings-diary-ai-save'),
+                          onPressed: _isSavingDiaryAiConfig ||
+                                  _isResettingDiaryAiConfig
                               ? null
-                              : _saveDiaryAiApiKey,
-                          child: _isSavingDiaryAiApiKey
+                              : _saveDiaryAiConfig,
+                          child: _isSavingDiaryAiConfig
                               ? const SizedBox(
                                   width: 18,
                                   height: 18,
@@ -1176,49 +1234,88 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
     }
   }
 
-  Future<void> _saveDiaryAiApiKey() async {
+  Future<void> _saveDiaryAiConfig() async {
     final strings = context.strings;
-    setState(() => _isSavingDiaryAiApiKey = true);
+    setState(() => _isSavingDiaryAiConfig = true);
     try {
-      await ref
-          .read(diaryAiApiKeyControllerProvider.notifier)
-          .save(_diaryAiApiKeyController.text);
+      final config = DiaryAiProviderConfig(
+        presetId: _selectedDiaryAiPreset.id,
+        baseUrl: _diaryAiBaseUrlController.text,
+        model: _diaryAiModelController.text,
+        apiKey: _diaryAiApiKeyController.text,
+      );
+      await ref.read(diaryAiConfigControllerProvider.notifier).save(config);
       if (!mounted) return;
-      setState(() => _isSavingDiaryAiApiKey = false);
+      _applyDiaryAiConfigForm(config);
+      setState(() => _isSavingDiaryAiConfig = false);
       context.showAppSnackBar(
-        strings.diaryAiApiKeyUpdated,
+        strings.diaryAiConfigUpdated,
         tone: AppSnackBarTone.success,
       );
     } catch (error) {
       if (!mounted) return;
-      setState(() => _isSavingDiaryAiApiKey = false);
+      setState(() => _isSavingDiaryAiConfig = false);
       context.showAppSnackBar(
-        strings.diaryAiApiKeyUpdateFailed(error),
+        strings.diaryAiConfigUpdateFailed(error),
         tone: AppSnackBarTone.error,
       );
     }
   }
 
-  Future<void> _resetDiaryAiApiKey() async {
+  Future<void> _resetDiaryAiConfig() async {
     final strings = context.strings;
-    setState(() => _isResettingDiaryAiApiKey = true);
+    setState(() => _isResettingDiaryAiConfig = true);
     try {
-      await ref.read(diaryAiApiKeyControllerProvider.notifier).reset();
-      _diaryAiApiKeyController.clear();
+      await ref.read(diaryAiConfigControllerProvider.notifier).reset();
+      _applyDiaryAiConfigForm(
+        DiaryAiProviderConfig.forPreset(DiaryAiProviderPreset.dashScope),
+      );
       if (!mounted) return;
-      setState(() => _isResettingDiaryAiApiKey = false);
+      setState(() => _isResettingDiaryAiConfig = false);
       context.showAppSnackBar(
-        strings.diaryAiApiKeyReset,
+        strings.diaryAiConfigReset,
         tone: AppSnackBarTone.success,
       );
     } catch (error) {
       if (!mounted) return;
-      setState(() => _isResettingDiaryAiApiKey = false);
+      setState(() => _isResettingDiaryAiConfig = false);
       context.showAppSnackBar(
-        strings.diaryAiApiKeyUpdateFailed(error),
+        strings.diaryAiConfigUpdateFailed(error),
         tone: AppSnackBarTone.error,
       );
     }
+  }
+
+  void _applyDiaryAiConfigForm(DiaryAiProviderConfig config) {
+    _selectedDiaryAiPreset = config.preset;
+    _diaryAiBaseUrlController.text = config.normalizedBaseUrl;
+    _diaryAiModelController.text = config.normalizedModel;
+    _diaryAiApiKeyController.text = config.normalizedApiKey ?? '';
+    _diaryAiBaseUrlController.selection = TextSelection.collapsed(
+      offset: _diaryAiBaseUrlController.text.length,
+    );
+    _diaryAiModelController.selection = TextSelection.collapsed(
+      offset: _diaryAiModelController.text.length,
+    );
+    _diaryAiApiKeyController.selection = TextSelection.collapsed(
+      offset: _diaryAiApiKeyController.text.length,
+    );
+  }
+
+  void _selectDiaryAiPreset(DiaryAiProviderPreset preset) {
+    setState(() {
+      _selectedDiaryAiPreset = preset;
+      if (preset != DiaryAiProviderPreset.custom) {
+        _diaryAiBaseUrlController.text = preset.defaultBaseUrl;
+        _diaryAiModelController.text = preset.defaultModel;
+        _diaryAiBaseUrlController.selection = TextSelection.collapsed(
+          offset: _diaryAiBaseUrlController.text.length,
+        );
+        _diaryAiModelController.selection = TextSelection.collapsed(
+          offset: _diaryAiModelController.text.length,
+        );
+      }
+    });
   }
 
   Future<void> _selectIcon(AppIconPreset preset) async {

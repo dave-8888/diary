@@ -12,6 +12,7 @@ final diaryAiServiceProvider = Provider<DiaryAiService>((ref) {
 
 enum DiaryAiFailure {
   apiKeyMissing,
+  configurationInvalid,
   insufficientInput,
   requestFailed,
   invalidResponse,
@@ -34,10 +35,6 @@ class DiaryAiResult {
 class DiaryAiService {
   DiaryAiService(this._ref);
 
-  static const String _apiUrl =
-      'https://dashscope.aliyuncs.com/compatible-mode/v1/chat/completions';
-  static const String _model = 'qwen-plus';
-
   final Ref _ref;
 
   Future<DiaryAiResult> analyzeEntry({
@@ -46,12 +43,22 @@ class DiaryAiService {
     required bool includeEmotionalCompanion,
     required bool includeProblemSuggestions,
   }) async {
-    final apiKey = await _resolveApiKey();
+    final config = await _resolveConfig();
+    final apiKey = config.normalizedApiKey;
+    final requestUrl = _resolveRequestUrl(config.normalizedBaseUrl);
+    final model = config.normalizedModel;
 
-    if (apiKey.isEmpty) {
+    if (apiKey == null || apiKey.isEmpty) {
       return const DiaryAiResult(
         ok: false,
         failure: DiaryAiFailure.apiKeyMissing,
+      );
+    }
+
+    if (requestUrl == null || model.isEmpty) {
+      return const DiaryAiResult(
+        ok: false,
+        failure: DiaryAiFailure.configurationInvalid,
       );
     }
 
@@ -66,19 +73,16 @@ class DiaryAiService {
     try {
       response = await http
           .post(
-            Uri.parse(_apiUrl),
+            Uri.parse(requestUrl),
             headers: {
               'Content-Type': 'application/json',
               'Authorization': 'Bearer $apiKey',
             },
             body: jsonEncode(
               {
-                'model': _model,
+                'model': model,
                 'temperature': 0.2,
                 'max_tokens': 700,
-                'response_format': {
-                  'type': 'json_object',
-                },
                 'messages': [
                   {
                     'role': 'system',
@@ -99,6 +103,11 @@ class DiaryAiService {
             ),
           )
           .timeout(const Duration(seconds: 45));
+    } on FormatException {
+      return const DiaryAiResult(
+        ok: false,
+        failure: DiaryAiFailure.configurationInvalid,
+      );
     } on TimeoutException {
       return const DiaryAiResult(
         ok: false,
@@ -133,25 +142,45 @@ class DiaryAiService {
     );
   }
 
-  Future<String> _resolveApiKey() async {
-    final configuredApiKey =
-        _ref.read(diaryAiApiKeyControllerProvider).valueOrNull;
-    final inMemory = configuredApiKey?.trim();
-    if (inMemory != null && inMemory.isNotEmpty) {
-      return inMemory;
+  Future<DiaryAiProviderConfig> _resolveConfig() async {
+    final configured = _ref.read(diaryAiConfigControllerProvider).valueOrNull;
+    if (configured != null) {
+      return _withEnvironmentFallbacks(configured);
     }
 
     try {
-      final persisted = await _ref.read(diaryAiSettingsStorageProvider).read();
-      final normalized = persisted?.trim();
-      if (normalized != null && normalized.isNotEmpty) {
-        return normalized;
-      }
+      final persisted =
+          await _ref.read(diaryAiSettingsStorageProvider).readConfig();
+      return _withEnvironmentFallbacks(persisted);
     } catch (_) {
-      // Fall through to the environment fallback below.
+      return _withEnvironmentFallbacks(
+        DiaryAiProviderConfig.forPreset(DiaryAiProviderPreset.dashScope),
+      );
     }
+  }
 
-    return diaryAiEnvironmentApiKey.trim();
+  DiaryAiProviderConfig _withEnvironmentFallbacks(
+    DiaryAiProviderConfig config,
+  ) {
+    final environmentApiKey = diaryAiEnvironmentApiKey.trim().isNotEmpty
+        ? diaryAiEnvironmentApiKey.trim()
+        : legacyDiaryAiEnvironmentApiKey.trim();
+    if (config.normalizedApiKey != null || environmentApiKey.isEmpty) {
+      return config;
+    }
+    return config.copyWith(apiKey: environmentApiKey);
+  }
+
+  String? _resolveRequestUrl(String baseUrl) {
+    final trimmed = baseUrl.trim();
+    if (trimmed.isEmpty) {
+      return null;
+    }
+    if (trimmed.endsWith('/chat/completions')) {
+      return trimmed;
+    }
+    final normalized = trimmed.endsWith('/') ? trimmed : '$trimmed/';
+    return '${normalized}chat/completions';
   }
 
   bool _isInputEmpty(DiaryEntry draft) {

@@ -1059,7 +1059,7 @@ void main() {
     expect(find.text(strings.currentWindowIcon), findsNothing);
     expect(find.text(strings.newPasscodeLabel), findsNothing);
     expect(find.text(strings.setPasscodeAction), findsNothing);
-    expect(find.text(strings.aliyunApiKeyLabel), findsNothing);
+    expect(find.text(strings.diaryAiProviderLabel), findsNothing);
 
     await tester.scrollUntilVisible(
       find.text(strings.appIdentityTitle),
@@ -1105,7 +1105,78 @@ void main() {
     await tester.pumpAndSettle();
     await tester.tap(find.text(strings.diaryAiSettingsTitle));
     await tester.pumpAndSettle();
-    expect(find.text(strings.aliyunApiKeyLabel), findsOneWidget);
+    expect(find.text(strings.diaryAiProviderLabel), findsOneWidget);
+    expect(find.text(strings.diaryAiBaseUrlLabel), findsOneWidget);
+    expect(find.text(strings.diaryAiModelLabel), findsOneWidget);
+  });
+
+  testWidgets('settings page saves diary AI provider config', (tester) async {
+    final repository = FakeDiaryRepository(
+      moods: DiaryMood.values,
+    );
+    final diaryAiSettingsStorage = FakeDiaryAiSettingsStorage();
+
+    await pumpPage(
+      tester,
+      const SettingsPage(),
+      path: '/settings',
+      overrides: buildOverrides(
+        repository: repository,
+        diaryAiSettingsStorage: diaryAiSettingsStorage,
+      ),
+    );
+
+    await tester.scrollUntilVisible(
+      find.text(strings.diaryAiSettingsTitle),
+      300,
+      scrollable: find.byType(Scrollable).first,
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(find.text(strings.diaryAiSettingsTitle));
+    await tester.pumpAndSettle();
+
+    await tester.scrollUntilVisible(
+      find.text(DiaryAiProviderPreset.gemini.label),
+      200,
+      scrollable: find.byType(Scrollable).first,
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(find.text(DiaryAiProviderPreset.gemini.label));
+    await tester.pumpAndSettle();
+
+    expect(
+      tester
+          .widget<TextField>(
+            find.byKey(const ValueKey('settings-diary-ai-base-url')),
+          )
+          .controller!
+          .text,
+      DiaryAiProviderPreset.gemini.defaultBaseUrl,
+    );
+    expect(
+      tester
+          .widget<TextField>(
+            find.byKey(const ValueKey('settings-diary-ai-model')),
+          )
+          .controller!
+          .text,
+      DiaryAiProviderPreset.gemini.defaultModel,
+    );
+
+    await tester.enterText(
+      find.byKey(const ValueKey('settings-diary-ai-api-key')),
+      'gem-key',
+    );
+    await tester.tap(find.byKey(const ValueKey('settings-diary-ai-save')));
+    await tester.pumpAndSettle();
+
+    final saved = await diaryAiSettingsStorage.readConfig();
+    expect(saved.preset, DiaryAiProviderPreset.gemini);
+    expect(
+        saved.normalizedBaseUrl, DiaryAiProviderPreset.gemini.defaultBaseUrl);
+    expect(saved.normalizedModel, DiaryAiProviderPreset.gemini.defaultModel);
+    expect(saved.normalizedApiKey, 'gem-key');
+    expect(find.text(strings.diaryAiConfigUpdated), findsOneWidget);
   });
 
   testWidgets('settings page can set a new startup password', (tester) async {
@@ -1608,11 +1679,14 @@ List<Override> buildOverrides({
   required FakeDiaryRepository repository,
   FakeDiaryListSettingsStorage? diaryListSettingsStorage,
   FakePasswordSettingsStorage? passwordSettingsStorage,
+  FakeDiaryAiSettingsStorage? diaryAiSettingsStorage,
 }) {
   final effectiveDiaryListSettingsStorage =
       diaryListSettingsStorage ?? FakeDiaryListSettingsStorage();
   final effectivePasswordSettingsStorage =
       passwordSettingsStorage ?? FakePasswordSettingsStorage();
+  final effectiveDiaryAiSettingsStorage =
+      diaryAiSettingsStorage ?? FakeDiaryAiSettingsStorage();
 
   return [
     diaryRepositoryProvider.overrideWith((ref) => repository),
@@ -1636,10 +1710,7 @@ List<Override> buildOverrides({
       (ref) => FakeAppLanguageStorage(AppLanguage.english),
     ),
     diaryAiSettingsStorageProvider.overrideWith(
-      (ref) => FakeDiaryAiSettingsStorage(),
-    ),
-    diaryAiApiKeyStorageProvider.overrideWith(
-      (ref) => FakeDiaryAiSettingsStorage(),
+      (ref) => effectiveDiaryAiSettingsStorage,
     ),
     diaryListSettingsStorageProvider.overrideWith(
       (ref) => effectiveDiaryListSettingsStorage,
@@ -1819,29 +1890,61 @@ class FakeAppLanguageStorage extends AppLanguageStorage {
 }
 
 class FakeDiaryAiSettingsStorage extends DiaryAiSettingsStorage {
-  @override
-  Future<String?> read() async => null;
+  FakeDiaryAiSettingsStorage([
+    DiaryAiProviderConfig? config,
+  ]) : _config = config ??
+            DiaryAiProviderConfig.forPreset(DiaryAiProviderPreset.dashScope);
+
+  DiaryAiProviderConfig _config;
+  bool _visibility = true;
+  bool _emotionalCompanionVisibility = true;
+  bool _problemSuggestionVisibility = true;
 
   @override
-  Future<bool> readEmotionalCompanionVisibility() async => true;
+  Future<DiaryAiProviderConfig> readConfig() async => _config;
 
   @override
-  Future<bool> readProblemSuggestionVisibility() async => true;
+  Future<String?> read() async => _config.normalizedApiKey;
 
   @override
-  Future<bool> readVisibility() async => true;
+  Future<bool> readEmotionalCompanionVisibility() async =>
+      _emotionalCompanionVisibility;
 
   @override
-  Future<void> write(String? apiKey) async {}
+  Future<bool> readProblemSuggestionVisibility() async =>
+      _problemSuggestionVisibility;
 
   @override
-  Future<void> writeEmotionalCompanionVisibility(bool enabled) async {}
+  Future<bool> readVisibility() async => _visibility;
 
   @override
-  Future<void> writeProblemSuggestionVisibility(bool enabled) async {}
+  Future<void> write(String? apiKey) async {
+    _config = _config.copyWith(apiKey: apiKey);
+  }
 
   @override
-  Future<void> writeVisibility(bool enabled) async {}
+  Future<void> writeConfig(DiaryAiProviderConfig config) async {
+    _config = config.copyWith(
+      baseUrl: config.normalizedBaseUrl,
+      model: config.normalizedModel,
+      apiKey: config.normalizedApiKey,
+    );
+  }
+
+  @override
+  Future<void> writeEmotionalCompanionVisibility(bool enabled) async {
+    _emotionalCompanionVisibility = enabled;
+  }
+
+  @override
+  Future<void> writeProblemSuggestionVisibility(bool enabled) async {
+    _problemSuggestionVisibility = enabled;
+  }
+
+  @override
+  Future<void> writeVisibility(bool enabled) async {
+    _visibility = enabled;
+  }
 }
 
 class FakeDiaryListSettingsStorage extends DiaryListSettingsStorage {

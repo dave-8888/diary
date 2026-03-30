@@ -9,13 +9,9 @@ final diaryAiSettingsStorageProvider = Provider<DiaryAiSettingsStorage>((ref) {
   return DiaryAiSettingsStorage();
 });
 
-final diaryAiApiKeyStorageProvider = Provider<DiaryAiSettingsStorage>((ref) {
-  return ref.read(diaryAiSettingsStorageProvider);
-});
-
-final diaryAiApiKeyControllerProvider =
-    AsyncNotifierProvider<DiaryAiApiKeyController, String?>(
-  DiaryAiApiKeyController.new,
+final diaryAiConfigControllerProvider =
+    AsyncNotifierProvider<DiaryAiConfigController, DiaryAiProviderConfig>(
+  DiaryAiConfigController.new,
 );
 
 final diaryAiVisibilityControllerProvider =
@@ -33,26 +29,223 @@ final problemSuggestionVisibilityControllerProvider =
   ProblemSuggestionVisibilityController.new,
 );
 
-class DiaryAiSettingsStorage {
-  Future<String?> read() async {
-    final raw = await _readRaw();
-    final value = raw['dashscope_api_key'];
-    if (value is! String) return null;
-    final normalized = value.trim();
+enum DiaryAiProviderPreset {
+  dashScope,
+  openAi,
+  anthropic,
+  gemini,
+  openRouter,
+  custom,
+}
+
+extension DiaryAiProviderPresetX on DiaryAiProviderPreset {
+  String get id {
+    switch (this) {
+      case DiaryAiProviderPreset.dashScope:
+        return 'dashscope';
+      case DiaryAiProviderPreset.openAi:
+        return 'openai';
+      case DiaryAiProviderPreset.anthropic:
+        return 'anthropic';
+      case DiaryAiProviderPreset.gemini:
+        return 'gemini';
+      case DiaryAiProviderPreset.openRouter:
+        return 'openrouter';
+      case DiaryAiProviderPreset.custom:
+        return 'custom';
+    }
+  }
+
+  String get label {
+    switch (this) {
+      case DiaryAiProviderPreset.dashScope:
+        return 'Qwen / DashScope';
+      case DiaryAiProviderPreset.openAi:
+        return 'OpenAI';
+      case DiaryAiProviderPreset.anthropic:
+        return 'Claude (compat)';
+      case DiaryAiProviderPreset.gemini:
+        return 'Gemini (compat)';
+      case DiaryAiProviderPreset.openRouter:
+        return 'OpenRouter';
+      case DiaryAiProviderPreset.custom:
+        return 'Custom';
+    }
+  }
+
+  String get defaultBaseUrl {
+    switch (this) {
+      case DiaryAiProviderPreset.dashScope:
+        return 'https://dashscope.aliyuncs.com/compatible-mode/v1/';
+      case DiaryAiProviderPreset.openAi:
+        return 'https://api.openai.com/v1/';
+      case DiaryAiProviderPreset.anthropic:
+        return 'https://api.anthropic.com/v1/';
+      case DiaryAiProviderPreset.gemini:
+        return 'https://generativelanguage.googleapis.com/v1beta/openai/';
+      case DiaryAiProviderPreset.openRouter:
+        return 'https://openrouter.ai/api/v1/';
+      case DiaryAiProviderPreset.custom:
+        return '';
+    }
+  }
+
+  String get defaultModel {
+    switch (this) {
+      case DiaryAiProviderPreset.dashScope:
+        return 'qwen-plus';
+      case DiaryAiProviderPreset.openAi:
+        return 'gpt-4.1-mini';
+      case DiaryAiProviderPreset.anthropic:
+        return 'claude-sonnet-4-5';
+      case DiaryAiProviderPreset.gemini:
+        return 'gemini-2.5-flash';
+      case DiaryAiProviderPreset.openRouter:
+        return 'openai/gpt-4.1-mini';
+      case DiaryAiProviderPreset.custom:
+        return '';
+    }
+  }
+
+  static DiaryAiProviderPreset fromId(String? rawId) {
+    final normalized = rawId?.trim().toLowerCase();
+    for (final preset in DiaryAiProviderPreset.values) {
+      if (preset.id == normalized) {
+        return preset;
+      }
+    }
+    return DiaryAiProviderPreset.custom;
+  }
+}
+
+class DiaryAiProviderConfig {
+  const DiaryAiProviderConfig({
+    required this.presetId,
+    required this.baseUrl,
+    required this.model,
+    this.apiKey,
+  });
+
+  final String presetId;
+  final String baseUrl;
+  final String model;
+  final String? apiKey;
+
+  DiaryAiProviderPreset get preset => DiaryAiProviderPresetX.fromId(presetId);
+
+  String get normalizedBaseUrl {
+    final value = baseUrl.trim();
+    if (value.isNotEmpty) {
+      return value;
+    }
+    return preset.defaultBaseUrl;
+  }
+
+  String get normalizedModel {
+    final value = model.trim();
+    if (value.isNotEmpty) {
+      return value;
+    }
+    return preset.defaultModel;
+  }
+
+  String? get normalizedApiKey {
+    final value = apiKey?.trim();
+    if (value == null || value.isEmpty) {
+      return null;
+    }
+    return value;
+  }
+
+  DiaryAiProviderConfig copyWith({
+    String? presetId,
+    String? baseUrl,
+    String? model,
+    Object? apiKey = _copyWithSentinel,
+  }) {
+    return DiaryAiProviderConfig(
+      presetId: presetId ?? this.presetId,
+      baseUrl: baseUrl ?? this.baseUrl,
+      model: model ?? this.model,
+      apiKey: identical(apiKey, _copyWithSentinel)
+          ? this.apiKey
+          : apiKey as String?,
+    );
+  }
+
+  Map<String, dynamic> toJson() {
+    return <String, dynamic>{
+      'ai_provider_preset': preset.id,
+      'ai_base_url': normalizedBaseUrl,
+      'ai_model': normalizedModel,
+      if (normalizedApiKey != null) 'ai_api_key': normalizedApiKey,
+    };
+  }
+
+  static DiaryAiProviderConfig forPreset(
+    DiaryAiProviderPreset preset, {
+    String? apiKey,
+  }) {
+    return DiaryAiProviderConfig(
+      presetId: preset.id,
+      baseUrl: preset.defaultBaseUrl,
+      model: preset.defaultModel,
+      apiKey: apiKey,
+    );
+  }
+
+  static DiaryAiProviderConfig fromJson(Map<String, dynamic> raw) {
+    final hasStoredConfig = raw.containsKey('ai_provider_preset') ||
+        raw.containsKey('ai_base_url') ||
+        raw.containsKey('ai_model');
+    final preset = hasStoredConfig
+        ? DiaryAiProviderPresetX.fromId(
+            _readString(raw['ai_provider_preset']),
+          )
+        : DiaryAiProviderPreset.dashScope;
+    final baseUrl = _readString(raw['ai_base_url']);
+    final model = _readString(raw['ai_model']);
+    final apiKey =
+        _readString(raw['ai_api_key']) ?? _readString(raw['dashscope_api_key']);
+
+    return DiaryAiProviderConfig(
+      presetId: preset.id,
+      baseUrl: baseUrl ?? preset.defaultBaseUrl,
+      model: model ?? preset.defaultModel,
+      apiKey: apiKey,
+    );
+  }
+
+  static String? _readString(Object? raw) {
+    if (raw is! String) {
+      return null;
+    }
+    final normalized = raw.trim();
     return normalized.isEmpty ? null : normalized;
+  }
+}
+
+class DiaryAiSettingsStorage {
+  Future<DiaryAiProviderConfig> readConfig() async {
+    final raw = await _readRaw();
+    return DiaryAiProviderConfig.fromJson(raw);
+  }
+
+  Future<void> writeConfig(DiaryAiProviderConfig config) async {
+    final raw = await _readRaw();
+    raw
+      ..remove('dashscope_api_key')
+      ..addAll(config.toJson());
+    await _writeRaw(raw);
+  }
+
+  Future<String?> read() async {
+    return (await readConfig()).normalizedApiKey;
   }
 
   Future<void> write(String? apiKey) async {
-    final normalized = apiKey?.trim();
-    final raw = await _readRaw();
-
-    if (normalized == null || normalized.isEmpty) {
-      raw.remove('dashscope_api_key');
-    } else {
-      raw['dashscope_api_key'] = normalized;
-    }
-
-    await _writeRaw(raw);
+    final current = await readConfig();
+    await writeConfig(current.copyWith(apiKey: apiKey));
   }
 
   Future<bool> readVisibility() async {
@@ -136,21 +329,26 @@ class DiaryAiSettingsStorage {
   }
 }
 
-class DiaryAiApiKeyController extends AsyncNotifier<String?> {
-  DiaryAiSettingsStorage get _storage => ref.read(diaryAiApiKeyStorageProvider);
+class DiaryAiConfigController extends AsyncNotifier<DiaryAiProviderConfig> {
+  DiaryAiSettingsStorage get _storage =>
+      ref.read(diaryAiSettingsStorageProvider);
 
   @override
-  Future<String?> build() {
-    return _storage.read();
+  Future<DiaryAiProviderConfig> build() {
+    return _storage.readConfig();
   }
 
-  Future<void> save(String value) async {
-    final previous = state.valueOrNull;
-    final normalized = _normalize(value);
+  Future<void> save(DiaryAiProviderConfig config) async {
+    final previous = state.valueOrNull ?? _defaultDiaryAiConfig;
+    final normalized = config.copyWith(
+      baseUrl: config.normalizedBaseUrl,
+      model: config.normalizedModel,
+      apiKey: config.normalizedApiKey,
+    );
     state = AsyncData(normalized);
 
     try {
-      await _storage.write(normalized);
+      await _storage.writeConfig(normalized);
     } catch (error, stackTrace) {
       state = AsyncError(error, stackTrace);
       state = AsyncData(previous);
@@ -159,21 +357,16 @@ class DiaryAiApiKeyController extends AsyncNotifier<String?> {
   }
 
   Future<void> reset() async {
-    final previous = state.valueOrNull;
-    state = const AsyncData(null);
+    final previous = state.valueOrNull ?? _defaultDiaryAiConfig;
+    state = AsyncData(_defaultDiaryAiConfig);
 
     try {
-      await _storage.write(null);
+      await _storage.writeConfig(_defaultDiaryAiConfig);
     } catch (error, stackTrace) {
       state = AsyncError(error, stackTrace);
       state = AsyncData(previous);
       rethrow;
     }
-  }
-
-  String? _normalize(String raw) {
-    final trimmed = raw.trim();
-    return trimmed.isEmpty ? null : trimmed;
   }
 }
 
@@ -246,5 +439,12 @@ class ProblemSuggestionVisibilityController extends AsyncNotifier<bool> {
   }
 }
 
+const Object _copyWithSentinel = Object();
+
+final DiaryAiProviderConfig _defaultDiaryAiConfig =
+    DiaryAiProviderConfig.forPreset(DiaryAiProviderPreset.dashScope);
+
 const String diaryAiEnvironmentApiKey =
+    String.fromEnvironment('DIARY_AI_API_KEY');
+const String legacyDiaryAiEnvironmentApiKey =
     String.fromEnvironment('DASHSCOPE_API_KEY');

@@ -291,8 +291,39 @@ class AppStrings {
       : 'Failed to sync the Windows build icon: $error';
   String get diaryAiSettingsTitle => isChinese ? '日记 AI' : 'Diary AI';
   String get diaryAiSettingsHint => isChinese
-      ? '在这里配置阿里云百炼 API Key，用于日记总结、情绪识别、标签提取和标题生成。'
-      : 'Configure your Alibaba Cloud DashScope API key here for diary summaries, mood detection, tag extraction, and title generation.';
+      ? '\u5728\u8fd9\u91cc\u914d\u7f6e\u65e5\u8bb0 AI \u7684\u670d\u52a1\u5546\u3001Base URL\u3001\u6a21\u578b\u548c API Key\uff0c\u53ef\u7528\u4e8e\u65e5\u8bb0\u603b\u7ed3\u3001\u60c5\u7eea\u8bc6\u522b\u548c\u6807\u7b7e\u63d0\u53d6\u3002'
+      : 'Configure the provider, base URL, model, and API key for diary summaries, emotional support, and tag extraction.';
+  String get diaryAiCompatibilityHint => isChinese
+      ? '\u4f18\u5148\u652f\u6301 OpenAI \u517c\u5bb9\u7684\u804a\u5929\u8865\u5168\u63a5\u53e3\uff0c\u56e0\u6b64 OpenAI\u3001Qwen\u3001Gemini \u517c\u5bb9\u5c42\u3001Claude \u517c\u5bb9\u5c42\u3001OpenRouter \u4ee5\u53ca\u81ea\u5b9a\u4e49\u63d0\u4f9b\u5546\u90fd\u53ef\u4ee5\u63a5\u5165\u3002'
+      : 'This works best with OpenAI-compatible chat completion APIs, so OpenAI, Qwen, Gemini compatibility layers, Claude compatibility layers, OpenRouter, and custom providers can all be connected here.';
+  String get diaryAiProviderLabel =>
+      isChinese ? '\u670d\u52a1\u5546' : 'Provider';
+  String get diaryAiBaseUrlLabel =>
+      isChinese ? 'Base URL / Endpoint' : 'Base URL / endpoint';
+  String get diaryAiBaseUrlHint => isChinese
+      ? '\u4f8b\u5982\uff1ahttps://api.openai.com/v1/'
+      : 'For example: https://api.openai.com/v1/';
+  String get diaryAiModelLabel => isChinese ? '\u6a21\u578b ID' : 'Model ID';
+  String get diaryAiModelHint => isChinese
+      ? '\u4f8b\u5982\uff1agpt-4.1-mini / qwen-plus / gemini-2.5-flash'
+      : 'For example: gpt-4.1-mini / qwen-plus / gemini-2.5-flash';
+  String get diaryAiApiKeyLabel =>
+      isChinese ? 'Diary AI API Key' : 'Diary AI API key';
+  String get diaryAiApiKeyHint => isChinese
+      ? '\u8f93\u5165\u5bf9\u5e94\u670d\u52a1\u5546\u7684 API Key'
+      : 'Enter the API key for the selected provider.';
+  String get resetDiaryAiConfig => isChinese
+      ? '\u6062\u590d\u9ed8\u8ba4 AI \u914d\u7f6e'
+      : 'Reset AI config';
+  String get diaryAiConfigUpdated => isChinese
+      ? '\u65e5\u8bb0 AI \u914d\u7f6e\u5df2\u66f4\u65b0\u3002'
+      : 'Diary AI configuration updated.';
+  String get diaryAiConfigReset => isChinese
+      ? '\u65e5\u8bb0 AI \u914d\u7f6e\u5df2\u6062\u590d\u9ed8\u8ba4\u3002'
+      : 'Diary AI configuration reset.';
+  String diaryAiConfigUpdateFailed(Object error) => isChinese
+      ? '\u4fdd\u5b58\u65e5\u8bb0 AI \u914d\u7f6e\u5931\u8d25\uff1a$error'
+      : 'Failed to save diary AI configuration: $error';
   String get aliyunApiKeyLabel =>
       isChinese ? '阿里云百炼 API Key' : 'Alibaba Cloud DashScope API Key';
   String get aliyunApiKeyHint =>
@@ -305,11 +336,11 @@ class AppStrings {
       ? '保存阿里云 AI Key 失败：$error'
       : 'Failed to save the Alibaba Cloud AI key: $error';
   String get diaryAiApiKeyEnvironmentHint => isChinese
-      ? '当前没有本地 Key；如果启动时提供了 DASHSCOPE_API_KEY，也会自动使用。'
-      : 'If no local key is saved, the app will still use DASHSCOPE_API_KEY when provided at launch.';
+      ? '\u5f53\u524d\u6ca1\u6709\u672c\u5730 Key\uff1b\u5982\u679c\u542f\u52a8\u65f6\u63d0\u4f9b\u4e86 DIARY_AI_API_KEY\uff08\u517c\u5bb9\u65e7\u7684 DASHSCOPE_API_KEY\uff09\uff0c\u4e5f\u4f1a\u81ea\u52a8\u4f7f\u7528\u3002'
+      : 'If no local key is saved, the app will still use DIARY_AI_API_KEY (and the legacy DASHSCOPE_API_KEY) when provided at launch.';
   String get usingDiaryAiEnvironmentApiKey => isChinese
-      ? '当前正在使用启动参数中的阿里云 AI Key。'
-      : 'Currently using the Alibaba Cloud AI key provided at launch.';
+      ? '\u5f53\u524d\u6b63\u5728\u4f7f\u7528\u542f\u52a8\u53c2\u6570\u4e2d\u7684 Diary AI Key\u3002'
+      : 'Currently using the diary AI key provided at launch.';
   String get transcriptionSettingsTitle =>
       isChinese ? 'AI \u8f6c\u5199' : 'AI transcription';
   String get transcriptionSettingsHint => isChinese
@@ -948,8 +979,11 @@ class AppStrings {
       ? '\u8fd8\u6ca1\u6709\u914d\u7f6e OpenAI API Key\uff0c\u5df2\u8df3\u8fc7\u8f6c\u5199\u3002'
       : 'No OpenAI API key configured. Skipping transcription.';
   String get diaryAiApiKeyMissing => isChinese
-      ? '还没有配置阿里云 AI Key，暂时无法进行 AI 分析。'
-      : 'No Alibaba Cloud AI key configured. Cannot run diary AI analysis.';
+      ? '\u8fd8\u6ca1\u6709\u914d\u7f6e Diary AI API Key\uff0c\u6682\u65f6\u65e0\u6cd5\u8fdb\u884c AI \u5206\u6790\u3002'
+      : 'No diary AI API key configured. Cannot run diary AI analysis.';
+  String get diaryAiConfigInvalid => isChinese
+      ? '\u8bf7\u5148\u914d\u7f6e\u53ef\u7528\u7684 Base URL \u548c\u6a21\u578b ID\u3002'
+      : 'Please configure a valid base URL and model ID first.';
   String get diaryAiInputRequired => isChinese
       ? '请先输入标题、正文、地点或标签中的任意一项。'
       : 'Please enter at least a title, content, location, or tags first.';

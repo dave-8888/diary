@@ -1624,6 +1624,8 @@ class _EditorPageState extends ConsumerState<EditorPage>
     switch (result.failure) {
       case DiaryAiFailure.apiKeyMissing:
         return strings.diaryAiApiKeyMissing;
+      case DiaryAiFailure.configurationInvalid:
+        return strings.diaryAiConfigInvalid;
       case DiaryAiFailure.insufficientInput:
         return strings.diaryAiInputRequired;
       case DiaryAiFailure.requestFailed:
