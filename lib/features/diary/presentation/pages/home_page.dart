@@ -91,19 +91,9 @@ class _HomeList extends StatelessWidget {
           const TagFilterBar(),
           const SizedBox(height: 16),
         ],
-        Row(
-          children: [
-            Text(
-              strings.recentEntries,
-              style: Theme.of(context).textTheme.titleMedium,
-            ),
-            const Spacer(),
-            if (entries.length > 3)
-              TextButton(
-                onPressed: () => context.go('/timeline'),
-                child: Text(strings.viewAll),
-              ),
-          ],
+        Text(
+          strings.recentEntries,
+          style: Theme.of(context).textTheme.titleMedium,
         ),
         const SizedBox(height: 12),
         if (filteredEntries.isEmpty)
@@ -116,16 +106,16 @@ class _HomeList extends StatelessWidget {
             ),
           )
         else
-          ...filteredEntries.take(3).map(
-                (entry) => Padding(
-                  padding: const EdgeInsets.only(bottom: 14),
-                  child: DiaryCard(
-                    entry: entry,
-                    onEdit: () => _openEditor(context, entry),
-                    onTap: () => _openEditor(context, entry),
-                  ),
-                ),
+          ...filteredEntries.map(
+            (entry) => Padding(
+              padding: const EdgeInsets.only(bottom: 14),
+              child: DiaryCard(
+                entry: entry,
+                onEdit: () => _openEditor(context, entry),
+                onTap: () => _openEditor(context, entry),
               ),
+            ),
+          ),
       ],
     );
   }

@@ -92,10 +92,6 @@ class DiaryShell extends ConsumerWidget {
                   label: strings.writeNav,
                 ),
                 NavigationDestination(
-                  icon: const Icon(Icons.timeline_outlined),
-                  label: strings.timelineNav,
-                ),
-                NavigationDestination(
                   icon: const Icon(Icons.delete_outline),
                   label: strings.trashNav,
                 ),
@@ -147,11 +143,6 @@ class DiaryShell extends ConsumerWidget {
                                 label: Text(strings.writeNav),
                               ),
                               NavigationRailDestination(
-                                icon: const Icon(Icons.timeline_outlined),
-                                selectedIcon: const Icon(Icons.timeline),
-                                label: Text(strings.timelineNav),
-                              ),
-                              NavigationRailDestination(
                                 icon: const Icon(Icons.delete_outline),
                                 selectedIcon: const Icon(Icons.delete),
                                 label: Text(strings.trashNav),
@@ -194,8 +185,7 @@ class DiaryShell extends ConsumerWidget {
   int? _primaryIndexForLocation(String location) {
     if (location.startsWith('/settings')) return null;
     if (location.startsWith('/editor')) return 1;
-    if (location.startsWith('/timeline')) return 2;
-    if (location.startsWith('/trash')) return 3;
+    if (location.startsWith('/trash')) return 2;
     return 0;
   }
 
@@ -220,8 +210,7 @@ class DiaryShell extends ConsumerWidget {
     final destination = switch (index) {
       0 => '/',
       1 => '/editor',
-      2 => '/timeline',
-      3 => '/trash',
+      2 => '/trash',
       _ => '/',
     };
 
@@ -232,20 +221,7 @@ class DiaryShell extends ConsumerWidget {
       return;
     }
 
-    switch (index) {
-      case 0:
-        context.go(destination);
-        break;
-      case 1:
-        context.go(destination);
-        break;
-      case 2:
-        context.go(destination);
-        break;
-      case 3:
-        context.go(destination);
-        break;
-    }
+    context.go(destination);
   }
 
   Future<bool> _canNavigate(BuildContext context, String location) async {
