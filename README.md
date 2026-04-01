@@ -2,6 +2,32 @@
 
 Desktop-first Flutter diary app with local-first storage, startup passcode protection, and media-rich diary editing.
 
+## Screenshots
+
+### Home
+
+![Home screen](docs/images/home.png)
+
+Review recent diary entries, mood summary, and quick actions from the desktop home page.
+
+### Write diary
+
+![Diary editor](docs/images/editor.png)
+
+Create rich diary entries with title, text, image import, camera capture, video recording, audio recording, location, and mood selection.
+
+### AI diary assistant
+
+![AI diary assistant](docs/images/editor-ai.png)
+
+Analyze the current entry and surface a summary, emotional companionship, suggestions, and recommended tags alongside the editor.
+
+### Settings
+
+![Settings screen](docs/images/settings.png)
+
+Manage theme, language, media visibility, startup passcode, app identity, and AI-related preferences in one place.
+
 ## Implemented
 
 - `drift` + SQLite persistence for diary entries and media records
