@@ -176,10 +176,24 @@ class _EditorPageState extends ConsumerState<EditorPage>
           child: DiaryShell(
             title: _isEditing ? strings.editEntry : strings.newEntry,
             showAppBarTitle: false,
+            floatingActionButton: FloatingActionButton.extended(
+              onPressed:
+                  _isSaving || _isDeleting || _isExporting ? null : _save,
+              icon: _isSaving
+                  ? _buttonProgressIndicator(
+                      color: Theme.of(context).colorScheme.onPrimary,
+                    )
+                  : const Icon(Icons.save_outlined),
+              label: Text(
+                _isSaving
+                    ? strings.saving
+                    : (_isEditing ? strings.updateEntry : strings.saveEntry),
+              ),
+            ),
             compactBodyPadding:
-                const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+                const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
             expandedBodyPadding:
-                const EdgeInsets.symmetric(horizontal: 14, vertical: 16),
+                const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
             onNavigateRequest: _handleNavigationRequest,
             child: LayoutBuilder(
               builder: (context, constraints) {
@@ -197,6 +211,7 @@ class _EditorPageState extends ConsumerState<EditorPage>
                   audioMedia: audioMedia,
                   otherMedia: otherMedia,
                   moodLibraryAsync: moodLibraryAsync,
+                  prioritizeMedia: !showSidebar,
                 );
                 final aiSection = showDiaryAiSection
                     ? _buildAiSection(
@@ -208,16 +223,19 @@ class _EditorPageState extends ConsumerState<EditorPage>
                 if (!showSidebar) {
                   return Padding(
                     padding: EdgeInsets.symmetric(horizontal: horizontalInset),
-                    child: ListView(
-                      children: [
-                        ...mainSections,
-                        if (aiSection != null) ...[
+                    child: SingleChildScrollView(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          ...mainSections,
+                          if (aiSection != null) ...[
+                            const SizedBox(height: 20),
+                            aiSection,
+                          ],
                           const SizedBox(height: 20),
-                          aiSection,
+                          _buildTagSection(context, strings),
                         ],
-                        const SizedBox(height: 20),
-                        _buildTagSection(context, strings),
-                      ],
+                      ),
                     ),
                   );
                 }
@@ -228,19 +246,27 @@ class _EditorPageState extends ConsumerState<EditorPage>
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Expanded(
-                        child: ListView(children: mainSections),
+                        child: SingleChildScrollView(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: mainSections,
+                          ),
+                        ),
                       ),
                       SizedBox(width: sidebarGap),
                       SizedBox(
                         width: sidebarWidth,
-                        child: ListView(
-                          children: [
-                            if (aiSection != null) ...[
-                              aiSection,
-                              const SizedBox(height: 16),
+                        child: SingleChildScrollView(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              if (aiSection != null) ...[
+                                aiSection,
+                                const SizedBox(height: 16),
+                              ],
+                              _buildTagSection(context, strings),
                             ],
-                            _buildTagSection(context, strings),
-                          ],
+                          ),
                         ),
                       ),
                     ],
@@ -261,153 +287,189 @@ class _EditorPageState extends ConsumerState<EditorPage>
     required List<DiaryMedia> audioMedia,
     required List<DiaryMedia> otherMedia,
     required AsyncValue<List<DiaryMood>> moodLibraryAsync,
+    required bool prioritizeMedia,
   }) {
-    return [
-      _buildEditorHeader(context, strings),
-      const SizedBox(height: 16),
-      TextField(
-        controller: _titleController,
-        focusNode: _titleFocusNode,
-        undoController: _titleUndoController,
-        decoration: InputDecoration(
-          labelText: strings.titleLabel,
-          hintText: strings.titleHint,
-        ),
-      ),
-      const SizedBox(height: 16),
-      Wrap(
-        spacing: 12,
-        runSpacing: 12,
+    final headerSection = _buildEditorHeader(context, strings);
+    final mediaSection = _buildSectionCard(
+      context: context,
+      title: null,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          FilledButton.tonalIcon(
-            onPressed: _pickImages,
-            icon: const Icon(Icons.image_outlined),
-            label: Text(strings.importImage),
+          Wrap(
+            spacing: 12,
+            runSpacing: 12,
+            children: [
+              FilledButton.tonalIcon(
+                onPressed: _pickImages,
+                icon: const Icon(Icons.image_outlined),
+                label: Text(strings.importImage),
+              ),
+              FilledButton.tonalIcon(
+                onPressed: _takePhoto,
+                icon: const Icon(Icons.camera_alt_outlined),
+                label: Text(strings.takePhoto),
+              ),
+              FilledButton.tonalIcon(
+                onPressed: _recordVideo,
+                icon: const Icon(Icons.videocam_outlined),
+                label: Text(strings.recordVideo),
+              ),
+              FilledButton.tonalIcon(
+                onPressed: _isRecording ? _stopRecording : _startRecording,
+                icon: Icon(
+                  _isRecording ? Icons.stop_circle_outlined : Icons.mic_none,
+                ),
+                label: Text(
+                  _isRecording ? strings.stopRecording : strings.startRecording,
+                ),
+              ),
+            ],
           ),
-          FilledButton.tonalIcon(
-            onPressed: _takePhoto,
-            icon: const Icon(Icons.camera_alt_outlined),
-            label: Text(strings.takePhoto),
-          ),
-          FilledButton.tonalIcon(
-            onPressed: _recordVideo,
-            icon: const Icon(Icons.videocam_outlined),
-            label: Text(strings.recordVideo),
-          ),
-          FilledButton.tonalIcon(
-            onPressed: _isRecording ? _stopRecording : _startRecording,
-            icon: Icon(
-              _isRecording ? Icons.stop_circle_outlined : Icons.mic_none,
+          if (visualMedia.isNotEmpty) ...[
+            const SizedBox(height: 14),
+            ImageMediaGrid(
+              media: visualMedia,
+              minColumns: 2,
+              maxColumns: 4,
+              targetTileWidth: 170,
+              childAspectRatio: 1,
+              constrainToTargetWidth: true,
+              onPreviewRequested: _openVisualMediaPreview,
+              onDeleted: (media) => setState(() => _media.remove(media)),
             ),
-            label: Text(
-              _isRecording ? strings.stopRecording : strings.startRecording,
+          ],
+          if (audioMedia.isNotEmpty || otherMedia.isNotEmpty) ...[
+            const SizedBox(height: 14),
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                if (audioMedia.isNotEmpty)
+                  ...audioMedia.map(
+                    (media) => Padding(
+                      padding: const EdgeInsets.only(bottom: 10),
+                      child: AudioAttachmentTile(
+                        media: media,
+                        onDeleted: () => setState(() => _media.remove(media)),
+                      ),
+                    ),
+                  ),
+                if (otherMedia.isNotEmpty)
+                  Wrap(
+                    spacing: 8,
+                    runSpacing: 8,
+                    children: otherMedia
+                        .map(
+                          (media) => Chip(
+                            avatar: Icon(_iconForMedia(media.type), size: 18),
+                            label: Text(_mediaLabel(media)),
+                            onDeleted: () =>
+                                setState(() => _media.remove(media)),
+                          ),
+                        )
+                        .toList(),
+                  ),
+              ],
+            ),
+          ],
+        ],
+      ),
+    );
+    final writingSection = _buildSectionCard(
+      context: context,
+      title: strings.titleLabel,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          TextField(
+            controller: _titleController,
+            focusNode: _titleFocusNode,
+            undoController: _titleUndoController,
+            decoration: InputDecoration(
+              labelText: strings.titleLabel,
+              hintText: strings.titleHint,
+            ),
+          ),
+          const SizedBox(height: 14),
+          TextField(
+            controller: _contentController,
+            focusNode: _contentFocusNode,
+            undoController: _contentUndoController,
+            maxLines: 12,
+            decoration: InputDecoration(
+              labelText: strings.contentLabel,
+              hintText: strings.contentHint,
             ),
           ),
         ],
       ),
-      if (visualMedia.isNotEmpty) ...[
-        const SizedBox(height: 16),
-        ImageMediaGrid(
-          media: visualMedia,
-          minColumns: 2,
-          maxColumns: 4,
-          targetTileWidth: 170,
-          childAspectRatio: 1,
-          constrainToTargetWidth: true,
-          onPreviewRequested: _openVisualMediaPreview,
-          onDeleted: (media) => setState(() => _media.remove(media)),
-        ),
-      ],
-      const SizedBox(height: 16),
-      TextField(
-        controller: _contentController,
-        focusNode: _contentFocusNode,
-        undoController: _contentUndoController,
-        maxLines: 12,
-        decoration: InputDecoration(
-          labelText: strings.contentLabel,
-          hintText: strings.contentHint,
-        ),
-      ),
-      if (audioMedia.isNotEmpty || otherMedia.isNotEmpty) ...[
-        const SizedBox(height: 16),
-        Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            if (audioMedia.isNotEmpty)
-              ...audioMedia.map(
-                (media) => Padding(
-                  padding: const EdgeInsets.only(bottom: 10),
-                  child: AudioAttachmentTile(
-                    media: media,
-                    onDeleted: () => setState(() => _media.remove(media)),
-                  ),
-                ),
-              ),
-            if (otherMedia.isNotEmpty)
-              Wrap(
-                spacing: 8,
-                runSpacing: 8,
-                children: otherMedia
-                    .map(
-                      (media) => Chip(
-                        avatar: Icon(_iconForMedia(media.type), size: 18),
-                        label: Text(_mediaLabel(media)),
-                        onDeleted: () => setState(() => _media.remove(media)),
+    );
+    final detailsSection = _buildSectionCard(
+      context: context,
+      title: strings.locationLabel,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          TextField(
+            controller: _locationController,
+            focusNode: _locationFocusNode,
+            undoController: _locationUndoController,
+            decoration: InputDecoration(
+              labelText: strings.locationLabel,
+              hintText: strings.locationHint,
+              suffixIcon: _isLocating
+                  ? const Padding(
+                      padding: EdgeInsets.all(12),
+                      child: SizedBox(
+                        width: 20,
+                        height: 20,
+                        child: CircularProgressIndicator(strokeWidth: 2),
                       ),
                     )
-                    .toList(),
-              ),
-          ],
-        ),
+                  : IconButton(
+                      onPressed: _isSaving || _isDeleting
+                          ? null
+                          : _fillCurrentLocation,
+                      tooltip: strings.useCurrentLocation,
+                      icon: const Icon(Icons.my_location_outlined),
+                    ),
+            ),
+          ),
+          const SizedBox(height: 18),
+          Text(
+            strings.mood,
+            style: Theme.of(context).textTheme.titleMedium,
+          ),
+          const SizedBox(height: 12),
+          moodLibraryAsync.when(
+            loading: () => const Padding(
+              padding: EdgeInsets.symmetric(vertical: 8),
+              child: CircularProgressIndicator(),
+            ),
+            error: (error, stack) => Text(strings.failedToLoadMoods(error)),
+            data: (moods) {
+              final availableMoods = moods.isEmpty ? DiaryMood.values : moods;
+              final currentMood = _resolveMoodFromLibrary(availableMoods);
+              return MoodSelector(
+                moods: availableMoods,
+                valueId: currentMood.id,
+                onChanged: (mood) => setState(() => _moodId = mood.id),
+              );
+            },
+          ),
+        ],
+      ),
+    );
+    final orderedSections = prioritizeMedia
+        ? <Widget>[mediaSection, headerSection, writingSection, detailsSection]
+        : <Widget>[headerSection, mediaSection, writingSection, detailsSection];
+
+    return [
+      for (var index = 0; index < orderedSections.length; index++) ...[
+        if (index > 0)
+          SizedBox(height: prioritizeMedia && index == 1 ? 10 : 14),
+        orderedSections[index],
       ],
-      const SizedBox(height: 16),
-      TextField(
-        controller: _locationController,
-        focusNode: _locationFocusNode,
-        undoController: _locationUndoController,
-        decoration: InputDecoration(
-          labelText: strings.locationLabel,
-          hintText: strings.locationHint,
-          suffixIcon: _isLocating
-              ? const Padding(
-                  padding: EdgeInsets.all(12),
-                  child: SizedBox(
-                    width: 20,
-                    height: 20,
-                    child: CircularProgressIndicator(strokeWidth: 2),
-                  ),
-                )
-              : IconButton(
-                  onPressed:
-                      _isSaving || _isDeleting ? null : _fillCurrentLocation,
-                  tooltip: strings.useCurrentLocation,
-                  icon: const Icon(Icons.my_location_outlined),
-                ),
-        ),
-      ),
-      const SizedBox(height: 24),
-      Text(
-        strings.mood,
-        style: Theme.of(context).textTheme.titleMedium,
-      ),
-      const SizedBox(height: 12),
-      moodLibraryAsync.when(
-        loading: () => const Padding(
-          padding: EdgeInsets.symmetric(vertical: 8),
-          child: CircularProgressIndicator(),
-        ),
-        error: (error, stack) => Text(strings.failedToLoadMoods(error)),
-        data: (moods) {
-          final availableMoods = moods.isEmpty ? DiaryMood.values : moods;
-          final currentMood = _resolveMoodFromLibrary(availableMoods);
-          return MoodSelector(
-            moods: availableMoods,
-            valueId: currentMood.id,
-            onChanged: (mood) => setState(() => _moodId = mood.id),
-          );
-        },
-      ),
     ];
   }
 
@@ -533,109 +595,159 @@ class _EditorPageState extends ConsumerState<EditorPage>
 
   Widget _buildEditorHeader(BuildContext context, AppStrings strings) {
     final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+    final currentMood = _resolveMoodFromLibrary(
+      ref.read(moodLibraryControllerProvider).valueOrNull ?? DiaryMood.values,
+    );
     final createdAtText =
         '${strings.createdAtLabel} · ${strings.formatDateTime(_draftCreatedAt)}';
 
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        final actionButtons = _buildHeaderActionButtons(context, strings);
-        final titleBlock = Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              strings.whatHappenedToday,
-              style: theme.textTheme.titleLarge?.copyWith(
-                fontWeight: FontWeight.w700,
+    return Card(
+      clipBehavior: Clip.antiAlias,
+      child: Container(
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: [
+              colorScheme.primary.withValues(
+                alpha: colorScheme.brightness == Brightness.dark ? 0.2 : 0.12,
               ),
-            ),
-            const SizedBox(height: 6),
-            Text(
-              createdAtText,
-              key: const ValueKey('editor-created-at-label'),
-              style: theme.textTheme.bodySmall?.copyWith(
-                color: theme.colorScheme.onSurfaceVariant,
-                fontSize: 12,
-                height: 1.35,
+              theme.cardTheme.color ?? colorScheme.surface,
+              colorScheme.secondary.withValues(
+                alpha: colorScheme.brightness == Brightness.dark ? 0.14 : 0.08,
               ),
-            ),
-          ],
-        );
-
-        if (constraints.maxWidth < 760) {
-          return Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              titleBlock,
-              const SizedBox(height: 10),
-              actionButtons,
             ],
-          );
-        }
+            stops: const [0, 0.58, 1],
+          ),
+        ),
+        child: Padding(
+          padding: const EdgeInsets.all(14),
+          child: LayoutBuilder(
+            builder: (context, constraints) {
+              final actionButtons = _buildHeaderActionButtons(context);
+              final titleBlock = Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  _buildHeaderInfoChip(
+                    context,
+                    icon: _isEditing
+                        ? Icons.edit_note_outlined
+                        : Icons.add_box_outlined,
+                    label: _isEditing ? strings.editEntry : strings.newEntry,
+                  ),
+                  const SizedBox(height: 10),
+                  Text(
+                    strings.whatHappenedToday,
+                    style: theme.textTheme.headlineMedium?.copyWith(
+                      fontSize: 26,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    createdAtText,
+                    key: const ValueKey('editor-created-at-label'),
+                    style: theme.textTheme.bodySmall?.copyWith(
+                      color: colorScheme.onSurfaceVariant,
+                    ),
+                  ),
+                  const SizedBox(height: 10),
+                  Wrap(
+                    spacing: 8,
+                    runSpacing: 8,
+                    children: [
+                      _buildHeaderInfoChip(
+                        context,
+                        icon: Icons.favorite_outline,
+                        label: strings.moodStatusLabel(currentMood),
+                      ),
+                      if (_hasUnsavedChanges)
+                        _buildHeaderInfoChip(
+                          context,
+                          icon: Icons.bolt_outlined,
+                          label: strings.unsavedChangesTitle,
+                        ),
+                      if (_media.isNotEmpty)
+                        _buildHeaderInfoChip(
+                          context,
+                          icon: Icons.perm_media_outlined,
+                          label: _media.length.toString(),
+                        ),
+                      if (_tags.isNotEmpty)
+                        _buildHeaderInfoChip(
+                          context,
+                          icon: Icons.sell_outlined,
+                          label: '#${_tags.length}',
+                        ),
+                    ],
+                  ),
+                ],
+              );
 
-        return Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Expanded(
-              child: titleBlock,
-            ),
-            const SizedBox(width: 16),
-            Flexible(
-              child: Align(
-                alignment: Alignment.centerRight,
-                child: actionButtons,
-              ),
-            ),
-          ],
-        );
-      },
+              if (constraints.maxWidth < 760) {
+                return Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    titleBlock,
+                    const SizedBox(height: 12),
+                    actionButtons,
+                  ],
+                );
+              }
+
+              return Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Expanded(child: titleBlock),
+                  const SizedBox(width: 12),
+                  Flexible(
+                    child: Align(
+                      alignment: Alignment.topRight,
+                      child: actionButtons,
+                    ),
+                  ),
+                ],
+              );
+            },
+          ),
+        ),
+      ),
     );
   }
 
-  Widget _buildHeaderActionButtons(BuildContext context, AppStrings strings) {
+  Widget _buildHeaderActionButtons(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
     final isBusy = _isSaving || _isDeleting || _isExporting;
 
     return Wrap(
-      spacing: 8,
-      runSpacing: 8,
+      spacing: 10,
+      runSpacing: 10,
       alignment: WrapAlignment.end,
       crossAxisAlignment: WrapCrossAlignment.center,
       children: [
-        IconButton.filledTonal(
-          onPressed: isBusy ? null : _exportEntry,
-          tooltip: _isExporting ? strings.exportingEntry : strings.exportEntry,
-          visualDensity: VisualDensity.compact,
-          icon: _isExporting
+        _buildHeaderActionIconButton(
+          context,
+          onTap: isBusy ? null : _exportEntry,
+          backgroundColor:
+              colorScheme.secondaryContainer.withValues(alpha: 0.78),
+          foregroundColor: colorScheme.onSecondaryContainer,
+          child: _isExporting
               ? _buttonProgressIndicator(
                   color: colorScheme.onSecondaryContainer,
                 )
               : const Icon(Icons.file_download_outlined),
         ),
         if (_isEditing)
-          IconButton.outlined(
-            onPressed: isBusy ? null : _confirmDelete,
-            tooltip: _isDeleting ? strings.deleting : strings.deleteEntry,
-            visualDensity: VisualDensity.compact,
-            style: IconButton.styleFrom(
-              foregroundColor: colorScheme.error,
-              side: BorderSide(
-                color: colorScheme.error.withValues(alpha: 0.45),
-              ),
-            ),
-            icon: _isDeleting
+          _buildHeaderActionIconButton(
+            context,
+            onTap: isBusy ? null : _confirmDelete,
+            backgroundColor: colorScheme.surface.withValues(alpha: 0.52),
+            foregroundColor: colorScheme.error,
+            borderColor: colorScheme.error.withValues(alpha: 0.45),
+            child: _isDeleting
                 ? _buttonProgressIndicator(color: colorScheme.error)
                 : const Icon(Icons.delete_outline),
           ),
-        IconButton.filled(
-          onPressed: isBusy ? null : _save,
-          tooltip: _isSaving
-              ? strings.saving
-              : (_isEditing ? strings.updateEntry : strings.saveEntry),
-          visualDensity: VisualDensity.compact,
-          icon: _isSaving
-              ? _buttonProgressIndicator(color: colorScheme.onPrimary)
-              : const Icon(Icons.save_outlined),
-        ),
       ],
     );
   }
@@ -649,6 +761,74 @@ class _EditorPageState extends ConsumerState<EditorPage>
       child: CircularProgressIndicator(
         strokeWidth: 2,
         color: color,
+      ),
+    );
+  }
+
+  Widget _buildHeaderInfoChip(
+    BuildContext context, {
+    required IconData icon,
+    required String label,
+  }) {
+    final theme = Theme.of(context);
+
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        color: theme.colorScheme.surface.withValues(alpha: 0.56),
+        borderRadius: BorderRadius.circular(999),
+        border: Border.all(
+          color: theme.colorScheme.outlineVariant.withValues(alpha: 0.34),
+        ),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(
+              icon,
+              size: 16,
+              color: theme.colorScheme.primary,
+            ),
+            const SizedBox(width: 8),
+            Text(
+              label,
+              style: theme.textTheme.labelLarge?.copyWith(
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildHeaderActionIconButton(
+    BuildContext context, {
+    required VoidCallback? onTap,
+    required Widget child,
+    required Color backgroundColor,
+    required Color foregroundColor,
+    Color? borderColor,
+  }) {
+    return GestureDetector(
+      onTap: onTap,
+      behavior: HitTestBehavior.opaque,
+      child: DecoratedBox(
+        decoration: BoxDecoration(
+          color: onTap == null
+              ? backgroundColor.withValues(alpha: 0.42)
+              : backgroundColor,
+          borderRadius: BorderRadius.circular(16),
+          border: borderColor == null ? null : Border.all(color: borderColor),
+        ),
+        child: IconTheme(
+          data: IconThemeData(color: foregroundColor, size: 22),
+          child: Padding(
+            padding: const EdgeInsets.all(8),
+            child: child,
+          ),
+        ),
       ),
     );
   }
@@ -828,6 +1008,7 @@ class _EditorPageState extends ConsumerState<EditorPage>
     required Widget child,
   }) {
     final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
     final resolvedTitleStyle = titleStyle ??
         theme.textTheme.titleMedium?.copyWith(
           fontWeight: FontWeight.w700,
@@ -835,112 +1016,128 @@ class _EditorPageState extends ConsumerState<EditorPage>
 
     return Card(
       clipBehavior: Clip.antiAlias,
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            LayoutBuilder(
-              builder: (context, constraints) {
-                final stackHeaderAction =
-                    headerAction != null && constraints.maxWidth < 460;
-                final titleArea = InkWell(
-                  borderRadius: BorderRadius.circular(16),
-                  onTap: () => onExpandedChanged(!expanded),
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 2,
-                      vertical: 2,
+      child: Container(
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: [
+              colorScheme.primary.withValues(
+                alpha: colorScheme.brightness == Brightness.dark ? 0.08 : 0.04,
+              ),
+              theme.cardTheme.color ?? colorScheme.surface,
+            ],
+          ),
+        ),
+        child: Padding(
+          padding: const EdgeInsets.all(12),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              LayoutBuilder(
+                builder: (context, constraints) {
+                  final stackHeaderAction =
+                      headerAction != null && constraints.maxWidth < 460;
+                  final titleArea = InkWell(
+                    borderRadius: BorderRadius.circular(18),
+                    onTap: () => onExpandedChanged(!expanded),
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 2,
+                        vertical: 2,
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            children: [
+                              Flexible(
+                                child: Text(
+                                  title,
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: resolvedTitleStyle,
+                                ),
+                              ),
+                              if (helpText != null) ...[
+                                const SizedBox(width: 4),
+                                ContextTooltip(message: helpText),
+                              ],
+                            ],
+                          ),
+                          if (summary != null && summary.trim().isNotEmpty) ...[
+                            const SizedBox(height: 6),
+                            Text(
+                              summary.trim(),
+                              maxLines: expanded ? 2 : 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: theme.textTheme.bodySmall?.copyWith(
+                                color: colorScheme.onSurfaceVariant,
+                                height: 1.35,
+                              ),
+                            ),
+                          ],
+                        ],
+                      ),
                     ),
-                    child: Column(
+                  );
+
+                  if (stackHeaderAction) {
+                    return Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Row(
+                          crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Flexible(
-                              child: Text(
-                                title,
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                                style: resolvedTitleStyle,
+                            Expanded(child: titleArea),
+                            IconButton(
+                              onPressed: () => onExpandedChanged(!expanded),
+                              icon: Icon(
+                                expanded
+                                    ? Icons.expand_less
+                                    : Icons.expand_more,
                               ),
                             ),
-                            if (helpText != null) ...[
-                              const SizedBox(width: 4),
-                              ContextTooltip(message: helpText),
-                            ],
                           ],
                         ),
-                        if (summary != null && summary.trim().isNotEmpty) ...[
-                          const SizedBox(height: 6),
-                          Text(
-                            summary.trim(),
-                            maxLines: expanded ? 2 : 1,
-                            overflow: TextOverflow.ellipsis,
-                            style: theme.textTheme.bodySmall?.copyWith(
-                              color: theme.colorScheme.onSurfaceVariant,
-                              height: 1.35,
-                            ),
-                          ),
-                        ],
-                      ],
-                    ),
-                  ),
-                );
-
-                if (stackHeaderAction) {
-                  return Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Expanded(child: titleArea),
-                          IconButton(
-                            onPressed: () => onExpandedChanged(!expanded),
-                            icon: Icon(
-                              expanded ? Icons.expand_less : Icons.expand_more,
-                            ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 8),
-                      Align(
-                        alignment: Alignment.centerRight,
-                        child: headerAction,
-                      ),
-                    ],
-                  );
-                }
-
-                return Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Expanded(child: titleArea),
-                    IconButton(
-                      onPressed: () => onExpandedChanged(!expanded),
-                      icon: Icon(
-                        expanded ? Icons.expand_less : Icons.expand_more,
-                      ),
-                    ),
-                    if (headerAction != null) ...[
-                      const SizedBox(width: 8),
-                      Flexible(
-                        child: Align(
-                          alignment: Alignment.topRight,
+                        const SizedBox(height: 8),
+                        Align(
+                          alignment: Alignment.centerRight,
                           child: headerAction,
                         ),
+                      ],
+                    );
+                  }
+
+                  return Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Expanded(child: titleArea),
+                      IconButton(
+                        onPressed: () => onExpandedChanged(!expanded),
+                        icon: Icon(
+                          expanded ? Icons.expand_less : Icons.expand_more,
+                        ),
                       ),
+                      if (headerAction != null) ...[
+                        const SizedBox(width: 8),
+                        Flexible(
+                          child: Align(
+                            alignment: Alignment.topRight,
+                            child: headerAction,
+                          ),
+                        ),
+                      ],
                     ],
-                  ],
-                );
-              },
-            ),
-            if (expanded) ...[
-              const SizedBox(height: 14),
-              child,
+                  );
+                },
+              ),
+              if (expanded) ...[
+                const SizedBox(height: 16),
+                child,
+              ],
             ],
-          ],
+          ),
         ),
       ),
     );
@@ -948,38 +1145,56 @@ class _EditorPageState extends ConsumerState<EditorPage>
 
   Widget _buildSectionCard({
     required BuildContext context,
-    required String title,
+    String? title,
     String? helpText,
     required Widget child,
   }) {
     final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
 
     return Card(
       clipBehavior: Clip.antiAlias,
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                Flexible(
-                  child: Text(
-                    title,
-                    style: theme.textTheme.titleMedium?.copyWith(
-                      fontWeight: FontWeight.w700,
-                    ),
-                  ),
+      child: Container(
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: [
+              colorScheme.primary.withValues(
+                alpha: colorScheme.brightness == Brightness.dark ? 0.08 : 0.04,
+              ),
+              theme.cardTheme.color ?? colorScheme.surface,
+            ],
+          ),
+        ),
+        child: Padding(
+          padding: const EdgeInsets.all(14),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              if (title != null || helpText != null) ...[
+                Row(
+                  children: [
+                    if (title != null)
+                      Flexible(
+                        child: Text(
+                          title,
+                          style: theme.textTheme.titleMedium?.copyWith(
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                      ),
+                    if (helpText != null) ...[
+                      const SizedBox(width: 4),
+                      ContextTooltip(message: helpText),
+                    ],
+                  ],
                 ),
-                if (helpText != null) ...[
-                  const SizedBox(width: 4),
-                  ContextTooltip(message: helpText),
-                ],
+                const SizedBox(height: 12),
               ],
-            ),
-            const SizedBox(height: 14),
-            child,
-          ],
+              child,
+            ],
+          ),
         ),
       ),
     );
@@ -993,14 +1208,14 @@ class _EditorPageState extends ConsumerState<EditorPage>
 
     return DecoratedBox(
       decoration: BoxDecoration(
-        color: theme.colorScheme.surface.withValues(alpha: 0.8),
-        borderRadius: BorderRadius.circular(14),
+        color: theme.colorScheme.surface.withValues(alpha: 0.86),
+        borderRadius: BorderRadius.circular(18),
         border: Border.all(
-          color: theme.colorScheme.outlineVariant.withValues(alpha: 0.4),
+          color: theme.colorScheme.outlineVariant.withValues(alpha: 0.34),
         ),
       ),
       child: Padding(
-        padding: const EdgeInsets.all(12),
+        padding: const EdgeInsets.all(14),
         child: SelectableText(
           value,
           style: theme.textTheme.bodyMedium?.copyWith(

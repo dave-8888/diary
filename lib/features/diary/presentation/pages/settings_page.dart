@@ -139,482 +139,210 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
       child: Center(
         child: ConstrainedBox(
           constraints: const BoxConstraints(maxWidth: 980),
-          child: ListView(
-            children: [
-              _buildSectionCard(
-                context: context,
-                icon: Icons.palette_outlined,
-                title: strings.theme,
-                subtitle: strings.themeSettingsHint,
-                child: Wrap(
-                  spacing: 12,
-                  runSpacing: 12,
-                  children: DiaryThemePreset.values
-                      .map(
-                        (themePreset) => ChoiceChip(
-                          selected: themePreset == selectedTheme,
-                          onSelected: _isChangingTheme
-                              ? null
-                              : (_) => _changeTheme(themePreset),
-                          avatar: Icon(
-                            _themeIcon(themePreset),
-                            size: 18,
-                          ),
-                          label: Text(strings.titleForTheme(themePreset)),
-                        ),
-                      )
-                      .toList(growable: false),
-                ),
-              ),
-              const SizedBox(height: 18),
-              _buildSectionCard(
-                context: context,
-                icon: Icons.language_outlined,
-                title: strings.language,
-                subtitle: strings.languageSettingsHint,
-                child: Wrap(
-                  spacing: 12,
-                  runSpacing: 12,
-                  children: AppLanguage.values
-                      .map(
-                        (language) => ChoiceChip(
-                          selected: language == selectedLanguage,
-                          onSelected: _isChangingLanguage
-                              ? null
-                              : (_) => _changeLanguage(language),
-                          label: Text(strings.titleForLanguage(language)),
-                        ),
-                      )
-                      .toList(growable: false),
-                ),
-              ),
-              const SizedBox(height: 18),
-              _buildSectionCard(
-                context: context,
-                icon: Icons.view_agenda_outlined,
-                title: strings.diaryListSettingsTitle,
-                subtitle: strings.diaryListSettingsHint,
-                child: _buildToggleSettingTile(
+          child: SingleChildScrollView(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                _buildSectionCard(
                   context: context,
-                  title: strings.diaryListShowVisualMediaLabel,
-                  helpText: strings.diaryListShowVisualMediaHint,
-                  value: diaryListShowVisualMedia,
-                  enabled: !_isChangingDiaryListVisualMediaVisibility,
-                  onChanged: _changeDiaryListVisualMediaVisibility,
-                ),
-              ),
-              const SizedBox(height: 18),
-              _buildExpandableSectionCard(
-                context: context,
-                icon: Icons.lock_outline_rounded,
-                title: strings.passwordSettingsTitle,
-                subtitle: strings.passwordSettingsHint,
-                summary: strings.passwordStatus(passwordEnabled),
-                expanded: _isPasswordSectionExpanded,
-                onExpandedChanged: (expanded) {
-                  setState(() => _isPasswordSectionExpanded = expanded);
-                },
-                child: passwordSettingsAsync.when(
-                  loading: () =>
-                      const Center(child: CircularProgressIndicator()),
-                  error: (error, stack) =>
-                      Text(strings.passwordInitializationFailed(error)),
-                  data: (settings) =>
-                      _buildPasscodeSection(context, strings, settings),
-                ),
-              ),
-              const SizedBox(height: 18),
-              _buildExpandableSectionCard(
-                context: context,
-                icon: Icons.badge_outlined,
-                title: strings.appIdentityTitle,
-                subtitle: strings.appIdentityHint,
-                summary: currentAppName,
-                expanded: _isAppIdentitySectionExpanded,
-                onExpandedChanged: (expanded) {
-                  setState(() => _isAppIdentitySectionExpanded = expanded);
-                },
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      children: [
-                        Text(
-                          strings.appNameLabel,
-                          style: Theme.of(context).textTheme.labelLarge,
-                        ),
-                        const SizedBox(width: 4),
-                        ContextTooltip(message: strings.appNameDesktopHint),
-                      ],
-                    ),
-                    const SizedBox(height: 8),
-                    TextField(
-                      controller: _appNameController,
-                      decoration: InputDecoration(
-                        hintText: strings.appNameHint,
-                      ),
-                      textInputAction: TextInputAction.done,
-                      onSubmitted: (_) => _saveAppName(),
-                    ),
-                    const SizedBox(height: 16),
-                    Wrap(
-                      spacing: 12,
-                      runSpacing: 12,
-                      children: [
-                        OutlinedButton(
-                          onPressed: _isSavingAppName || _isResettingAppName
-                              ? null
-                              : _resetAppName,
-                          child: _isResettingAppName
-                              ? const SizedBox(
-                                  width: 18,
-                                  height: 18,
-                                  child:
-                                      CircularProgressIndicator(strokeWidth: 2),
-                                )
-                              : Text(strings.resetAppName),
-                        ),
-                        FilledButton(
-                          onPressed: _isSavingAppName || _isResettingAppName
-                              ? null
-                              : _saveAppName,
-                          child: _isSavingAppName
-                              ? const SizedBox(
-                                  width: 18,
-                                  height: 18,
-                                  child:
-                                      CircularProgressIndicator(strokeWidth: 2),
-                                )
-                              : Text(strings.saveAction),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 24),
-                    Row(
-                      children: [
-                        Text(
-                          strings.appIconTitle,
-                          style: Theme.of(context).textTheme.labelLarge,
-                        ),
-                        const SizedBox(width: 4),
-                        ContextTooltip(message: strings.appIconHint),
-                      ],
-                    ),
-                    const SizedBox(height: 16),
-                    Wrap(
-                      spacing: 14,
-                      runSpacing: 14,
-                      children: AppIconPreset.values
-                          .map(
-                            (preset) => _IconOptionCard(
-                              preset: preset,
-                              label: strings.titleForAppIcon(preset),
-                              selected: iconSelection.isPreset &&
-                                  preset == iconPreset,
-                              onTap: _isChangingIcon
-                                  ? null
-                                  : () => _selectIcon(preset),
+                  icon: Icons.palette_outlined,
+                  title: strings.theme,
+                  subtitle: strings.themeSettingsHint,
+                  child: Wrap(
+                    spacing: 12,
+                    runSpacing: 12,
+                    children: DiaryThemePreset.values
+                        .map(
+                          (themePreset) => ChoiceChip(
+                            selected: themePreset == selectedTheme,
+                            onSelected: _isChangingTheme
+                                ? null
+                                : (_) => _changeTheme(themePreset),
+                            avatar: Icon(
+                              _themeIcon(themePreset),
+                              size: 18,
                             ),
-                          )
-                          .toList(growable: false),
-                    ),
-                    const SizedBox(height: 16),
-                    Wrap(
-                      spacing: 12,
-                      runSpacing: 12,
-                      children: [
-                        FilledButton.tonalIcon(
-                          onPressed: !supportsWindowIdentity || _isChangingIcon
-                              ? null
-                              : _pickCustomIcon,
-                          icon: _isChangingIcon
-                              ? const SizedBox(
-                                  width: 18,
-                                  height: 18,
-                                  child:
-                                      CircularProgressIndicator(strokeWidth: 2),
-                                )
-                              : const Icon(Icons.image_search_outlined),
-                          label: Text(strings.pickWindowIcon),
-                        ),
-                        OutlinedButton.icon(
-                          onPressed: _isChangingIcon ? null : _resetIcon,
-                          icon: _isChangingIcon
-                              ? const SizedBox(
-                                  width: 18,
-                                  height: 18,
-                                  child:
-                                      CircularProgressIndicator(strokeWidth: 2),
-                                )
-                              : const Icon(Icons.restart_alt_outlined),
-                          label: Text(strings.resetAppIcon),
-                        ),
-                      ],
-                    ),
-                    if (canSyncBuildWindowIcon) ...[
-                      const SizedBox(height: 16),
+                            label: Text(strings.titleForTheme(themePreset)),
+                          ),
+                        )
+                        .toList(growable: false),
+                  ),
+                ),
+                const SizedBox(height: 18),
+                _buildSectionCard(
+                  context: context,
+                  icon: Icons.language_outlined,
+                  title: strings.language,
+                  subtitle: strings.languageSettingsHint,
+                  child: Wrap(
+                    spacing: 12,
+                    runSpacing: 12,
+                    children: AppLanguage.values
+                        .map(
+                          (language) => ChoiceChip(
+                            selected: language == selectedLanguage,
+                            onSelected: _isChangingLanguage
+                                ? null
+                                : (_) => _changeLanguage(language),
+                            label: Text(strings.titleForLanguage(language)),
+                          ),
+                        )
+                        .toList(growable: false),
+                  ),
+                ),
+                const SizedBox(height: 18),
+                _buildSectionCard(
+                  context: context,
+                  icon: Icons.view_agenda_outlined,
+                  title: strings.diaryListSettingsTitle,
+                  subtitle: strings.diaryListSettingsHint,
+                  child: _buildToggleSettingTile(
+                    context: context,
+                    title: strings.diaryListShowVisualMediaLabel,
+                    helpText: strings.diaryListShowVisualMediaHint,
+                    value: diaryListShowVisualMedia,
+                    enabled: !_isChangingDiaryListVisualMediaVisibility,
+                    onChanged: _changeDiaryListVisualMediaVisibility,
+                  ),
+                ),
+                const SizedBox(height: 18),
+                _buildExpandableSectionCard(
+                  context: context,
+                  icon: Icons.lock_outline_rounded,
+                  title: strings.passwordSettingsTitle,
+                  subtitle: strings.passwordSettingsHint,
+                  summary: strings.passwordStatus(passwordEnabled),
+                  expanded: _isPasswordSectionExpanded,
+                  onExpandedChanged: (expanded) {
+                    setState(() => _isPasswordSectionExpanded = expanded);
+                  },
+                  child: passwordSettingsAsync.when(
+                    loading: () =>
+                        const Center(child: CircularProgressIndicator()),
+                    error: (error, stack) =>
+                        Text(strings.passwordInitializationFailed(error)),
+                    data: (settings) =>
+                        _buildPasscodeSection(context, strings, settings),
+                  ),
+                ),
+                const SizedBox(height: 18),
+                _buildExpandableSectionCard(
+                  context: context,
+                  icon: Icons.badge_outlined,
+                  title: strings.appIdentityTitle,
+                  subtitle: strings.appIdentityHint,
+                  summary: currentAppName,
+                  expanded: _isAppIdentitySectionExpanded,
+                  onExpandedChanged: (expanded) {
+                    setState(() => _isAppIdentitySectionExpanded = expanded);
+                  },
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
                       Row(
                         children: [
                           Text(
-                            strings.windowIconTitle,
+                            strings.appNameLabel,
                             style: Theme.of(context).textTheme.labelLarge,
                           ),
                           const SizedBox(width: 4),
-                          ContextTooltip(message: strings.buildWindowIconHint),
+                          ContextTooltip(message: strings.appNameDesktopHint),
                         ],
                       ),
-                      const SizedBox(height: 12),
+                      const SizedBox(height: 8),
+                      TextField(
+                        controller: _appNameController,
+                        decoration: InputDecoration(
+                          hintText: strings.appNameHint,
+                        ),
+                        textInputAction: TextInputAction.done,
+                        onSubmitted: (_) => _saveAppName(),
+                      ),
+                      const SizedBox(height: 16),
                       Wrap(
                         spacing: 12,
                         runSpacing: 12,
                         children: [
-                          FilledButton.icon(
-                            onPressed:
-                                iconSelection.windowIconPath.trim().isEmpty ||
-                                        _isSyncingBuildWindowIcon ||
-                                        _isResettingBuildWindowIcon
-                                    ? null
-                                    : () => _syncBuildWindowIcon(iconSelection),
-                            icon: _isSyncingBuildWindowIcon
-                                ? const SizedBox(
-                                    width: 18,
-                                    height: 18,
-                                    child: CircularProgressIndicator(
-                                      strokeWidth: 2,
-                                    ),
-                                  )
-                                : const Icon(Icons.install_desktop_outlined),
-                            label: Text(strings.syncBuildWindowIcon),
-                          ),
-                          OutlinedButton.icon(
-                            onPressed: _isSyncingBuildWindowIcon ||
-                                    _isResettingBuildWindowIcon
+                          OutlinedButton(
+                            onPressed: _isSavingAppName || _isResettingAppName
                                 ? null
-                                : _resetBuildWindowIcon,
-                            icon: _isResettingBuildWindowIcon
+                                : _resetAppName,
+                            child: _isResettingAppName
                                 ? const SizedBox(
                                     width: 18,
                                     height: 18,
                                     child: CircularProgressIndicator(
-                                      strokeWidth: 2,
-                                    ),
+                                        strokeWidth: 2),
                                   )
-                                : const Icon(Icons.restart_alt_outlined),
-                            label: Text(strings.resetBuildWindowIcon),
+                                : Text(strings.resetAppName),
+                          ),
+                          FilledButton(
+                            onPressed: _isSavingAppName || _isResettingAppName
+                                ? null
+                                : _saveAppName,
+                            child: _isSavingAppName
+                                ? const SizedBox(
+                                    width: 18,
+                                    height: 18,
+                                    child: CircularProgressIndicator(
+                                        strokeWidth: 2),
+                                  )
+                                : Text(strings.saveAction),
                           ),
                         ],
                       ),
-                    ],
-                    if (!supportsWindowIdentity) ...[
-                      const SizedBox(height: 12),
+                      const SizedBox(height: 24),
                       Row(
                         children: [
                           Text(
-                            strings.windowIconTitle,
+                            strings.appIconTitle,
                             style: Theme.of(context).textTheme.labelLarge,
                           ),
                           const SizedBox(width: 4),
-                          ContextTooltip(
-                            message: strings.windowIconPlatformHint,
-                          ),
+                          ContextTooltip(message: strings.appIconHint),
                         ],
                       ),
-                    ],
-                  ],
-                ),
-              ),
-              const SizedBox(height: 18),
-              _buildExpandableSectionCard(
-                context: context,
-                icon: Icons.auto_awesome_outlined,
-                title: strings.diaryAiSettingsTitle,
-                subtitle: strings.diaryAiSettingsHint,
-                summary:
-                    '${strings.diaryAiVisibilityLabel}: ${diaryAiVisible ? strings.enabledLabel : strings.disabledLabel} · ${diaryAiConfig.preset.label} · ${diaryAiConfig.normalizedModel}',
-                expanded: _isDiaryAiSectionExpanded,
-                onExpandedChanged: (expanded) {
-                  setState(() => _isDiaryAiSectionExpanded = expanded);
-                },
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    _buildToggleSettingTile(
-                      context: context,
-                      title: strings.diaryAiVisibilityLabel,
-                      helpText: strings.diaryAiVisibilityHint,
-                      value: diaryAiVisible,
-                      enabled: !_isChangingDiaryAiVisibility,
-                      onChanged: _changeDiaryAiVisibility,
-                    ),
-                    const SizedBox(height: 16),
-                    _buildToggleSettingTile(
-                      context: context,
-                      title: strings.emotionalCompanionLabel,
-                      helpText: strings.emotionalCompanionHint,
-                      value: emotionalCompanionVisible,
-                      enabled: !_isChangingEmotionalCompanionVisibility,
-                      onChanged: _changeEmotionalCompanionVisibility,
-                    ),
-                    const SizedBox(height: 16),
-                    _buildToggleSettingTile(
-                      context: context,
-                      title: strings.problemSuggestionLabel,
-                      helpText: strings.problemSuggestionHint,
-                      value: problemSuggestionVisible,
-                      enabled: !_isChangingProblemSuggestionVisibility,
-                      onChanged: _changeProblemSuggestionVisibility,
-                    ),
-                    const SizedBox(height: 16),
-                    Text(
-                      strings.diaryAiCompatibilityHint,
-                      style: Theme.of(context).textTheme.bodySmall,
-                    ),
-                    const SizedBox(height: 16),
-                    Text(
-                      strings.diaryAiProviderLabel,
-                      style: Theme.of(context).textTheme.labelLarge,
-                    ),
-                    const SizedBox(height: 10),
-                    Wrap(
-                      spacing: 10,
-                      runSpacing: 10,
-                      children: DiaryAiProviderPreset.values
-                          .map(
-                            (preset) => ChoiceChip(
-                              selected: preset == _selectedDiaryAiPreset,
-                              onSelected: _isSavingDiaryAiConfig ||
-                                      _isResettingDiaryAiConfig
-                                  ? null
-                                  : (_) => _selectDiaryAiPreset(preset),
-                              label: Text(preset.label),
-                            ),
-                          )
-                          .toList(growable: false),
-                    ),
-                    const SizedBox(height: 16),
-                    TextField(
-                      key: const ValueKey('settings-diary-ai-base-url'),
-                      controller: _diaryAiBaseUrlController,
-                      decoration: InputDecoration(
-                        labelText: strings.diaryAiBaseUrlLabel,
-                        hintText: strings.diaryAiBaseUrlHint,
+                      const SizedBox(height: 16),
+                      Wrap(
+                        spacing: 14,
+                        runSpacing: 14,
+                        children: AppIconPreset.values
+                            .map(
+                              (preset) => _IconOptionCard(
+                                preset: preset,
+                                label: strings.titleForAppIcon(preset),
+                                selected: iconSelection.isPreset &&
+                                    preset == iconPreset,
+                                onTap: _isChangingIcon
+                                    ? null
+                                    : () => _selectIcon(preset),
+                              ),
+                            )
+                            .toList(growable: false),
                       ),
-                      textInputAction: TextInputAction.next,
-                    ),
-                    const SizedBox(height: 16),
-                    TextField(
-                      key: const ValueKey('settings-diary-ai-model'),
-                      controller: _diaryAiModelController,
-                      decoration: InputDecoration(
-                        labelText: strings.diaryAiModelLabel,
-                        hintText: strings.diaryAiModelHint,
-                      ),
-                      textInputAction: TextInputAction.next,
-                    ),
-                    const SizedBox(height: 16),
-                    TextField(
-                      key: const ValueKey('settings-diary-ai-api-key'),
-                      controller: _diaryAiApiKeyController,
-                      obscureText: !_showDiaryAiApiKey,
-                      decoration: InputDecoration(
-                        labelText: strings.diaryAiApiKeyLabel,
-                        hintText: strings.diaryAiApiKeyHint,
-                        suffixIcon: IconButton(
-                          onPressed: () {
-                            setState(
-                              () => _showDiaryAiApiKey = !_showDiaryAiApiKey,
-                            );
-                          },
-                          icon: Icon(
-                            _showDiaryAiApiKey
-                                ? Icons.visibility_off_outlined
-                                : Icons.visibility_outlined,
-                          ),
-                        ),
-                      ),
-                      textInputAction: TextInputAction.done,
-                      onSubmitted: (_) => _saveDiaryAiConfig(),
-                    ),
-                    const SizedBox(height: 12),
-                    Text(
-                      diaryAiEnvironmentApiKey.isNotEmpty ||
-                              legacyDiaryAiEnvironmentApiKey.isNotEmpty
-                          ? strings.usingDiaryAiEnvironmentApiKey
-                          : strings.diaryAiApiKeyEnvironmentHint,
-                      style: Theme.of(context).textTheme.bodySmall,
-                    ),
-                    const SizedBox(height: 16),
-                    Wrap(
-                      spacing: 12,
-                      runSpacing: 12,
-                      children: [
-                        OutlinedButton(
-                          key: const ValueKey('settings-diary-ai-reset'),
-                          onPressed: _isSavingDiaryAiConfig ||
-                                  _isResettingDiaryAiConfig
-                              ? null
-                              : _resetDiaryAiConfig,
-                          child: _isResettingDiaryAiConfig
-                              ? const SizedBox(
-                                  width: 18,
-                                  height: 18,
-                                  child:
-                                      CircularProgressIndicator(strokeWidth: 2),
-                                )
-                              : Text(strings.resetDiaryAiConfig),
-                        ),
-                        FilledButton(
-                          key: const ValueKey('settings-diary-ai-save'),
-                          onPressed: _isSavingDiaryAiConfig ||
-                                  _isResettingDiaryAiConfig
-                              ? null
-                              : _saveDiaryAiConfig,
-                          child: _isSavingDiaryAiConfig
-                              ? const SizedBox(
-                                  width: 18,
-                                  height: 18,
-                                  child:
-                                      CircularProgressIndicator(strokeWidth: 2),
-                                )
-                              : Text(strings.saveAction),
-                        ),
-                      ],
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(height: 18),
-              _buildExpandableSectionCard(
-                context: context,
-                icon: Icons.emoji_emotions_outlined,
-                title: strings.moodLibraryTitle,
-                subtitle: strings.moodLibraryHint,
-                summary: '',
-                expanded: _isMoodLibrarySectionExpanded,
-                onExpandedChanged: (expanded) {
-                  setState(() => _isMoodLibrarySectionExpanded = expanded);
-                },
-                child: moodLibraryAsync.when(
-                  loading: () =>
-                      const Center(child: CircularProgressIndicator()),
-                  error: (error, stack) =>
-                      Text(strings.failedToLoadMoods(error)),
-                  data: (moods) => Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
+                      const SizedBox(height: 16),
                       Wrap(
                         spacing: 12,
                         runSpacing: 12,
                         children: [
                           FilledButton.tonalIcon(
-                            onPressed: () => _openMoodDialog(),
-                            icon: const Icon(Icons.add_rounded),
-                            label: Text(strings.addMood),
+                            onPressed:
+                                !supportsWindowIdentity || _isChangingIcon
+                                    ? null
+                                    : _pickCustomIcon,
+                            icon: _isChangingIcon
+                                ? const SizedBox(
+                                    width: 18,
+                                    height: 18,
+                                    child: CircularProgressIndicator(
+                                        strokeWidth: 2),
+                                  )
+                                : const Icon(Icons.image_search_outlined),
+                            label: Text(strings.pickWindowIcon),
                           ),
                           OutlinedButton.icon(
-                            onPressed:
-                                _isResettingMoods ? null : _confirmResetMoods,
-                            icon: _isResettingMoods
+                            onPressed: _isChangingIcon ? null : _resetIcon,
+                            icon: _isChangingIcon
                                 ? const SizedBox(
                                     width: 18,
                                     height: 18,
@@ -622,122 +350,403 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
                                         strokeWidth: 2),
                                   )
                                 : const Icon(Icons.restart_alt_outlined),
-                            label: Text(strings.restoreDefaultMoods),
+                            label: Text(strings.resetAppIcon),
                           ),
                         ],
                       ),
-                      const SizedBox(height: 18),
-                      if (moods.isEmpty)
-                        Text(strings.moodLibraryEmpty)
-                      else
+                      if (canSyncBuildWindowIcon) ...[
+                        const SizedBox(height: 16),
+                        Row(
+                          children: [
+                            Text(
+                              strings.windowIconTitle,
+                              style: Theme.of(context).textTheme.labelLarge,
+                            ),
+                            const SizedBox(width: 4),
+                            ContextTooltip(
+                                message: strings.buildWindowIconHint),
+                          ],
+                        ),
+                        const SizedBox(height: 12),
                         Wrap(
-                          key: const ValueKey('mood-library-wrap'),
                           spacing: 12,
                           runSpacing: 12,
-                          children: moods
-                              .map(
-                                (mood) => ConstrainedBox(
-                                  key: ValueKey('mood-library-item-${mood.id}'),
-                                  constraints: const BoxConstraints(
-                                    minWidth: 160,
-                                    maxWidth: 280,
-                                  ),
-                                  child: DecoratedBox(
-                                    decoration: BoxDecoration(
-                                      borderRadius: BorderRadius.circular(18),
-                                      border: Border.all(
-                                        color: Theme.of(context)
-                                            .colorScheme
-                                            .outlineVariant
-                                            .withValues(alpha: 0.7),
+                          children: [
+                            FilledButton.icon(
+                              onPressed: iconSelection.windowIconPath
+                                          .trim()
+                                          .isEmpty ||
+                                      _isSyncingBuildWindowIcon ||
+                                      _isResettingBuildWindowIcon
+                                  ? null
+                                  : () => _syncBuildWindowIcon(iconSelection),
+                              icon: _isSyncingBuildWindowIcon
+                                  ? const SizedBox(
+                                      width: 18,
+                                      height: 18,
+                                      child: CircularProgressIndicator(
+                                        strokeWidth: 2,
                                       ),
-                                      color: Theme.of(context)
-                                          .colorScheme
-                                          .surfaceContainerLowest,
-                                    ),
-                                    child: Padding(
-                                      padding: const EdgeInsets.symmetric(
-                                        horizontal: 14,
-                                        vertical: 12,
+                                    )
+                                  : const Icon(Icons.install_desktop_outlined),
+                              label: Text(strings.syncBuildWindowIcon),
+                            ),
+                            OutlinedButton.icon(
+                              onPressed: _isSyncingBuildWindowIcon ||
+                                      _isResettingBuildWindowIcon
+                                  ? null
+                                  : _resetBuildWindowIcon,
+                              icon: _isResettingBuildWindowIcon
+                                  ? const SizedBox(
+                                      width: 18,
+                                      height: 18,
+                                      child: CircularProgressIndicator(
+                                        strokeWidth: 2,
                                       ),
-                                      child: Row(
-                                        crossAxisAlignment:
-                                            CrossAxisAlignment.start,
-                                        children: [
-                                          Text(
-                                            mood.emoji,
-                                            style: const TextStyle(
-                                              fontSize: 24,
-                                              height: 1,
-                                            ),
-                                          ),
-                                          const SizedBox(width: 12),
-                                          Expanded(
-                                            child: Column(
-                                              crossAxisAlignment:
-                                                  CrossAxisAlignment.start,
-                                              children: [
-                                                Text(
-                                                  strings.moodLabel(mood),
-                                                  maxLines: 2,
-                                                  overflow:
-                                                      TextOverflow.ellipsis,
-                                                  style: Theme.of(context)
-                                                      .textTheme
-                                                      .titleSmall,
-                                                ),
-                                                const SizedBox(height: 8),
-                                                _buildStatusChip(
-                                                  context,
-                                                  mood.isDefault
-                                                      ? strings.defaultMoodBadge
-                                                      : strings.customMoodBadge,
-                                                ),
-                                              ],
-                                            ),
-                                          ),
-                                          const SizedBox(width: 8),
-                                          IconButton(
-                                            onPressed: () =>
-                                                _openMoodDialog(existing: mood),
-                                            tooltip: strings.editMood,
-                                            icon: const Icon(
-                                              Icons.edit_outlined,
-                                            ),
-                                          ),
-                                        ],
-                                      ),
-                                    ),
-                                  ),
-                                ),
-                              )
-                              .toList(growable: false),
+                                    )
+                                  : const Icon(Icons.restart_alt_outlined),
+                              label: Text(strings.resetBuildWindowIcon),
+                            ),
+                          ],
                         ),
+                      ],
+                      if (!supportsWindowIdentity) ...[
+                        const SizedBox(height: 12),
+                        Row(
+                          children: [
+                            Text(
+                              strings.windowIconTitle,
+                              style: Theme.of(context).textTheme.labelLarge,
+                            ),
+                            const SizedBox(width: 4),
+                            ContextTooltip(
+                              message: strings.windowIconPlatformHint,
+                            ),
+                          ],
+                        ),
+                      ],
                     ],
                   ),
                 ),
-              ),
-              const SizedBox(height: 18),
-              _buildExpandableSectionCard(
-                context: context,
-                icon: Icons.import_export_outlined,
-                title: strings.migrationTitle,
-                subtitle: strings.migrationHint,
-                summary: strings.currentDataLocation,
-                expanded: _isMigrationSectionExpanded,
-                onExpandedChanged: (expanded) {
-                  setState(() => _isMigrationSectionExpanded = expanded);
-                },
-                child: Align(
-                  alignment: Alignment.centerLeft,
-                  child: OutlinedButton.icon(
-                    onPressed: () => context.push('/migration'),
-                    icon: const Icon(Icons.open_in_new_outlined),
-                    label: Text(strings.openMigrationPage),
+                const SizedBox(height: 18),
+                _buildExpandableSectionCard(
+                  context: context,
+                  icon: Icons.auto_awesome_outlined,
+                  title: strings.diaryAiSettingsTitle,
+                  subtitle: strings.diaryAiSettingsHint,
+                  summary:
+                      '${strings.diaryAiVisibilityLabel}: ${diaryAiVisible ? strings.enabledLabel : strings.disabledLabel} · ${diaryAiConfig.preset.label} · ${diaryAiConfig.normalizedModel}',
+                  expanded: _isDiaryAiSectionExpanded,
+                  onExpandedChanged: (expanded) {
+                    setState(() => _isDiaryAiSectionExpanded = expanded);
+                  },
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      _buildToggleSettingTile(
+                        context: context,
+                        title: strings.diaryAiVisibilityLabel,
+                        helpText: strings.diaryAiVisibilityHint,
+                        value: diaryAiVisible,
+                        enabled: !_isChangingDiaryAiVisibility,
+                        onChanged: _changeDiaryAiVisibility,
+                      ),
+                      const SizedBox(height: 16),
+                      _buildToggleSettingTile(
+                        context: context,
+                        title: strings.emotionalCompanionLabel,
+                        helpText: strings.emotionalCompanionHint,
+                        value: emotionalCompanionVisible,
+                        enabled: !_isChangingEmotionalCompanionVisibility,
+                        onChanged: _changeEmotionalCompanionVisibility,
+                      ),
+                      const SizedBox(height: 16),
+                      _buildToggleSettingTile(
+                        context: context,
+                        title: strings.problemSuggestionLabel,
+                        helpText: strings.problemSuggestionHint,
+                        value: problemSuggestionVisible,
+                        enabled: !_isChangingProblemSuggestionVisibility,
+                        onChanged: _changeProblemSuggestionVisibility,
+                      ),
+                      const SizedBox(height: 16),
+                      Text(
+                        strings.diaryAiCompatibilityHint,
+                        style: Theme.of(context).textTheme.bodySmall,
+                      ),
+                      const SizedBox(height: 16),
+                      Text(
+                        strings.diaryAiProviderLabel,
+                        style: Theme.of(context).textTheme.labelLarge,
+                      ),
+                      const SizedBox(height: 10),
+                      Wrap(
+                        spacing: 10,
+                        runSpacing: 10,
+                        children: DiaryAiProviderPreset.values
+                            .map(
+                              (preset) => ChoiceChip(
+                                selected: preset == _selectedDiaryAiPreset,
+                                onSelected: _isSavingDiaryAiConfig ||
+                                        _isResettingDiaryAiConfig
+                                    ? null
+                                    : (_) => _selectDiaryAiPreset(preset),
+                                label: Text(preset.label),
+                              ),
+                            )
+                            .toList(growable: false),
+                      ),
+                      const SizedBox(height: 16),
+                      TextField(
+                        key: const ValueKey('settings-diary-ai-base-url'),
+                        controller: _diaryAiBaseUrlController,
+                        decoration: InputDecoration(
+                          labelText: strings.diaryAiBaseUrlLabel,
+                          hintText: strings.diaryAiBaseUrlHint,
+                        ),
+                        textInputAction: TextInputAction.next,
+                      ),
+                      const SizedBox(height: 16),
+                      TextField(
+                        key: const ValueKey('settings-diary-ai-model'),
+                        controller: _diaryAiModelController,
+                        decoration: InputDecoration(
+                          labelText: strings.diaryAiModelLabel,
+                          hintText: strings.diaryAiModelHint,
+                        ),
+                        textInputAction: TextInputAction.next,
+                      ),
+                      const SizedBox(height: 16),
+                      TextField(
+                        key: const ValueKey('settings-diary-ai-api-key'),
+                        controller: _diaryAiApiKeyController,
+                        obscureText: !_showDiaryAiApiKey,
+                        decoration: InputDecoration(
+                          labelText: strings.diaryAiApiKeyLabel,
+                          hintText: strings.diaryAiApiKeyHint,
+                          suffixIcon: IconButton(
+                            onPressed: () {
+                              setState(
+                                () => _showDiaryAiApiKey = !_showDiaryAiApiKey,
+                              );
+                            },
+                            icon: Icon(
+                              _showDiaryAiApiKey
+                                  ? Icons.visibility_off_outlined
+                                  : Icons.visibility_outlined,
+                            ),
+                          ),
+                        ),
+                        textInputAction: TextInputAction.done,
+                        onSubmitted: (_) => _saveDiaryAiConfig(),
+                      ),
+                      const SizedBox(height: 12),
+                      Text(
+                        diaryAiEnvironmentApiKey.isNotEmpty ||
+                                legacyDiaryAiEnvironmentApiKey.isNotEmpty
+                            ? strings.usingDiaryAiEnvironmentApiKey
+                            : strings.diaryAiApiKeyEnvironmentHint,
+                        style: Theme.of(context).textTheme.bodySmall,
+                      ),
+                      const SizedBox(height: 16),
+                      Wrap(
+                        spacing: 12,
+                        runSpacing: 12,
+                        children: [
+                          OutlinedButton(
+                            key: const ValueKey('settings-diary-ai-reset'),
+                            onPressed: _isSavingDiaryAiConfig ||
+                                    _isResettingDiaryAiConfig
+                                ? null
+                                : _resetDiaryAiConfig,
+                            child: _isResettingDiaryAiConfig
+                                ? const SizedBox(
+                                    width: 18,
+                                    height: 18,
+                                    child: CircularProgressIndicator(
+                                        strokeWidth: 2),
+                                  )
+                                : Text(strings.resetDiaryAiConfig),
+                          ),
+                          FilledButton(
+                            key: const ValueKey('settings-diary-ai-save'),
+                            onPressed: _isSavingDiaryAiConfig ||
+                                    _isResettingDiaryAiConfig
+                                ? null
+                                : _saveDiaryAiConfig,
+                            child: _isSavingDiaryAiConfig
+                                ? const SizedBox(
+                                    width: 18,
+                                    height: 18,
+                                    child: CircularProgressIndicator(
+                                        strokeWidth: 2),
+                                  )
+                                : Text(strings.saveAction),
+                          ),
+                        ],
+                      ),
+                    ],
                   ),
                 ),
-              ),
-            ],
+                const SizedBox(height: 18),
+                _buildExpandableSectionCard(
+                  context: context,
+                  icon: Icons.emoji_emotions_outlined,
+                  title: strings.moodLibraryTitle,
+                  subtitle: strings.moodLibraryHint,
+                  summary: '',
+                  expanded: _isMoodLibrarySectionExpanded,
+                  onExpandedChanged: (expanded) {
+                    setState(() => _isMoodLibrarySectionExpanded = expanded);
+                  },
+                  child: moodLibraryAsync.when(
+                    loading: () =>
+                        const Center(child: CircularProgressIndicator()),
+                    error: (error, stack) =>
+                        Text(strings.failedToLoadMoods(error)),
+                    data: (moods) => Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Wrap(
+                          spacing: 12,
+                          runSpacing: 12,
+                          children: [
+                            FilledButton.tonalIcon(
+                              onPressed: () => _openMoodDialog(),
+                              icon: const Icon(Icons.add_rounded),
+                              label: Text(strings.addMood),
+                            ),
+                            OutlinedButton.icon(
+                              onPressed:
+                                  _isResettingMoods ? null : _confirmResetMoods,
+                              icon: _isResettingMoods
+                                  ? const SizedBox(
+                                      width: 18,
+                                      height: 18,
+                                      child: CircularProgressIndicator(
+                                          strokeWidth: 2),
+                                    )
+                                  : const Icon(Icons.restart_alt_outlined),
+                              label: Text(strings.restoreDefaultMoods),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 18),
+                        if (moods.isEmpty)
+                          Text(strings.moodLibraryEmpty)
+                        else
+                          Wrap(
+                            key: const ValueKey('mood-library-wrap'),
+                            spacing: 12,
+                            runSpacing: 12,
+                            children: moods
+                                .map(
+                                  (mood) => ConstrainedBox(
+                                    key: ValueKey(
+                                        'mood-library-item-${mood.id}'),
+                                    constraints: const BoxConstraints(
+                                      minWidth: 160,
+                                      maxWidth: 280,
+                                    ),
+                                    child: DecoratedBox(
+                                      decoration: BoxDecoration(
+                                        borderRadius: BorderRadius.circular(18),
+                                        border: Border.all(
+                                          color: Theme.of(context)
+                                              .colorScheme
+                                              .outlineVariant
+                                              .withValues(alpha: 0.7),
+                                        ),
+                                        color: Theme.of(context)
+                                            .colorScheme
+                                            .surfaceContainerLowest,
+                                      ),
+                                      child: Padding(
+                                        padding: const EdgeInsets.symmetric(
+                                          horizontal: 14,
+                                          vertical: 12,
+                                        ),
+                                        child: Row(
+                                          crossAxisAlignment:
+                                              CrossAxisAlignment.start,
+                                          children: [
+                                            Text(
+                                              mood.emoji,
+                                              style: const TextStyle(
+                                                fontSize: 24,
+                                                height: 1,
+                                              ),
+                                            ),
+                                            const SizedBox(width: 12),
+                                            Expanded(
+                                              child: Column(
+                                                crossAxisAlignment:
+                                                    CrossAxisAlignment.start,
+                                                children: [
+                                                  Text(
+                                                    strings.moodLabel(mood),
+                                                    maxLines: 2,
+                                                    overflow:
+                                                        TextOverflow.ellipsis,
+                                                    style: Theme.of(context)
+                                                        .textTheme
+                                                        .titleSmall,
+                                                  ),
+                                                  const SizedBox(height: 8),
+                                                  _buildStatusChip(
+                                                    context,
+                                                    mood.isDefault
+                                                        ? strings
+                                                            .defaultMoodBadge
+                                                        : strings
+                                                            .customMoodBadge,
+                                                  ),
+                                                ],
+                                              ),
+                                            ),
+                                            const SizedBox(width: 8),
+                                            IconButton(
+                                              onPressed: () => _openMoodDialog(
+                                                  existing: mood),
+                                              tooltip: strings.editMood,
+                                              icon: const Icon(
+                                                Icons.edit_outlined,
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                )
+                                .toList(growable: false),
+                          ),
+                      ],
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 18),
+                _buildExpandableSectionCard(
+                  context: context,
+                  icon: Icons.import_export_outlined,
+                  title: strings.migrationTitle,
+                  subtitle: strings.migrationHint,
+                  summary: strings.currentDataLocation,
+                  expanded: _isMigrationSectionExpanded,
+                  onExpandedChanged: (expanded) {
+                    setState(() => _isMigrationSectionExpanded = expanded);
+                  },
+                  child: Align(
+                    alignment: Alignment.centerLeft,
+                    child: OutlinedButton.icon(
+                      onPressed: () => context.push('/migration'),
+                      icon: const Icon(Icons.open_in_new_outlined),
+                      label: Text(strings.openMigrationPage),
+                    ),
+                  ),
+                ),
+              ],
+            ),
           ),
         ),
       ),
@@ -752,30 +761,60 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
     required Widget child,
   }) {
     final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
 
     return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(18),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                Flexible(
-                  child: Text(
-                    title,
-                    style: theme.textTheme.titleMedium?.copyWith(
-                      fontWeight: FontWeight.w700,
+      clipBehavior: Clip.antiAlias,
+      child: Container(
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: [
+              colorScheme.primary.withValues(
+                alpha: colorScheme.brightness == Brightness.dark ? 0.08 : 0.04,
+              ),
+              theme.cardTheme.color ?? colorScheme.surface,
+            ],
+          ),
+        ),
+        child: Padding(
+          padding: const EdgeInsets.all(20),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  _SettingsSectionIcon(icon: icon),
+                  const SizedBox(width: 14),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          title,
+                          style: theme.textTheme.titleMedium?.copyWith(
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                        const SizedBox(height: 6),
+                        Text(
+                          subtitle,
+                          style: theme.textTheme.bodySmall?.copyWith(
+                            color: colorScheme.onSurfaceVariant,
+                            height: 1.4,
+                          ),
+                        ),
+                      ],
                     ),
                   ),
-                ),
-                const SizedBox(width: 4),
-                ContextTooltip(message: subtitle),
-              ],
-            ),
-            const SizedBox(height: 16),
-            child,
-          ],
+                ],
+              ),
+              const SizedBox(height: 18),
+              child,
+            ],
+          ),
         ),
       ),
     );
@@ -792,72 +831,90 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
     required Widget child,
   }) {
     final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
 
     return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(18),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Expanded(
-                  child: InkWell(
-                    borderRadius: BorderRadius.circular(16),
-                    onTap: () => onExpandedChanged(!expanded),
-                    child: Padding(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 2,
-                        vertical: 2,
-                      ),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Row(
-                            children: [
-                              Flexible(
-                                child: Text(
-                                  title,
-                                  style: theme.textTheme.titleMedium?.copyWith(
-                                    fontWeight: FontWeight.w700,
-                                  ),
-                                ),
-                              ),
-                              const SizedBox(width: 4),
-                              ContextTooltip(message: subtitle),
-                            ],
-                          ),
-                          if (summary.trim().isNotEmpty) ...[
-                            const SizedBox(height: 6),
+      clipBehavior: Clip.antiAlias,
+      child: Container(
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: [
+              colorScheme.primary.withValues(
+                alpha: colorScheme.brightness == Brightness.dark ? 0.08 : 0.04,
+              ),
+              theme.cardTheme.color ?? colorScheme.surface,
+            ],
+          ),
+        ),
+        child: Padding(
+          padding: const EdgeInsets.all(20),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  _SettingsSectionIcon(icon: icon),
+                  const SizedBox(width: 14),
+                  Expanded(
+                    child: InkWell(
+                      borderRadius: BorderRadius.circular(18),
+                      onTap: () => onExpandedChanged(!expanded),
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 2,
+                          vertical: 2,
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
                             Text(
-                              summary,
-                              maxLines: expanded ? 2 : 1,
-                              overflow: TextOverflow.ellipsis,
-                              style: theme.textTheme.bodySmall?.copyWith(
-                                color: theme.colorScheme.onSurfaceVariant,
-                                height: 1.35,
+                              title,
+                              style: theme.textTheme.titleMedium?.copyWith(
+                                fontWeight: FontWeight.w700,
                               ),
                             ),
+                            const SizedBox(height: 6),
+                            Text(
+                              subtitle,
+                              style: theme.textTheme.bodySmall?.copyWith(
+                                color: colorScheme.onSurfaceVariant,
+                                height: 1.4,
+                              ),
+                            ),
+                            if (summary.trim().isNotEmpty) ...[
+                              const SizedBox(height: 8),
+                              Text(
+                                summary,
+                                maxLines: expanded ? 2 : 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: theme.textTheme.labelLarge?.copyWith(
+                                  color: colorScheme.onSurface,
+                                ),
+                              ),
+                            ],
                           ],
-                        ],
+                        ),
                       ),
                     ),
                   ),
-                ),
-                IconButton(
-                  onPressed: () => onExpandedChanged(!expanded),
-                  icon: Icon(
-                    expanded ? Icons.expand_less : Icons.expand_more,
+                  const SizedBox(width: 8),
+                  IconButton(
+                    onPressed: () => onExpandedChanged(!expanded),
+                    icon: Icon(
+                      expanded ? Icons.expand_less : Icons.expand_more,
+                    ),
                   ),
-                ),
+                ],
+              ),
+              if (expanded) ...[
+                const SizedBox(height: 18),
+                child,
               ],
-            ),
-            if (expanded) ...[
-              const SizedBox(height: 16),
-              child,
             ],
-          ],
+          ),
         ),
       ),
     );
@@ -873,33 +930,50 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
   }) {
     final strings = context.strings;
     final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
 
     return Container(
       decoration: BoxDecoration(
-        color:
-            theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.32),
-        borderRadius: BorderRadius.circular(18),
+        color: colorScheme.surface.withValues(alpha: 0.58),
+        borderRadius: BorderRadius.circular(22),
+        border: Border.all(
+          color: colorScheme.outlineVariant.withValues(alpha: 0.34),
+        ),
       ),
       child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
         child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Expanded(
-              child: Row(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Flexible(
-                    child: Text(
-                      title,
-                      style: theme.textTheme.titleMedium,
+                  Row(
+                    children: [
+                      Flexible(
+                        child: Text(
+                          title,
+                          style: theme.textTheme.titleMedium,
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      ContextTooltip(message: helpText),
+                    ],
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    helpText,
+                    style: theme.textTheme.bodySmall?.copyWith(
+                      color: colorScheme.onSurfaceVariant,
+                      height: 1.4,
                     ),
                   ),
-                  const SizedBox(width: 8),
+                  const SizedBox(height: 10),
                   _buildStatusChip(
                     context,
                     value ? strings.enabledLabel : strings.disabledLabel,
                   ),
-                  const SizedBox(width: 4),
-                  ContextTooltip(message: helpText),
                 ],
               ),
             ),
@@ -1613,6 +1687,44 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
   }
 }
 
+class _SettingsSectionIcon extends StatelessWidget {
+  const _SettingsSectionIcon({
+    required this.icon,
+  });
+
+  final IconData icon;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [
+            theme.colorScheme.primary.withValues(alpha: 0.18),
+            theme.colorScheme.secondary.withValues(alpha: 0.08),
+          ],
+        ),
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(
+          color: theme.colorScheme.primary.withValues(alpha: 0.18),
+        ),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(12),
+        child: Icon(
+          icon,
+          size: 20,
+          color: theme.colorScheme.primary,
+        ),
+      ),
+    );
+  }
+}
+
 class _PasscodeDialog extends ConsumerStatefulWidget {
   const _PasscodeDialog({
     required this.hasPassword,
@@ -1895,24 +2007,45 @@ class _IconOptionCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
 
     return InkWell(
-      borderRadius: BorderRadius.circular(18),
+      borderRadius: BorderRadius.circular(22),
       onTap: onTap,
       child: Container(
         width: 134,
-        padding: const EdgeInsets.all(12),
+        padding: const EdgeInsets.all(14),
         decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(18),
+          borderRadius: BorderRadius.circular(22),
           border: Border.all(
             color: selected
-                ? theme.colorScheme.primary
-                : theme.colorScheme.outlineVariant.withValues(alpha: 0.7),
+                ? colorScheme.primary
+                : colorScheme.outlineVariant.withValues(alpha: 0.46),
             width: selected ? 1.6 : 1,
           ),
-          color: selected
-              ? theme.colorScheme.primary.withValues(alpha: 0.08)
-              : theme.cardTheme.color ?? theme.colorScheme.surface,
+          gradient: LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: selected
+                ? [
+                    colorScheme.primary.withValues(alpha: 0.18),
+                    colorScheme.secondary.withValues(alpha: 0.08),
+                  ]
+                : [
+                    (theme.cardTheme.color ?? colorScheme.surface)
+                        .withValues(alpha: 0.92),
+                    colorScheme.surface.withValues(alpha: 0.72),
+                  ],
+          ),
+          boxShadow: selected
+              ? [
+                  BoxShadow(
+                    color: colorScheme.primary.withValues(alpha: 0.12),
+                    blurRadius: 22,
+                    offset: const Offset(0, 12),
+                  ),
+                ]
+              : null,
         ),
         child: Column(
           mainAxisSize: MainAxisSize.min,

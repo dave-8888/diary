@@ -193,28 +193,77 @@ class _VisualMediaTileState extends State<VisualMediaTile> {
               _buildVideoDuration(theme),
               _buildPlayOverlay(),
             ],
-            if (widget.onTap != null)
+            if (widget.onTap != null || widget.onDeleted != null)
               Positioned.fill(
-                child: Material(
-                  color: Colors.transparent,
-                  child: InkWell(
-                    onTap: widget.onTap,
-                    child: const SizedBox.expand(),
-                  ),
+                child: LayoutBuilder(
+                  builder: (context, constraints) {
+                    return GestureDetector(
+                      behavior: HitTestBehavior.translucent,
+                      onTapUp: (details) {
+                        if (_isDeleteTapZone(
+                          localPosition: details.localPosition,
+                          size: constraints.biggest,
+                        )) {
+                          widget.onDeleted?.call();
+                          return;
+                        }
+                        widget.onTap?.call();
+                      },
+                      child: MouseRegion(
+                        cursor: widget.onTap != null
+                            ? SystemMouseCursors.click
+                            : MouseCursor.defer,
+                        child: const SizedBox.expand(),
+                      ),
+                    );
+                  },
                 ),
               ),
             if (widget.onDeleted != null)
               Positioned(
-                top: _overlayInset,
-                right: _overlayInset,
-                child: IconButton.filledTonal(
-                  onPressed: widget.onDeleted,
-                  tooltip:
-                      MaterialLocalizations.of(context).deleteButtonTooltip,
-                  visualDensity: widget.density == MediaTileDensity.compact
-                      ? VisualDensity.compact
-                      : VisualDensity.standard,
-                  icon: const Icon(Icons.close_rounded),
+                top: 0,
+                right: 0,
+                child: GestureDetector(
+                  onTap: widget.onDeleted,
+                  behavior: HitTestBehavior.opaque,
+                  child: SizedBox.square(
+                    dimension:
+                        widget.density == MediaTileDensity.compact ? 48 : 56,
+                    child: Align(
+                      alignment: Alignment.topRight,
+                      child: Padding(
+                        padding: EdgeInsets.only(
+                          top: _overlayInset,
+                          right: _overlayInset,
+                        ),
+                        child: DecoratedBox(
+                          decoration: BoxDecoration(
+                            color: theme.colorScheme.surface
+                                .withValues(alpha: 0.82),
+                            borderRadius: BorderRadius.circular(16),
+                            border: Border.all(
+                              color: theme.colorScheme.outlineVariant
+                                  .withValues(alpha: 0.34),
+                            ),
+                          ),
+                          child: Padding(
+                            padding: EdgeInsets.all(
+                              widget.density == MediaTileDensity.compact
+                                  ? 6
+                                  : 8,
+                            ),
+                            child: Icon(
+                              Icons.close_rounded,
+                              size: widget.density == MediaTileDensity.compact
+                                  ? 18
+                                  : 20,
+                              color: theme.colorScheme.onSurface,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
                 ),
               ),
           ],
@@ -391,5 +440,18 @@ class _VisualMediaTileState extends State<VisualMediaTile> {
 
   double get _overlayInset {
     return widget.density == MediaTileDensity.compact ? 8 : 12;
+  }
+
+  bool _isDeleteTapZone({
+    required Offset localPosition,
+    required Size size,
+  }) {
+    if (widget.onDeleted == null) {
+      return false;
+    }
+
+    final zoneExtent = widget.density == MediaTileDensity.compact ? 44.0 : 52.0;
+    return localPosition.dx >= size.width - zoneExtent &&
+        localPosition.dy <= zoneExtent;
   }
 }

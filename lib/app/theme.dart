@@ -101,13 +101,14 @@ ThemeData buildDiaryTheme(DiaryThemePreset preset) {
     case DiaryThemePreset.daylight:
       return _buildTheme(
         colorScheme: ColorScheme.fromSeed(
-          seedColor: const Color(0xFF28666E),
+          seedColor: const Color(0xFF0F7CFF),
           brightness: Brightness.light,
         ),
-        scaffoldColor: const Color(0xFFF6F3EE),
-        cardColor: Colors.white,
-        inputFillColor: Colors.white,
-        cardRadius: 24,
+        scaffoldColor: const Color(0xFFEEF4FF),
+        cardColor: const Color(0xFFF9FBFF),
+        inputFillColor: const Color(0xFFFFFFFF),
+        outlineColor: const Color(0xFFC5D4F0),
+        cardRadius: 28,
       );
     case DiaryThemePreset.girlPink:
       return _buildTheme(
@@ -189,20 +190,20 @@ ThemeData buildDiaryTheme(DiaryThemePreset preset) {
       return _buildTheme(
         colorScheme: const ColorScheme(
           brightness: Brightness.dark,
-          primary: Color(0xFF8ED3FF),
-          onPrimary: Color(0xFF042135),
-          secondary: Color(0xFFB7A6FF),
-          onSecondary: Color(0xFF190C3B),
+          primary: Color(0xFF7CE5FF),
+          onPrimary: Color(0xFF032432),
+          secondary: Color(0xFF8FA2FF),
+          onSecondary: Color(0xFF11193F),
           error: Color(0xFFFF8A80),
           onError: Color(0xFF3E0603),
-          surface: Color(0xFF171D29),
-          onSurface: Color(0xFFEAF1FF),
+          surface: Color(0xFF111A28),
+          onSurface: Color(0xFFEAF3FF),
         ),
-        scaffoldColor: const Color(0xFF0D121C),
-        cardColor: const Color(0xFF171D29),
-        inputFillColor: const Color(0xFF1D2534),
-        outlineColor: const Color(0xFF30405C),
-        cardRadius: 24,
+        scaffoldColor: const Color(0xFF09111D),
+        cardColor: const Color(0xFF111A28),
+        inputFillColor: const Color(0xFF162335),
+        outlineColor: const Color(0xFF2E4766),
+        cardRadius: 26,
       );
     case DiaryThemePreset.cyberpunk:
       return _buildTheme(
@@ -246,20 +247,20 @@ ThemeData buildDiaryTheme(DiaryThemePreset preset) {
       return _buildTheme(
         colorScheme: const ColorScheme(
           brightness: Brightness.light,
-          primary: Color(0xFF4A63FF),
+          primary: Color(0xFF2F6BFF),
           onPrimary: Colors.white,
-          secondary: Color(0xFF7C8BA3),
+          secondary: Color(0xFF5D86FF),
           onSecondary: Colors.white,
           error: Color(0xFFD63B56),
           onError: Colors.white,
-          surface: Colors.white,
+          surface: Color(0xFFFDFEFF),
           onSurface: Color(0xFF142033),
         ),
-        scaffoldColor: const Color(0xFFF2F6FF),
-        cardColor: const Color(0xFFFCFDFF),
+        scaffoldColor: const Color(0xFFF1F6FF),
+        cardColor: const Color(0xFFFBFDFF),
         inputFillColor: Colors.white,
-        outlineColor: const Color(0xFFC8D4E8),
-        cardRadius: 16,
+        outlineColor: const Color(0xFFBDD0EB),
+        cardRadius: 20,
         emphasizeLines: true,
       );
   }
@@ -275,32 +276,77 @@ ThemeData _buildTheme({
   bool emphasizeLines = false,
 }) {
   final borderColor = outlineColor ?? colorScheme.outlineVariant;
-  final dividerColor = borderColor.withValues(alpha: 0.9);
+  final isDark = colorScheme.brightness == Brightness.dark;
+  final dividerColor = borderColor.withValues(alpha: isDark ? 0.68 : 0.72);
+  final layeredCardColor = Color.alphaBlend(
+    colorScheme.primary.withValues(alpha: isDark ? 0.16 : 0.05),
+    cardColor,
+  );
+  final layeredSurfaceColor = Color.alphaBlend(
+    colorScheme.secondary.withValues(alpha: isDark ? 0.12 : 0.04),
+    colorScheme.surface,
+  );
+  final resolvedInputFillColor = Color.alphaBlend(
+    colorScheme.surface.withValues(alpha: isDark ? 0.22 : 0.55),
+    inputFillColor,
+  );
   final textTheme = TextTheme(
-    headlineMedium: TextStyle(
-      fontWeight: FontWeight.w700,
+    displaySmall: TextStyle(
+      fontSize: 36,
+      fontWeight: FontWeight.w800,
+      letterSpacing: -1.2,
       color: colorScheme.onSurface,
-      letterSpacing: emphasizeLines ? 0.2 : 0,
+    ),
+    headlineMedium: TextStyle(
+      fontSize: 30,
+      fontWeight: FontWeight.w800,
+      color: colorScheme.onSurface,
+      letterSpacing: emphasizeLines ? 0.24 : -0.6,
     ),
     titleLarge: TextStyle(
+      fontSize: 24,
       fontWeight: FontWeight.w700,
       color: colorScheme.onSurface,
-      letterSpacing: emphasizeLines ? 0.12 : 0,
+      letterSpacing: emphasizeLines ? 0.16 : -0.24,
     ),
     titleMedium: TextStyle(
-      fontWeight: FontWeight.w600,
+      fontSize: 16,
+      fontWeight: FontWeight.w700,
       color: colorScheme.onSurface,
+      letterSpacing: 0.12,
+    ),
+    titleSmall: TextStyle(
+      fontSize: 14,
+      fontWeight: FontWeight.w700,
+      color: colorScheme.onSurface,
+      letterSpacing: 0.16,
     ),
     bodyLarge: TextStyle(
+      fontSize: 16,
+      color: colorScheme.onSurface,
+      height: 1.55,
+    ),
+    bodyMedium: TextStyle(
+      fontSize: 14,
       color: colorScheme.onSurface,
       height: 1.5,
     ),
-    bodyMedium: TextStyle(
-      color: colorScheme.onSurface,
-      height: 1.4,
-    ),
     bodySmall: TextStyle(
+      fontSize: 12,
       color: colorScheme.onSurface.withValues(alpha: 0.72),
+      height: 1.35,
+    ),
+    labelLarge: TextStyle(
+      fontSize: 13,
+      fontWeight: FontWeight.w700,
+      color: colorScheme.onSurface,
+      letterSpacing: 0.18,
+    ),
+    labelMedium: TextStyle(
+      fontSize: 12,
+      fontWeight: FontWeight.w600,
+      color: colorScheme.onSurfaceVariant,
+      letterSpacing: 0.22,
     ),
   );
 
@@ -308,19 +354,33 @@ ThemeData _buildTheme({
     useMaterial3: true,
     colorScheme: colorScheme,
     scaffoldBackgroundColor: scaffoldColor,
+    canvasColor: scaffoldColor,
     textTheme: textTheme,
     dividerColor: dividerColor,
+    progressIndicatorTheme: ProgressIndicatorThemeData(
+      color: colorScheme.primary,
+      circularTrackColor: colorScheme.primary.withValues(alpha: 0.12),
+    ),
+    dividerTheme: DividerThemeData(
+      color: dividerColor,
+      thickness: emphasizeLines ? 1.1 : 1,
+      space: 1,
+    ),
     appBarTheme: AppBarTheme(
       backgroundColor: Colors.transparent,
       foregroundColor: colorScheme.onSurface,
       elevation: 0,
+      scrolledUnderElevation: 0,
+      toolbarHeight: 76,
       surfaceTintColor: Colors.transparent,
       titleTextStyle: textTheme.titleLarge,
       iconTheme: IconThemeData(color: colorScheme.onSurface),
     ),
     cardTheme: CardThemeData(
-      color: cardColor,
+      color: layeredCardColor.withValues(alpha: isDark ? 0.9 : 0.84),
       elevation: 0,
+      shadowColor: colorScheme.shadow.withValues(alpha: isDark ? 0.2 : 0.08),
+      surfaceTintColor: Colors.transparent,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(cardRadius),
         side: BorderSide(
@@ -334,7 +394,8 @@ ThemeData _buildTheme({
       clipBehavior: Clip.antiAlias,
     ),
     dialogTheme: DialogThemeData(
-      backgroundColor: cardColor,
+      backgroundColor: layeredCardColor,
+      surfaceTintColor: Colors.transparent,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(cardRadius),
         side: BorderSide(
@@ -343,40 +404,83 @@ ThemeData _buildTheme({
         ),
       ),
     ),
+    bottomSheetTheme: BottomSheetThemeData(
+      backgroundColor: layeredCardColor,
+      surfaceTintColor: Colors.transparent,
+      modalBackgroundColor: layeredCardColor,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(
+          top: Radius.circular(cardRadius + 2),
+        ),
+        side: BorderSide(color: borderColor.withValues(alpha: 0.42)),
+      ),
+    ),
     inputDecorationTheme: InputDecorationTheme(
       filled: true,
-      fillColor: inputFillColor,
+      fillColor: resolvedInputFillColor.withValues(alpha: isDark ? 0.8 : 0.88),
       labelStyle: TextStyle(color: colorScheme.onSurfaceVariant),
       hintStyle: TextStyle(
         color: colorScheme.onSurfaceVariant.withValues(alpha: 0.72),
       ),
+      floatingLabelStyle: TextStyle(
+        color: colorScheme.primary,
+        fontWeight: FontWeight.w600,
+      ),
+      prefixIconColor: colorScheme.onSurfaceVariant,
+      suffixIconColor: colorScheme.onSurfaceVariant,
       border: OutlineInputBorder(
         borderRadius: BorderRadius.circular(cardRadius - 6),
         borderSide: BorderSide(
-          color: emphasizeLines ? borderColor : Colors.transparent,
+          color: emphasizeLines
+              ? borderColor
+              : borderColor.withValues(alpha: 0.18),
         ),
       ),
       enabledBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(cardRadius - 6),
         borderSide: BorderSide(
-          color: emphasizeLines ? borderColor : Colors.transparent,
+          color:
+              emphasizeLines ? borderColor : borderColor.withValues(alpha: 0.2),
         ),
       ),
       focusedBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(cardRadius - 6),
-        borderSide: BorderSide(color: colorScheme.primary, width: 1.4),
+        borderSide: BorderSide(color: colorScheme.primary, width: 1.6),
       ),
-      contentPadding: const EdgeInsets.symmetric(horizontal: 18, vertical: 16),
+      errorBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(cardRadius - 6),
+        borderSide: BorderSide(color: colorScheme.error, width: 1.2),
+      ),
+      focusedErrorBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(cardRadius - 6),
+        borderSide: BorderSide(color: colorScheme.error, width: 1.6),
+      ),
+      contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 18),
+    ),
+    textSelectionTheme: TextSelectionThemeData(
+      cursorColor: colorScheme.primary,
+      selectionColor: colorScheme.primary.withValues(alpha: 0.24),
+      selectionHandleColor: colorScheme.primary,
     ),
     floatingActionButtonTheme: FloatingActionButtonThemeData(
-      backgroundColor: colorScheme.primaryContainer,
-      foregroundColor: colorScheme.onPrimaryContainer,
+      backgroundColor: colorScheme.primary,
+      foregroundColor: colorScheme.onPrimary,
+      elevation: 0,
+      extendedPadding: const EdgeInsets.symmetric(horizontal: 18),
+      extendedTextStyle: textTheme.labelLarge?.copyWith(
+        color: colorScheme.onPrimary,
+      ),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(cardRadius - 8),
+      ),
     ),
     filledButtonTheme: FilledButtonThemeData(
       style: FilledButton.styleFrom(
         backgroundColor: colorScheme.primary,
         foregroundColor: colorScheme.onPrimary,
-        padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 14),
+        elevation: 0,
+        padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 15),
+        textStyle: textTheme.labelLarge,
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(cardRadius - 8),
         ),
@@ -385,22 +489,51 @@ ThemeData _buildTheme({
     outlinedButtonTheme: OutlinedButtonThemeData(
       style: OutlinedButton.styleFrom(
         foregroundColor: colorScheme.onSurface,
-        side: BorderSide(color: borderColor),
-        padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 14),
+        side: BorderSide(color: borderColor.withValues(alpha: 0.8)),
+        padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 15),
+        textStyle: textTheme.labelLarge,
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(cardRadius - 8),
         ),
       ),
     ),
+    textButtonTheme: TextButtonThemeData(
+      style: TextButton.styleFrom(
+        foregroundColor: colorScheme.onSurface,
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+        textStyle: textTheme.labelLarge,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(cardRadius - 10),
+        ),
+      ),
+    ),
+    iconButtonTheme: IconButtonThemeData(
+      style: IconButton.styleFrom(
+        foregroundColor: colorScheme.onSurfaceVariant,
+        backgroundColor: layeredSurfaceColor.withValues(
+          alpha: isDark ? 0.46 : 0.62,
+        ),
+        hoverColor: colorScheme.primary.withValues(alpha: 0.08),
+        highlightColor: colorScheme.primary.withValues(alpha: 0.12),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(cardRadius - 8),
+        ),
+        padding: const EdgeInsets.all(12),
+      ),
+    ),
     chipTheme: ChipThemeData(
       backgroundColor:
-          colorScheme.surfaceContainerHighest.withValues(alpha: 0.55),
+          layeredSurfaceColor.withValues(alpha: isDark ? 0.5 : 0.74),
       selectedColor: colorScheme.secondaryContainer,
       secondarySelectedColor: colorScheme.secondaryContainer,
       deleteIconColor: colorScheme.onSurfaceVariant,
-      labelStyle: TextStyle(color: colorScheme.onSurface),
+      labelStyle: textTheme.labelLarge?.copyWith(
+        color: colorScheme.onSurface,
+        fontWeight: FontWeight.w600,
+      ),
       secondaryLabelStyle: TextStyle(color: colorScheme.onSecondaryContainer),
-      side: BorderSide(color: borderColor.withValues(alpha: 0.45)),
+      side: BorderSide(color: borderColor.withValues(alpha: 0.38)),
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(cardRadius - 10),
       ),
@@ -409,15 +542,30 @@ ThemeData _buildTheme({
       backgroundColor: colorScheme.inverseSurface,
       contentTextStyle: TextStyle(color: colorScheme.onInverseSurface),
       behavior: SnackBarBehavior.floating,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(cardRadius - 6),
+      ),
     ),
     navigationBarTheme: NavigationBarThemeData(
-      backgroundColor: cardColor,
-      indicatorColor: colorScheme.secondaryContainer,
+      backgroundColor: layeredCardColor.withValues(alpha: isDark ? 0.86 : 0.8),
+      height: 78,
+      elevation: 0,
+      shadowColor: Colors.transparent,
+      surfaceTintColor: Colors.transparent,
+      indicatorColor: colorScheme.secondaryContainer.withValues(alpha: 0.86),
+      indicatorShape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(cardRadius - 4),
+      ),
       labelTextStyle: WidgetStateProperty.resolveWith((states) {
         final color = states.contains(WidgetState.selected)
             ? colorScheme.onSurface
             : colorScheme.onSurfaceVariant;
-        return TextStyle(color: color, fontWeight: FontWeight.w600);
+        return textTheme.labelMedium?.copyWith(
+          color: color,
+          fontWeight: states.contains(WidgetState.selected)
+              ? FontWeight.w700
+              : FontWeight.w600,
+        );
       }),
       iconTheme: WidgetStateProperty.resolveWith((states) {
         final color = states.contains(WidgetState.selected)
@@ -427,22 +575,61 @@ ThemeData _buildTheme({
       }),
     ),
     navigationRailTheme: NavigationRailThemeData(
-      backgroundColor: scaffoldColor,
-      indicatorColor: colorScheme.secondaryContainer,
+      backgroundColor: Colors.transparent,
+      indicatorColor: colorScheme.secondaryContainer.withValues(alpha: 0.86),
+      useIndicator: true,
+      minWidth: 76,
+      minExtendedWidth: 200,
       selectedIconTheme: IconThemeData(color: colorScheme.onSecondaryContainer),
       unselectedIconTheme: IconThemeData(color: colorScheme.onSurfaceVariant),
       selectedLabelTextStyle: TextStyle(
         color: colorScheme.onSurface,
-        fontWeight: FontWeight.w600,
+        fontWeight: FontWeight.w700,
       ),
       unselectedLabelTextStyle: TextStyle(color: colorScheme.onSurfaceVariant),
     ),
     popupMenuTheme: PopupMenuThemeData(
-      color: cardColor,
+      color: layeredCardColor,
+      surfaceTintColor: Colors.transparent,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(cardRadius - 6),
         side: BorderSide(color: borderColor.withValues(alpha: 0.5)),
       ),
+    ),
+    listTileTheme: ListTileThemeData(
+      dense: false,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(cardRadius - 8),
+      ),
+      iconColor: colorScheme.onSurfaceVariant,
+    ),
+    checkboxTheme: CheckboxThemeData(
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(8),
+      ),
+      side: BorderSide(color: borderColor.withValues(alpha: 0.72)),
+    ),
+    switchTheme: SwitchThemeData(
+      trackOutlineColor: WidgetStateProperty.all(
+        borderColor.withValues(alpha: 0.4),
+      ),
+      thumbIcon: WidgetStateProperty.resolveWith((states) {
+        if (states.contains(WidgetState.selected)) {
+          return const Icon(Icons.check_rounded, size: 14);
+        }
+        return const Icon(Icons.close_rounded, size: 14);
+      }),
+    ),
+    tooltipTheme: TooltipThemeData(
+      decoration: BoxDecoration(
+        color: colorScheme.inverseSurface,
+        borderRadius: BorderRadius.circular(cardRadius - 10),
+      ),
+      textStyle: textTheme.bodySmall?.copyWith(
+        color: colorScheme.onInverseSurface,
+      ),
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+      preferBelow: false,
     ),
   );
 }

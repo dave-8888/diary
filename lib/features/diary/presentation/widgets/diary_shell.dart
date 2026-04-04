@@ -1,3 +1,5 @@
+import 'dart:ui';
+
 import 'package:diary_mvp/app/app_icon.dart';
 import 'package:diary_mvp/app/localization/app_strings.dart';
 import 'package:diary_mvp/app/theme.dart';
@@ -6,6 +8,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 class DiaryShell extends ConsumerWidget {
+  static const double _panelRadius = 28;
+
   const DiaryShell({
     super.key,
     required this.title,
@@ -58,6 +62,8 @@ class DiaryShell extends ConsumerWidget {
           return Scaffold(
             appBar: shouldShowAppBar
                 ? AppBar(
+                    toolbarHeight: 78,
+                    titleSpacing: 20,
                     title: showAppBarTitle
                         ? _AppBarTitle(
                             pageTitle: title,
@@ -79,23 +85,38 @@ class DiaryShell extends ConsumerWidget {
                 ),
               ),
             ),
-            bottomNavigationBar: NavigationBar(
-              selectedIndex: selectedIndex ?? 0,
-              onDestinationSelected: (index) => _goToIndex(context, index),
-              destinations: [
-                NavigationDestination(
-                  icon: const Icon(Icons.home_outlined),
-                  label: strings.homeNav,
+            bottomNavigationBar: SafeArea(
+              top: false,
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(12, 0, 12, 12),
+                child: _ShellGlassPanel(
+                  radius: _panelRadius,
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 6, vertical: 6),
+                  child: NavigationBar(
+                    backgroundColor: Colors.transparent,
+                    surfaceTintColor: Colors.transparent,
+                    elevation: 0,
+                    selectedIndex: selectedIndex ?? 0,
+                    onDestinationSelected: (index) =>
+                        _goToIndex(context, index),
+                    destinations: [
+                      NavigationDestination(
+                        icon: const Icon(Icons.home_outlined),
+                        label: strings.homeNav,
+                      ),
+                      NavigationDestination(
+                        icon: const Icon(Icons.edit_note_outlined),
+                        label: strings.writeNav,
+                      ),
+                      NavigationDestination(
+                        icon: const Icon(Icons.delete_outline),
+                        label: strings.trashNav,
+                      ),
+                    ],
+                  ),
                 ),
-                NavigationDestination(
-                  icon: const Icon(Icons.edit_note_outlined),
-                  label: strings.writeNav,
-                ),
-                NavigationDestination(
-                  icon: const Icon(Icons.delete_outline),
-                  label: strings.trashNav,
-                ),
-              ],
+              ),
             ),
           );
         }
@@ -103,6 +124,8 @@ class DiaryShell extends ConsumerWidget {
         return Scaffold(
           appBar: shouldShowAppBar
               ? AppBar(
+                  toolbarHeight: 80,
+                  titleSpacing: 24,
                   title: showAppBarTitle
                       ? _AppBarTitle(
                           pageTitle: title,
@@ -117,64 +140,77 @@ class DiaryShell extends ConsumerWidget {
           floatingActionButton: floatingActionButton,
           body: _ThemedShellBackground(
             themePreset: selectedTheme,
-            child: Row(
-              children: [
-                SizedBox(
-                  width: 92,
-                  child: SafeArea(
-                    child: Column(
-                      children: [
-                        Expanded(
-                          child: NavigationRail(
-                            selectedIndex: selectedIndex,
-                            onDestinationSelected: (index) =>
-                                _goToIndex(context, index),
-                            groupAlignment: -1,
-                            labelType: NavigationRailLabelType.all,
-                            destinations: [
-                              NavigationRailDestination(
-                                icon: const Icon(Icons.home_outlined),
-                                selectedIcon: const Icon(Icons.home),
-                                label: Text(strings.homeNav),
+            child: SafeArea(
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(18, 10, 18, 18),
+                child: Row(
+                  children: [
+                    SizedBox(
+                      width: 102,
+                      child: _ShellGlassPanel(
+                        radius: _panelRadius + 2,
+                        padding: const EdgeInsets.fromLTRB(10, 12, 10, 10),
+                        child: Column(
+                          children: [
+                            _RailBrand(
+                              iconSelection: selectedIcon,
+                              title: title,
+                            ),
+                            const SizedBox(height: 10),
+                            Expanded(
+                              child: NavigationRail(
+                                backgroundColor: Colors.transparent,
+                                selectedIndex: selectedIndex,
+                                onDestinationSelected: (index) =>
+                                    _goToIndex(context, index),
+                                groupAlignment: -0.95,
+                                labelType: NavigationRailLabelType.all,
+                                destinations: [
+                                  NavigationRailDestination(
+                                    icon: const Icon(Icons.home_outlined),
+                                    selectedIcon: const Icon(Icons.home),
+                                    label: Text(strings.homeNav),
+                                  ),
+                                  NavigationRailDestination(
+                                    icon: const Icon(Icons.edit_note_outlined),
+                                    selectedIcon: const Icon(Icons.edit_note),
+                                    label: Text(strings.writeNav),
+                                  ),
+                                  NavigationRailDestination(
+                                    icon: const Icon(Icons.delete_outline),
+                                    selectedIcon: const Icon(Icons.delete),
+                                    label: Text(strings.trashNav),
+                                  ),
+                                ],
                               ),
-                              NavigationRailDestination(
-                                icon: const Icon(Icons.edit_note_outlined),
-                                selectedIcon: const Icon(Icons.edit_note),
-                                label: Text(strings.writeNav),
+                            ),
+                            Padding(
+                              padding: const EdgeInsets.fromLTRB(6, 10, 6, 4),
+                              child: _RailFooterAction(
+                                icon: isSettingsPage
+                                    ? Icons.settings
+                                    : Icons.settings_outlined,
+                                label: strings.settingsTitle,
+                                selected: isSettingsPage,
+                                onTap: () =>
+                                    _openSettings(context, compact: false),
                               ),
-                              NavigationRailDestination(
-                                icon: const Icon(Icons.delete_outline),
-                                selectedIcon: const Icon(Icons.delete),
-                                label: Text(strings.trashNav),
-                              ),
-                            ],
-                          ),
+                            ),
+                          ],
                         ),
-                        Padding(
-                          padding: const EdgeInsets.fromLTRB(10, 10, 10, 18),
-                          child: _RailFooterAction(
-                            icon: isSettingsPage
-                                ? Icons.settings
-                                : Icons.settings_outlined,
-                            label: strings.settingsTitle,
-                            selected: isSettingsPage,
-                            onTap: () => _openSettings(context, compact: false),
-                          ),
-                        ),
-                      ],
+                      ),
                     ),
-                  ),
-                ),
-                const VerticalDivider(width: 1),
-                Expanded(
-                  child: SafeArea(
-                    child: Padding(
-                      padding: expandedBodyPadding ?? const EdgeInsets.all(20),
-                      child: child,
+                    const SizedBox(width: 20),
+                    Expanded(
+                      child: Padding(
+                        padding:
+                            expandedBodyPadding ?? const EdgeInsets.all(20),
+                        child: child,
+                      ),
                     ),
-                  ),
+                  ],
                 ),
-              ],
+              ),
             ),
           ),
         );
@@ -250,15 +286,16 @@ class _AppBarTitle extends StatelessWidget {
       children: [
         AppIconBadge(
           selection: iconSelection,
-          size: 28,
+          size: 30,
         ),
-        const SizedBox(width: 10),
+        const SizedBox(width: 12),
         Flexible(
           child: Text(
             pageTitle,
             overflow: TextOverflow.ellipsis,
             style: theme.textTheme.titleMedium?.copyWith(
-              fontWeight: FontWeight.w700,
+              fontWeight: FontWeight.w800,
+              letterSpacing: 0.12,
             ),
           ),
         ),
@@ -284,6 +321,7 @@ class _RailFooterAction extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
+    final surfaceColor = theme.cardTheme.color ?? colorScheme.surface;
     final foregroundColor = selected
         ? colorScheme.onSecondaryContainer
         : colorScheme.onSurfaceVariant;
@@ -292,14 +330,14 @@ class _RailFooterAction extends StatelessWidget {
       width: double.infinity,
       child: Material(
         color: selected
-            ? colorScheme.secondaryContainer.withValues(alpha: 0.72)
-            : Colors.transparent,
-        borderRadius: BorderRadius.circular(18),
+            ? colorScheme.secondaryContainer.withValues(alpha: 0.88)
+            : surfaceColor.withValues(alpha: 0.2),
+        borderRadius: BorderRadius.circular(22),
         child: InkWell(
           onTap: onTap,
-          borderRadius: BorderRadius.circular(18),
+          borderRadius: BorderRadius.circular(22),
           child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 10),
+            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 12),
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
@@ -317,6 +355,110 @@ class _RailFooterAction extends StatelessWidget {
                 ),
               ],
             ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _RailBrand extends StatelessWidget {
+  const _RailBrand({
+    required this.iconSelection,
+    required this.title,
+  });
+
+  final AppIconSelection iconSelection;
+  final String title;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        color: colorScheme.primary.withValues(
+          alpha: colorScheme.brightness == Brightness.dark ? 0.14 : 0.08,
+        ),
+        borderRadius: BorderRadius.circular(24),
+        border: Border.all(
+          color: colorScheme.primary.withValues(alpha: 0.18),
+        ),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 12),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            AppIconBadge(
+              selection: iconSelection,
+              size: 34,
+            ),
+            const SizedBox(height: 10),
+            Text(
+              title,
+              maxLines: 2,
+              textAlign: TextAlign.center,
+              overflow: TextOverflow.ellipsis,
+              style: theme.textTheme.labelMedium?.copyWith(
+                color: colorScheme.onSurface,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _ShellGlassPanel extends StatelessWidget {
+  const _ShellGlassPanel({
+    required this.child,
+    this.padding = EdgeInsets.zero,
+    this.radius = 28,
+  });
+
+  final Widget child;
+  final EdgeInsetsGeometry padding;
+  final double radius;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+    final baseColor = theme.cardTheme.color ?? colorScheme.surface;
+    final isDark = colorScheme.brightness == Brightness.dark;
+
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(radius),
+      child: BackdropFilter(
+        filter: ImageFilter.blur(sigmaX: 18, sigmaY: 18),
+        child: DecoratedBox(
+          decoration: BoxDecoration(
+            color: Color.alphaBlend(
+              colorScheme.primary.withValues(alpha: isDark ? 0.12 : 0.03),
+              baseColor,
+            ).withValues(alpha: isDark ? 0.84 : 0.76),
+            borderRadius: BorderRadius.circular(radius),
+            border: Border.all(
+              color: colorScheme.outlineVariant.withValues(
+                alpha: isDark ? 0.56 : 0.34,
+              ),
+            ),
+            boxShadow: [
+              BoxShadow(
+                color:
+                    colorScheme.shadow.withValues(alpha: isDark ? 0.3 : 0.08),
+                blurRadius: 28,
+                offset: const Offset(0, 18),
+              ),
+            ],
+          ),
+          child: Padding(
+            padding: padding,
+            child: child,
           ),
         ),
       ),

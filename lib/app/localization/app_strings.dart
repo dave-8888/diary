@@ -483,6 +483,24 @@ class AppStrings {
   String get deleteEntry =>
       isChinese ? '\u79fb\u5230\u5783\u573e\u6876' : 'Move to trash';
   String get today => isChinese ? '\u4eca\u5929' : 'Today';
+  String get calendarViewTitle =>
+      isChinese ? '\u65e5\u5386\u89c6\u56fe' : 'Calendar view';
+  String get calendarViewHint => isChinese
+      ? '\u9009\u62e9\u67d0\u4e00\u5929\u6216\u4e00\u6bb5\u65f6\u95f4\uff0c\u5feb\u901f\u67e5\u770b\u5bf9\u5e94\u65e5\u671f\u7684\u65e5\u8bb0\u3002'
+      : 'Choose a day or a date range to quickly view matching diary entries.';
+  String get allDatesLabel =>
+      isChinese ? '\u5168\u90e8\u65e5\u671f' : 'All dates';
+  String get singleDateFilter => isChinese ? '\u5355\u65e5' : 'Single day';
+  String get rangeFilter => isChinese ? '\u8303\u56f4' : 'Range';
+  String get pickDate => isChinese ? '\u9009\u62e9\u65e5\u671f' : 'Choose date';
+  String get changeDate =>
+      isChinese ? '\u66f4\u6539\u65e5\u671f' : 'Change date';
+  String get pickDateRange =>
+      isChinese ? '\u9009\u62e9\u8303\u56f4' : 'Choose range';
+  String get changeDateRange =>
+      isChinese ? '\u66f4\u6539\u8303\u56f4' : 'Change range';
+  String get clearDateFilter =>
+      isChinese ? '\u6e05\u9664\u7b5b\u9009' : 'Clear filter';
   String get recentEntries =>
       isChinese ? '\u6700\u8fd1\u65e5\u8bb0' : 'Recent entries';
   String get allTags => isChinese ? '\u5168\u90e8\u6807\u7b7e' : 'All tags';
@@ -644,6 +662,44 @@ class AppStrings {
   String entryCountLabel(int count) => isChinese
       ? '\u65e5\u8bb0 $count \u7bc7'
       : '$count entr${count == 1 ? 'y' : 'ies'}';
+  String matchedEntryCountLabel(int count) =>
+      isChinese ? '\u5339\u914d $count \u7bc7' : '$count matched';
+  String dateRangeLabel(DateTime start, DateTime end) {
+    final startLabel = formatDay(start);
+    final endLabel = formatDay(end);
+    if (DateUtils.isSameDay(start, end)) {
+      return startLabel;
+    }
+    return '$startLabel - $endLabel';
+  }
+
+  String entriesForDate(DateTime date) => isChinese
+      ? '${formatDay(date)} \u7684\u65e5\u8bb0'
+      : 'Entries on ${formatDay(date)}';
+  String entriesForRange(DateTime start, DateTime end) {
+    if (DateUtils.isSameDay(start, end)) {
+      return entriesForDate(start);
+    }
+    return isChinese
+        ? '${dateRangeLabel(start, end)} \u7684\u65e5\u8bb0'
+        : 'Entries from ${dateRangeLabel(start, end)}';
+  }
+
+  String noEntriesForDate(DateTime date) => isChinese
+      ? '${formatDay(date)} \u8fd8\u6ca1\u6709\u65e5\u8bb0\u3002'
+      : 'No diary entries on ${formatDay(date)} yet.';
+  String noEntriesForRange(DateTime start, DateTime end) {
+    if (DateUtils.isSameDay(start, end)) {
+      return noEntriesForDate(start);
+    }
+    return isChinese
+        ? '${dateRangeLabel(start, end)} \u8fd8\u6ca1\u6709\u65e5\u8bb0\u3002'
+        : 'No diary entries in ${dateRangeLabel(start, end)} yet.';
+  }
+
+  String get calendarFilterEmptyHint => isChinese
+      ? '\u53ef\u4ee5\u6362\u4e2a\u65e5\u671f\u8bd5\u8bd5\uff0c\u6216\u6e05\u9664\u7b5b\u9009\u67e5\u770b\u5168\u90e8\u65e5\u8bb0\u3002'
+      : 'Try another date, or clear the filter to view all diary entries.';
   String tagStatusLabel(List<String> tags) {
     if (tags.isEmpty) {
       return isChinese ? '\u6807\u7b7e\uff1a\u5168\u90e8' : 'Tags: All';

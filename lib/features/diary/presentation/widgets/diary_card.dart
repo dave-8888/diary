@@ -20,6 +20,8 @@ class DiaryCard extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final strings = context.strings;
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
     final showVisualMedia = ref
             .watch(diaryListVisualMediaVisibilityControllerProvider)
             .valueOrNull ??
@@ -58,14 +60,70 @@ class DiaryCard extends ConsumerWidget {
       ),
     );
 
-    return Card(
-      clipBehavior: Clip.antiAlias,
-      child: onTap == null
-          ? body
-          : InkWell(
-              onTap: onTap,
-              child: body,
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(28),
+        boxShadow: [
+          BoxShadow(
+            color: colorScheme.shadow.withValues(
+              alpha: colorScheme.brightness == Brightness.dark ? 0.22 : 0.06,
             ),
+            blurRadius: 28,
+            offset: const Offset(0, 16),
+          ),
+        ],
+      ),
+      child: Card(
+        color: Colors.transparent,
+        clipBehavior: Clip.antiAlias,
+        child: Ink(
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+              colors: [
+                (theme.cardTheme.color ?? colorScheme.surface).withValues(
+                  alpha: 0.92,
+                ),
+                colorScheme.primary.withValues(
+                  alpha:
+                      colorScheme.brightness == Brightness.dark ? 0.08 : 0.04,
+                ),
+                (theme.cardTheme.color ?? colorScheme.surface).withValues(
+                  alpha: 0.98,
+                ),
+              ],
+            ),
+          ),
+          child: Stack(
+            children: [
+              Positioned(
+                top: 0,
+                left: 20,
+                right: 20,
+                child: Container(
+                  height: 1.4,
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      colors: [
+                        colorScheme.primary.withValues(alpha: 0),
+                        colorScheme.primary.withValues(alpha: 0.45),
+                        colorScheme.secondary.withValues(alpha: 0.18),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+              onTap == null
+                  ? body
+                  : InkWell(
+                      onTap: onTap,
+                      child: body,
+                    ),
+            ],
+          ),
+        ),
+      ),
     );
   }
 }
