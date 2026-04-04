@@ -7,6 +7,7 @@ import 'package:diary_mvp/features/diary/presentation/widgets/diary_shell.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:intl/intl.dart';
 
 class HomePage extends ConsumerWidget {
   const HomePage({super.key});
@@ -219,10 +220,11 @@ class _HomeListState extends State<_HomeList> {
 
   String _selectionLabel(AppStrings strings) {
     if (_filterMode == _CalendarFilterMode.day && _selectedDay != null) {
-      return strings.formatDay(_selectedDay!);
+      return _formatCalendarSelectionDate(strings, _selectedDay!);
     }
     if (_filterMode == _CalendarFilterMode.range && _selectedRange != null) {
-      return strings.dateRangeLabel(
+      return _formatCalendarSelectionRange(
+        strings,
         _selectedRange!.start,
         _selectedRange!.end,
       );
@@ -293,22 +295,74 @@ class _HomeListState extends State<_HomeList> {
     return normalized;
   }
 
+  String _formatCalendarSelectionDate(AppStrings strings, DateTime date) {
+    final normalized = DateUtils.dateOnly(date);
+    final now = DateUtils.dateOnly(DateTime.now());
+    final pattern = normalized.year == now.year ? 'MM-dd' : 'yyyy-MM-dd';
+    return DateFormat(pattern, strings.locale.languageCode).format(normalized);
+  }
+
+  String _formatCalendarSelectionRange(
+    AppStrings strings,
+    DateTime start,
+    DateTime end,
+  ) {
+    final startLabel = _formatCalendarSelectionDate(strings, start);
+    final endLabel = _formatCalendarSelectionDate(strings, end);
+    if (DateUtils.isSameDay(start, end)) {
+      return startLabel;
+    }
+    return '$startLabel - $endLabel';
+  }
+
   Widget _buildExpandedDatePickerDialog(BuildContext context, Widget? child) {
     if (child == null) {
       return const SizedBox.shrink();
     }
 
+    final inheritedTheme = Theme.of(context);
     final screenSize = MediaQuery.sizeOf(context);
     final shouldExpand = screenSize.width >= 540 && screenSize.height >= 420;
+    final portraitWidth = screenSize.width < screenSize.height
+        ? screenSize.width
+        : screenSize.height;
+    final portraitHeight = screenSize.width < screenSize.height
+        ? screenSize.height
+        : screenSize.width;
+
+    final themedChild = Theme(
+      data: inheritedTheme.copyWith(
+        datePickerTheme: inheritedTheme.datePickerTheme.copyWith(
+          headerForegroundColor: Colors.transparent,
+          headerHeadlineStyle: const TextStyle(fontSize: 0, height: 0.01),
+          rangePickerHeaderForegroundColor: Colors.transparent,
+          rangePickerHeaderHeadlineStyle: const TextStyle(
+            fontSize: 0,
+            height: 0.01,
+          ),
+        ),
+      ),
+      child: child,
+    );
+
+    final compactDesktopChild = MediaQuery(
+      data: MediaQuery.of(context).copyWith(
+        size: Size(portraitWidth, portraitHeight),
+      ),
+      child: SizedBox(
+        height: 164,
+        child: themedChild,
+      ),
+    );
 
     if (!shouldExpand) {
-      return child;
+      return themedChild;
     }
 
     return Center(
       child: Transform.scale(
         scale: 1.12,
-        child: child,
+        child: compactDesktopChild,
       ),
     );
   }
