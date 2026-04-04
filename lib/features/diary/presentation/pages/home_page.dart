@@ -62,10 +62,8 @@ class _HomeListState extends State<_HomeList> {
   Widget build(BuildContext context) {
     final strings = context.strings;
     final entries = widget.entries;
-    final latest = entries.isNotEmpty ? entries.first : null;
     final filteredEntries = _filteredEntries;
     final hasEntries = entries.isNotEmpty;
-    final hasActiveFilter = _hasActiveFilter;
     final emptyTitle =
         hasEntries ? _emptyStateTitle(strings) : strings.noEntriesYet;
     final emptyDescription =
@@ -77,18 +75,10 @@ class _HomeListState extends State<_HomeList> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          _HomeHero(
-            latest: latest,
-            entryCount: entries.length,
-          ),
-          const SizedBox(height: 18),
           _CalendarFilterCard(
             mode: _filterMode,
             selectionLabel: _selectionLabel(strings),
             matchCount: filteredEntries.length,
-            hasActiveFilter: hasActiveFilter,
-            hasDaySelection: _selectedDay != null,
-            hasRangeSelection: _selectedRange != null,
             onSelectAll: _clearFilter,
             onPickDay: () => _pickDay(context),
             onPickRange: () => _pickRange(context),
@@ -148,11 +138,6 @@ class _HomeListState extends State<_HomeList> {
           return !entryDay.isBefore(start) && !entryDay.isAfter(end);
         }).toList(growable: false);
     }
-  }
-
-  bool get _hasActiveFilter {
-    return (_filterMode == _CalendarFilterMode.day && _selectedDay != null) ||
-        (_filterMode == _CalendarFilterMode.range && _selectedRange != null);
   }
 
   void _openEditor(BuildContext context, DiaryEntry entry) {
@@ -305,162 +290,11 @@ class _HomeListState extends State<_HomeList> {
   }
 }
 
-class _HomeHero extends StatelessWidget {
-  const _HomeHero({
-    required this.latest,
-    required this.entryCount,
-  });
-
-  final DiaryEntry? latest;
-  final int entryCount;
-
-  @override
-  Widget build(BuildContext context) {
-    final strings = context.strings;
-    final theme = Theme.of(context);
-    final colorScheme = theme.colorScheme;
-    final latestDateLabel = latest == null
-        ? strings.noEntriesYet
-        : strings.formatDateTime(latest!.createdAt);
-    final latestTags = latest?.tags.length ?? 0;
-
-    return Card(
-      clipBehavior: Clip.antiAlias,
-      child: Container(
-        decoration: BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-            colors: [
-              colorScheme.primary.withValues(
-                alpha: colorScheme.brightness == Brightness.dark ? 0.22 : 0.12,
-              ),
-              theme.cardTheme.color ?? colorScheme.surface,
-              colorScheme.secondary.withValues(
-                alpha: colorScheme.brightness == Brightness.dark ? 0.16 : 0.08,
-              ),
-            ],
-            stops: const [0, 0.56, 1],
-          ),
-        ),
-        child: Stack(
-          children: [
-            Positioned(
-              top: -56,
-              right: -24,
-              child: DecoratedBox(
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  boxShadow: [
-                    BoxShadow(
-                      color: colorScheme.primary.withValues(alpha: 0.22),
-                      blurRadius: 70,
-                      spreadRadius: 18,
-                    ),
-                  ],
-                ),
-                child: const SizedBox(width: 180, height: 180),
-              ),
-            ),
-            Positioned(
-              left: 28,
-              right: 28,
-              bottom: 26,
-              child: DecoratedBox(
-                decoration: BoxDecoration(
-                  border: Border(
-                    top: BorderSide(
-                      color: colorScheme.outlineVariant.withValues(alpha: 0.32),
-                    ),
-                  ),
-                ),
-                child: const SizedBox(height: 1),
-              ),
-            ),
-            Padding(
-              padding: const EdgeInsets.all(24),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  _CountPill(
-                    label: strings.dayHeading(DateTime.now()),
-                    icon: Icons.wb_twilight_outlined,
-                  ),
-                  const SizedBox(height: 18),
-                  Text(
-                    strings.latestSummary(latest),
-                    style: theme.textTheme.displaySmall?.copyWith(
-                      fontSize: 30,
-                      height: 1.05,
-                    ),
-                  ),
-                  const SizedBox(height: 10),
-                  Text(
-                    latestDateLabel,
-                    style: theme.textTheme.bodyMedium?.copyWith(
-                      color: colorScheme.onSurfaceVariant,
-                    ),
-                  ),
-                  const SizedBox(height: 20),
-                  Wrap(
-                    spacing: 10,
-                    runSpacing: 10,
-                    children: [
-                      _HeroMetric(
-                        icon: Icons.menu_book_outlined,
-                        label: entryCount.toString(),
-                      ),
-                      if (latest != null)
-                        _HeroMetric(
-                          icon: Icons.favorite_outline,
-                          label: strings.moodStatusLabel(latest!.mood),
-                        ),
-                      if (latest != null)
-                        _HeroMetric(
-                          icon: Icons.sell_outlined,
-                          label: latestTags == 0
-                              ? strings.tagsLabel
-                              : '${strings.tagsLabel} $latestTags',
-                        ),
-                    ],
-                  ),
-                  const SizedBox(height: 24),
-                  Wrap(
-                    spacing: 12,
-                    runSpacing: 12,
-                    children: [
-                      FilledButton.icon(
-                        onPressed: () => context.go('/editor'),
-                        icon: const Icon(Icons.add_rounded),
-                        label: Text(strings.newEntry),
-                      ),
-                      if (latest != null)
-                        OutlinedButton.icon(
-                          onPressed: () =>
-                              context.push('/editor', extra: latest),
-                          icon: const Icon(Icons.edit_outlined),
-                          label: Text(strings.editEntry),
-                        ),
-                    ],
-                  ),
-                ],
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
 class _CalendarFilterCard extends StatelessWidget {
   const _CalendarFilterCard({
     required this.mode,
     required this.selectionLabel,
     required this.matchCount,
-    required this.hasActiveFilter,
-    required this.hasDaySelection,
-    required this.hasRangeSelection,
     required this.onSelectAll,
     required this.onPickDay,
     required this.onPickRange,
@@ -469,9 +303,6 @@ class _CalendarFilterCard extends StatelessWidget {
   final _CalendarFilterMode mode;
   final String selectionLabel;
   final int matchCount;
-  final bool hasActiveFilter;
-  final bool hasDaySelection;
-  final bool hasRangeSelection;
   final VoidCallback onSelectAll;
   final VoidCallback onPickDay;
   final VoidCallback onPickRange;
@@ -505,45 +336,6 @@ class _CalendarFilterCard extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  DecoratedBox(
-                    decoration: BoxDecoration(
-                      color: colorScheme.primary.withValues(alpha: 0.12),
-                      borderRadius: BorderRadius.circular(18),
-                    ),
-                    child: Padding(
-                      padding: const EdgeInsets.all(12),
-                      child: Icon(
-                        Icons.calendar_month_outlined,
-                        color: colorScheme.primary,
-                      ),
-                    ),
-                  ),
-                  const SizedBox(width: 14),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          strings.calendarViewTitle,
-                          style: theme.textTheme.titleLarge,
-                        ),
-                        const SizedBox(height: 6),
-                        Text(
-                          strings.calendarViewHint,
-                          style: theme.textTheme.bodyMedium?.copyWith(
-                            color: colorScheme.onSurfaceVariant,
-                            height: 1.4,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 18),
               Wrap(
                 spacing: 10,
                 runSpacing: 10,
@@ -554,12 +346,12 @@ class _CalendarFilterCard extends StatelessWidget {
                     onSelected: (_) => onSelectAll(),
                   ),
                   ChoiceChip(
-                    label: Text(strings.singleDateFilter),
+                    label: Text(strings.pickDate),
                     selected: mode == _CalendarFilterMode.day,
                     onSelected: (_) => onPickDay(),
                   ),
                   ChoiceChip(
-                    label: Text(strings.rangeFilter),
+                    label: Text(strings.pickDateRange),
                     selected: mode == _CalendarFilterMode.range,
                     onSelected: (_) => onPickRange(),
                   ),
@@ -578,35 +370,6 @@ class _CalendarFilterCard extends StatelessWidget {
                     label: strings.matchedEntryCountLabel(matchCount),
                     icon: Icons.menu_book_outlined,
                   ),
-                ],
-              ),
-              const SizedBox(height: 16),
-              Wrap(
-                spacing: 12,
-                runSpacing: 12,
-                children: [
-                  FilledButton.tonalIcon(
-                    onPressed: onPickDay,
-                    icon: const Icon(Icons.calendar_today_outlined),
-                    label: Text(
-                      hasDaySelection ? strings.changeDate : strings.pickDate,
-                    ),
-                  ),
-                  FilledButton.tonalIcon(
-                    onPressed: onPickRange,
-                    icon: const Icon(Icons.date_range_outlined),
-                    label: Text(
-                      hasRangeSelection
-                          ? strings.changeDateRange
-                          : strings.pickDateRange,
-                    ),
-                  ),
-                  if (hasActiveFilter)
-                    TextButton.icon(
-                      onPressed: onSelectAll,
-                      icon: const Icon(Icons.filter_alt_off_outlined),
-                      label: Text(strings.clearDateFilter),
-                    ),
                 ],
               ),
             ],
@@ -640,52 +403,6 @@ class _SectionHeader extends StatelessWidget {
         ),
         if (trailing != null) trailing!,
       ],
-    );
-  }
-}
-
-class _HeroMetric extends StatelessWidget {
-  const _HeroMetric({
-    required this.icon,
-    required this.label,
-  });
-
-  final IconData icon;
-  final String label;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final colorScheme = theme.colorScheme;
-
-    return DecoratedBox(
-      decoration: BoxDecoration(
-        color: colorScheme.surface.withValues(alpha: 0.54),
-        borderRadius: BorderRadius.circular(22),
-        border: Border.all(
-          color: colorScheme.outlineVariant.withValues(alpha: 0.36),
-        ),
-      ),
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(
-              icon,
-              size: 18,
-              color: colorScheme.primary,
-            ),
-            const SizedBox(width: 10),
-            Text(
-              label,
-              style: theme.textTheme.labelLarge?.copyWith(
-                fontWeight: FontWeight.w700,
-              ),
-            ),
-          ],
-        ),
-      ),
     );
   }
 }
