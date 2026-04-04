@@ -152,3 +152,7 @@ chmod +x ./tools/build_macos_installer.sh
 - `dist/macos-installer/*.dmg`
 
 如果需要在 CI 中同时产出安装包，可以使用 `.github/workflows/build_desktop_installers.yml`。
+
+## 开源协议
+
+本项目采用 [MIT 协议](./LICENSE) 开源。

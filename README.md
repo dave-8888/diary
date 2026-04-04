@@ -152,3 +152,7 @@ Build outputs:
 - `dist/macos-installer/*.dmg`
 
 If you need CI artifacts, use `.github/workflows/build_desktop_installers.yml`.
+
+## License
+
+This project is licensed under the [MIT License](./LICENSE).
