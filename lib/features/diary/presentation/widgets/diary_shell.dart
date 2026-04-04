@@ -75,10 +75,10 @@ class DiaryShell extends ConsumerWidget {
                   children: [
                     if (shouldShowAppBar)
                       Padding(
-                        padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
+                        padding: const EdgeInsets.fromLTRB(18, 18, 18, 0),
                         child: _ShellGlassPanel(
                           radius: _panelRadius,
-                          padding: const EdgeInsets.fromLTRB(16, 12, 12, 12),
+                          padding: const EdgeInsets.fromLTRB(18, 14, 14, 14),
                           child: Row(
                             children: [
                               if (showAppBarTitle)
@@ -102,7 +102,8 @@ class DiaryShell extends ConsumerWidget {
                       ),
                     Expanded(
                       child: Padding(
-                        padding: compactBodyPadding ?? const EdgeInsets.all(16),
+                        padding: compactBodyPadding ??
+                            const EdgeInsets.fromLTRB(18, 18, 18, 24),
                         child: child,
                       ),
                     ),
@@ -113,10 +114,11 @@ class DiaryShell extends ConsumerWidget {
             bottomNavigationBar: SafeArea(
               top: false,
               child: Padding(
-                padding: const EdgeInsets.fromLTRB(12, 0, 12, 12),
+                padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
                 child: _ShellGlassPanel(
                   radius: _panelRadius,
-                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 8),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
                   child: CupertinoTheme(
                     data: CupertinoTheme.of(context),
                     child: CupertinoTabBar(
@@ -161,14 +163,14 @@ class DiaryShell extends ConsumerWidget {
             themePreset: selectedTheme,
             child: SafeArea(
               child: Padding(
-                padding: const EdgeInsets.fromLTRB(18, 10, 18, 18),
+                padding: const EdgeInsets.fromLTRB(24, 18, 24, 24),
                 child: Row(
                   children: [
                     SizedBox(
-                      width: 118,
+                      width: 112,
                       child: _ShellGlassPanel(
                         radius: _panelRadius + 2,
-                        padding: const EdgeInsets.fromLTRB(10, 14, 10, 10),
+                        padding: const EdgeInsets.fromLTRB(10, 16, 10, 10),
                         child: Column(
                           children: [
                             _RailBrand(
@@ -211,17 +213,17 @@ class DiaryShell extends ConsumerWidget {
                         ),
                       ),
                     ),
-                    const SizedBox(width: 20),
+                    const SizedBox(width: 24),
                     Expanded(
                       child: Column(
                         children: [
                           if (shouldShowAppBar)
                             Padding(
-                              padding: const EdgeInsets.only(bottom: 16),
+                              padding: const EdgeInsets.only(bottom: 18),
                               child: _ShellGlassPanel(
                                 radius: _panelRadius,
                                 padding:
-                                    const EdgeInsets.fromLTRB(18, 12, 14, 12),
+                                    const EdgeInsets.fromLTRB(18, 14, 14, 14),
                                 child: Row(
                                   children: [
                                     if (showAppBarTitle)
@@ -245,9 +247,8 @@ class DiaryShell extends ConsumerWidget {
                             ),
                           Expanded(
                             child: Padding(
-                              padding:
-                                  expandedBodyPadding ??
-                                  const EdgeInsets.all(20),
+                              padding: expandedBodyPadding ??
+                                  const EdgeInsets.fromLTRB(24, 6, 24, 24),
                               child: child,
                             ),
                           ),
@@ -382,17 +383,19 @@ class _RailFooterAction extends StatelessWidget {
           curve: Curves.easeOutCubic,
           decoration: BoxDecoration(
             color: selected
-                ? colorScheme.primary.withValues(alpha: isDark ? 0.22 : 0.12)
-                : surfaceColor.withValues(alpha: isDark ? 0.12 : 0.32),
+                ? colorScheme.primary.withValues(alpha: isDark ? 0.18 : 0.08)
+                : surfaceColor.withValues(alpha: isDark ? 0.08 : 0.16),
             borderRadius: BorderRadius.circular(22),
             border: Border.all(
               color: selected
-                  ? colorScheme.primary.withValues(alpha: 0.18)
-                  : colorScheme.outlineVariant.withValues(alpha: 0.28),
+                  ? colorScheme.primary.withValues(alpha: isDark ? 0.26 : 0.14)
+                  : colorScheme.outlineVariant.withValues(
+                      alpha: isDark ? 0.24 : 0.16,
+                    ),
             ),
           ),
           child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 12),
+            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 11),
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
@@ -434,15 +437,17 @@ class _RailBrand extends StatelessWidget {
     return DecoratedBox(
       decoration: BoxDecoration(
         color: colorScheme.primary.withValues(
-          alpha: colorScheme.brightness == Brightness.dark ? 0.14 : 0.08,
+          alpha: colorScheme.brightness == Brightness.dark ? 0.1 : 0.04,
         ),
         borderRadius: BorderRadius.circular(24),
         border: Border.all(
-          color: colorScheme.primary.withValues(alpha: 0.18),
+          color: colorScheme.primary.withValues(
+            alpha: colorScheme.brightness == Brightness.dark ? 0.16 : 0.1,
+          ),
         ),
       ),
       child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 12),
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 14),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
@@ -489,25 +494,25 @@ class _ShellGlassPanel extends StatelessWidget {
     return ClipRRect(
       borderRadius: BorderRadius.circular(radius),
       child: BackdropFilter(
-        filter: ImageFilter.blur(sigmaX: 18, sigmaY: 18),
+        filter: ImageFilter.blur(sigmaX: 14, sigmaY: 14),
         child: DecoratedBox(
           decoration: BoxDecoration(
             color: Color.alphaBlend(
-              colorScheme.primary.withValues(alpha: isDark ? 0.12 : 0.03),
+              colorScheme.primary.withValues(alpha: isDark ? 0.08 : 0.02),
               baseColor,
-            ).withValues(alpha: isDark ? 0.84 : 0.76),
+            ).withValues(alpha: isDark ? 0.78 : 0.68),
             borderRadius: BorderRadius.circular(radius),
             border: Border.all(
               color: colorScheme.outlineVariant.withValues(
-                alpha: isDark ? 0.56 : 0.34,
+                alpha: isDark ? 0.42 : 0.22,
               ),
             ),
             boxShadow: [
               BoxShadow(
                 color:
-                    colorScheme.shadow.withValues(alpha: isDark ? 0.3 : 0.08),
-                blurRadius: 28,
-                offset: const Offset(0, 18),
+                    colorScheme.shadow.withValues(alpha: isDark ? 0.22 : 0.04),
+                blurRadius: 18,
+                offset: const Offset(0, 10),
               ),
             ],
           ),
@@ -561,10 +566,10 @@ class _ThemedShellBackground extends StatelessWidget {
             end: Alignment.bottomRight,
             colors: [
               theme.scaffoldBackgroundColor,
-              colorScheme.primaryContainer.withValues(alpha: 0.72),
+              colorScheme.primaryContainer.withValues(alpha: 0.34),
               theme.scaffoldBackgroundColor,
             ],
-            stops: const [0, 0.38, 1],
+            stops: const [0, 0.3, 1],
           ),
         );
       case DiaryThemePreset.girlPink:
@@ -673,9 +678,9 @@ class _ThemedShellBackground extends StatelessWidget {
     switch (themePreset) {
       case DiaryThemePreset.daylight:
         return _DaylightBackgroundPainter(
-          primary: colorScheme.primary.withValues(alpha: 0.1),
-          secondary: colorScheme.secondary.withValues(alpha: 0.12),
-          line: colorScheme.outlineVariant.withValues(alpha: 0.3),
+          primary: colorScheme.primary.withValues(alpha: 0.06),
+          secondary: colorScheme.secondary.withValues(alpha: 0.08),
+          line: colorScheme.outlineVariant.withValues(alpha: 0.18),
         );
       case DiaryThemePreset.girlPink:
         return _GirlPinkBackgroundPainter(

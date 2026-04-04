@@ -46,7 +46,21 @@ class EntryListPreview extends StatelessWidget {
     final titleText =
         entry.title.trim().isEmpty ? strings.untitledEntry : entry.title;
     final contentText = entry.content.trim();
-    final contentStyle = theme.textTheme.bodyMedium?.copyWith(height: 1.45);
+    final titleStyle = theme.textTheme.titleLarge?.copyWith(
+      fontSize: 22,
+      fontWeight: FontWeight.w700,
+      height: 1.15,
+      letterSpacing: -0.4,
+    );
+    final metadataStyle = theme.textTheme.labelMedium?.copyWith(
+      color: theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.9),
+      fontWeight: FontWeight.w500,
+      letterSpacing: 0.12,
+    );
+    final contentStyle = theme.textTheme.bodyMedium?.copyWith(
+      height: 1.58,
+      color: theme.colorScheme.onSurface.withValues(alpha: 0.88),
+    );
 
     final previewTiles = showVisualMedia
         ? <_CompactPreviewSpec>[
@@ -81,7 +95,7 @@ class EntryListPreview extends StatelessWidget {
           children: [
             if (leading != null) ...[
               leading!,
-              const SizedBox(width: 12),
+              const SizedBox(width: 14),
             ],
             Expanded(
               child: Column(
@@ -91,14 +105,12 @@ class EntryListPreview extends StatelessWidget {
                     titleText,
                     maxLines: 2,
                     overflow: TextOverflow.ellipsis,
-                    style: theme.textTheme.titleLarge,
+                    style: titleStyle,
                   ),
-                  const SizedBox(height: 4),
+                  const SizedBox(height: 6),
                   Text(
                     strings.formatDateTime(entry.createdAt),
-                    style: theme.textTheme.bodySmall?.copyWith(
-                      color: theme.colorScheme.onSurfaceVariant,
-                    ),
+                    style: metadataStyle,
                   ),
                 ],
               ),
@@ -115,7 +127,7 @@ class EntryListPreview extends StatelessWidget {
           ],
         ),
         if (previewTiles.isNotEmpty) ...[
-          const SizedBox(height: 16),
+          const SizedBox(height: 18),
           LayoutBuilder(
             builder: (context, constraints) {
               final isStacked = constraints.maxWidth < _compactLayoutBreakpoint;
@@ -179,14 +191,14 @@ class EntryListPreview extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   previewStrip,
-                  const SizedBox(width: 16),
+                  const SizedBox(width: 18),
                   Expanded(child: contentPreview),
                 ],
               );
             },
           ),
         ] else if (contentText.isNotEmpty) ...[
-          const SizedBox(height: 16),
+          const SizedBox(height: 18),
           Text(
             contentText,
             key: ValueKey('entry-content-preview-${entry.id}'),
@@ -196,7 +208,7 @@ class EntryListPreview extends StatelessWidget {
           ),
         ],
         if (entry.tags.isNotEmpty) ...[
-          const SizedBox(height: 16),
+          const SizedBox(height: 18),
           Wrap(
             spacing: 8,
             runSpacing: 8,
@@ -206,7 +218,7 @@ class EntryListPreview extends StatelessWidget {
           ),
         ],
         if (detailChips.isNotEmpty) ...[
-          const SizedBox(height: 12),
+          const SizedBox(height: 14),
           Wrap(
             spacing: 8,
             runSpacing: 8,
@@ -214,7 +226,7 @@ class EntryListPreview extends StatelessWidget {
           ),
         ],
         if (audioMedia.isNotEmpty) ...[
-          const SizedBox(height: 12),
+          const SizedBox(height: 14),
           ...audioMedia.map(
             (media) => Padding(
               padding: const EdgeInsets.only(bottom: 10),

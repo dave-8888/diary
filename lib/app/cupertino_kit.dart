@@ -32,32 +32,33 @@ class CupertinoActionButton extends StatelessWidget {
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
     final accent = destructive ? colorScheme.error : colorScheme.primary;
+    final isDark = colorScheme.brightness == Brightness.dark;
     final enabled = onPressed != null && !isBusy;
 
     final (backgroundColor, foregroundColor, borderColor) = switch (variant) {
       CupertinoActionButtonVariant.filled => (
-        destructive ? colorScheme.error : accent,
-        destructive ? colorScheme.onError : colorScheme.onPrimary,
-        Colors.transparent,
-      ),
+          destructive ? colorScheme.error : accent,
+          destructive ? colorScheme.onError : colorScheme.onPrimary,
+          Colors.transparent,
+        ),
       CupertinoActionButtonVariant.tinted => (
-        accent.withValues(alpha: 0.12),
-        accent,
-        accent.withValues(alpha: 0.18),
-      ),
+          accent.withValues(alpha: isDark ? 0.18 : 0.08),
+          accent,
+          accent.withValues(alpha: isDark ? 0.24 : 0.14),
+        ),
       CupertinoActionButtonVariant.outline => (
-        theme.cardTheme.color?.withValues(alpha: 0.76) ??
-            colorScheme.surface.withValues(alpha: 0.76),
-        destructive ? colorScheme.error : colorScheme.onSurface,
-        destructive
-            ? colorScheme.error.withValues(alpha: 0.18)
-            : colorScheme.outlineVariant.withValues(alpha: 0.6),
-      ),
+          theme.cardTheme.color?.withValues(alpha: isDark ? 0.6 : 0.52) ??
+              colorScheme.surface.withValues(alpha: isDark ? 0.6 : 0.52),
+          destructive ? colorScheme.error : colorScheme.onSurface,
+          destructive
+              ? colorScheme.error.withValues(alpha: 0.2)
+              : colorScheme.outlineVariant.withValues(alpha: 0.42),
+        ),
       CupertinoActionButtonVariant.plain => (
-        Colors.transparent,
-        accent,
-        Colors.transparent,
-      ),
+          Colors.transparent,
+          accent,
+          Colors.transparent,
+        ),
     };
 
     final content = DefaultTextStyle.merge(
@@ -105,7 +106,7 @@ class CupertinoActionButton extends StatelessWidget {
         child: DecoratedBox(
           decoration: BoxDecoration(
             color: backgroundColor,
-            borderRadius: BorderRadius.circular(16),
+            borderRadius: BorderRadius.circular(18),
             border: Border.all(color: borderColor),
           ),
           child: ConstrainedBox(
@@ -149,15 +150,17 @@ class CupertinoPill extends StatelessWidget {
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
     final accent = destructive ? colorScheme.error : colorScheme.primary;
+    final isDark = colorScheme.brightness == Brightness.dark;
     final backgroundColor = selected
-        ? accent.withValues(alpha: 0.14)
-        : (theme.cardTheme.color?.withValues(alpha: 0.72) ??
-            colorScheme.surface.withValues(alpha: 0.72));
-    final foregroundColor =
-        selected ? accent : (destructive ? colorScheme.error : colorScheme.onSurfaceVariant);
+        ? accent.withValues(alpha: isDark ? 0.2 : 0.08)
+        : (theme.cardTheme.color?.withValues(alpha: isDark ? 0.58 : 0.48) ??
+            colorScheme.surface.withValues(alpha: isDark ? 0.58 : 0.48));
+    final foregroundColor = selected
+        ? accent
+        : (destructive ? colorScheme.error : colorScheme.onSurfaceVariant);
     final borderColor = selected
-        ? accent.withValues(alpha: 0.2)
-        : colorScheme.outlineVariant.withValues(alpha: 0.45);
+        ? accent.withValues(alpha: isDark ? 0.28 : 0.16)
+        : colorScheme.outlineVariant.withValues(alpha: isDark ? 0.42 : 0.28);
 
     final body = DecoratedBox(
       decoration: BoxDecoration(
