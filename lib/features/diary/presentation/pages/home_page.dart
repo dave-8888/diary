@@ -160,6 +160,8 @@ class _HomeListState extends State<_HomeList> {
       initialDate: initialDate,
       firstDate: bounds.firstDate,
       lastDate: bounds.lastDate,
+      initialEntryMode: DatePickerEntryMode.inputOnly,
+      builder: _buildExpandedDatePickerDialog,
     );
     if (!mounted || picked == null) return;
     setState(() {
@@ -193,6 +195,8 @@ class _HomeListState extends State<_HomeList> {
       firstDate: bounds.firstDate,
       lastDate: bounds.lastDate,
       initialDateRange: initialDateRange,
+      initialEntryMode: DatePickerEntryMode.inputOnly,
+      builder: _buildExpandedDatePickerDialog,
     );
     if (!mounted || picked == null) return;
     setState(() {
@@ -287,6 +291,26 @@ class _HomeListState extends State<_HomeList> {
       return bounds.lastDate;
     }
     return normalized;
+  }
+
+  Widget _buildExpandedDatePickerDialog(BuildContext context, Widget? child) {
+    if (child == null) {
+      return const SizedBox.shrink();
+    }
+
+    final screenSize = MediaQuery.sizeOf(context);
+    final shouldExpand = screenSize.width >= 540 && screenSize.height >= 420;
+
+    if (!shouldExpand) {
+      return child;
+    }
+
+    return Center(
+      child: Transform.scale(
+        scale: 1.12,
+        child: child,
+      ),
+    );
   }
 }
 
