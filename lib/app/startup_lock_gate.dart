@@ -181,6 +181,15 @@ class _StartupLockScreenState extends ConsumerState<_StartupLockScreen> {
                       autocorrect: false,
                       textInputAction: TextInputAction.done,
                       placeholder: strings.passcodeHint,
+                      style: theme.textTheme.bodyLarge?.copyWith(
+                        decoration: TextDecoration.none,
+                      ),
+                      placeholderStyle: theme.textTheme.bodyLarge?.copyWith(
+                        color: colorScheme.onSurfaceVariant.withValues(
+                          alpha: 0.58,
+                        ),
+                        decoration: TextDecoration.none,
+                      ),
                       padding: const EdgeInsets.symmetric(
                         horizontal: 16,
                         vertical: 14,
@@ -233,7 +242,8 @@ class _StartupLockScreenState extends ConsumerState<_StartupLockScreen> {
                                     )
                                   : Text(
                                       strings.unlockAction,
-                                      style: theme.textTheme.labelLarge?.copyWith(
+                                      style:
+                                          theme.textTheme.labelLarge?.copyWith(
                                         color: colorScheme.onPrimary,
                                       ),
                                     ),

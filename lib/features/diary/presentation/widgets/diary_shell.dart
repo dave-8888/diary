@@ -173,11 +173,6 @@ class DiaryShell extends ConsumerWidget {
                         padding: const EdgeInsets.fromLTRB(10, 16, 10, 10),
                         child: Column(
                           children: [
-                            _RailBrand(
-                              iconSelection: selectedIcon,
-                              title: title,
-                            ),
-                            const SizedBox(height: 14),
                             _RailFooterAction(
                               icon: CupertinoIcons.house_fill,
                               label: strings.homeNav,
@@ -367,10 +362,12 @@ class _RailFooterAction extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
-    final surfaceColor = theme.cardTheme.color ?? colorScheme.surface;
     final isDark = colorScheme.brightness == Brightness.dark;
     final foregroundColor =
         selected ? colorScheme.primary : colorScheme.onSurfaceVariant;
+    final tileColor = selected
+        ? colorScheme.primary.withValues(alpha: isDark ? 0.16 : 0.1)
+        : colorScheme.surface.withValues(alpha: isDark ? 0.14 : 0.22);
 
     return SizedBox(
       width: double.infinity,
@@ -378,95 +375,50 @@ class _RailFooterAction extends StatelessWidget {
         padding: EdgeInsets.zero,
         minimumSize: Size.zero,
         onPressed: onTap,
-        child: AnimatedContainer(
-          duration: const Duration(milliseconds: 180),
-          curve: Curves.easeOutCubic,
-          decoration: BoxDecoration(
-            color: selected
-                ? colorScheme.primary.withValues(alpha: isDark ? 0.18 : 0.08)
-                : surfaceColor.withValues(alpha: isDark ? 0.08 : 0.16),
-            borderRadius: BorderRadius.circular(22),
-            border: Border.all(
-              color: selected
-                  ? colorScheme.primary.withValues(alpha: isDark ? 0.26 : 0.14)
-                  : colorScheme.outlineVariant.withValues(
-                      alpha: isDark ? 0.24 : 0.16,
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(22),
+          child: BackdropFilter(
+            filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
+            child: AnimatedContainer(
+              duration: const Duration(milliseconds: 180),
+              curve: Curves.easeOutCubic,
+              decoration: BoxDecoration(
+                color: tileColor,
+                borderRadius: BorderRadius.circular(22),
+                boxShadow: [
+                  BoxShadow(
+                    color: colorScheme.shadow.withValues(
+                      alpha: isDark ? 0.1 : 0.035,
                     ),
-            ),
-          ),
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 11),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Icon(icon, color: foregroundColor),
-                const SizedBox(height: 6),
-                Text(
-                  label,
-                  maxLines: 2,
-                  textAlign: TextAlign.center,
-                  overflow: TextOverflow.ellipsis,
-                  style: theme.textTheme.labelMedium?.copyWith(
-                    color: foregroundColor,
-                    fontWeight: selected ? FontWeight.w700 : FontWeight.w600,
+                    blurRadius: 10,
+                    offset: const Offset(0, 6),
                   ),
+                ],
+              ),
+              child: Padding(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 8, vertical: 11),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(icon, color: foregroundColor),
+                    const SizedBox(height: 6),
+                    Text(
+                      label,
+                      maxLines: 2,
+                      textAlign: TextAlign.center,
+                      overflow: TextOverflow.ellipsis,
+                      style: theme.textTheme.labelMedium?.copyWith(
+                        color: foregroundColor,
+                        fontWeight:
+                            selected ? FontWeight.w700 : FontWeight.w600,
+                      ),
+                    ),
+                  ],
                 ),
-              ],
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-class _RailBrand extends StatelessWidget {
-  const _RailBrand({
-    required this.iconSelection,
-    required this.title,
-  });
-
-  final AppIconSelection iconSelection;
-  final String title;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final colorScheme = theme.colorScheme;
-
-    return DecoratedBox(
-      decoration: BoxDecoration(
-        color: colorScheme.primary.withValues(
-          alpha: colorScheme.brightness == Brightness.dark ? 0.1 : 0.04,
-        ),
-        borderRadius: BorderRadius.circular(24),
-        border: Border.all(
-          color: colorScheme.primary.withValues(
-            alpha: colorScheme.brightness == Brightness.dark ? 0.16 : 0.1,
-          ),
-        ),
-      ),
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 14),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            AppIconBadge(
-              selection: iconSelection,
-              size: 34,
-            ),
-            const SizedBox(height: 10),
-            Text(
-              title,
-              maxLines: 2,
-              textAlign: TextAlign.center,
-              overflow: TextOverflow.ellipsis,
-              style: theme.textTheme.labelMedium?.copyWith(
-                color: colorScheme.onSurface,
-                fontWeight: FontWeight.w700,
               ),
             ),
-          ],
+          ),
         ),
       ),
     );
@@ -490,29 +442,37 @@ class _ShellGlassPanel extends StatelessWidget {
     final colorScheme = theme.colorScheme;
     final baseColor = theme.cardTheme.color ?? colorScheme.surface;
     final isDark = colorScheme.brightness == Brightness.dark;
+    final panelBase = Color.alphaBlend(
+      colorScheme.primary.withValues(alpha: isDark ? 0.06 : 0.018),
+      baseColor,
+    );
 
     return ClipRRect(
       borderRadius: BorderRadius.circular(radius),
       child: BackdropFilter(
-        filter: ImageFilter.blur(sigmaX: 14, sigmaY: 14),
+        filter: ImageFilter.blur(sigmaX: 22, sigmaY: 22),
         child: DecoratedBox(
           decoration: BoxDecoration(
-            color: Color.alphaBlend(
-              colorScheme.primary.withValues(alpha: isDark ? 0.08 : 0.02),
-              baseColor,
-            ).withValues(alpha: isDark ? 0.78 : 0.68),
+            gradient: LinearGradient(
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+              colors: [
+                panelBase.withValues(alpha: isDark ? 0.62 : 0.5),
+                panelBase.withValues(alpha: isDark ? 0.5 : 0.36),
+              ],
+            ),
             borderRadius: BorderRadius.circular(radius),
             border: Border.all(
               color: colorScheme.outlineVariant.withValues(
-                alpha: isDark ? 0.42 : 0.22,
+                alpha: isDark ? 0.2 : 0.12,
               ),
             ),
             boxShadow: [
               BoxShadow(
                 color:
-                    colorScheme.shadow.withValues(alpha: isDark ? 0.22 : 0.04),
-                blurRadius: 18,
-                offset: const Offset(0, 10),
+                    colorScheme.shadow.withValues(alpha: isDark ? 0.16 : 0.03),
+                blurRadius: 24,
+                offset: const Offset(0, 12),
               ),
             ],
           ),

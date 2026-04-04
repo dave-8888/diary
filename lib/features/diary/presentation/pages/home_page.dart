@@ -287,7 +287,7 @@ class _HomeListState extends State<_HomeList> {
     return strings.allDatesLabel;
   }
 
-  String _sectionTitle(AppStrings strings) {
+  String? _sectionTitle(AppStrings strings) {
     if (_filterMode == _CalendarFilterMode.day && _selectedDay != null) {
       return strings.entriesForDate(_selectedDay!);
     }
@@ -297,7 +297,7 @@ class _HomeListState extends State<_HomeList> {
         _selectedRange!.end,
       );
     }
-    return strings.recentEntries;
+    return null;
   }
 
   String _emptyStateTitle(AppStrings strings) {
@@ -579,17 +579,29 @@ class _CalendarFilterCard extends StatelessWidget {
 
 class _SectionHeader extends StatelessWidget {
   const _SectionHeader({
-    required this.title,
+    this.title,
     this.trailing,
   });
 
-  final String title;
+  final String? title;
   final Widget? trailing;
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final isCompact = MediaQuery.sizeOf(context).width < 720;
+    final title = this.title;
+    final hasTitle = title != null && title.trim().isNotEmpty;
+
+    if (!hasTitle) {
+      if (trailing == null) {
+        return const SizedBox.shrink();
+      }
+      return Align(
+        alignment: Alignment.centerRight,
+        child: trailing,
+      );
+    }
 
     return Row(
       crossAxisAlignment: CrossAxisAlignment.end,
