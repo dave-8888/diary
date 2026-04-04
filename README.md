@@ -1,6 +1,8 @@
 # Diary MVP
 
-Desktop-first Flutter diary app with local-first storage, startup passcode protection, and media-rich diary editing.
+[简体中文](./README.zh-CN.md) | English
+
+Diary MVP is a desktop-first Flutter diary app focused on local-first storage, privacy-friendly personal writing, and media-rich journaling. It combines offline diary management with optional AI-assisted reflection, audio transcription, and migration tools for moving data between devices.
 
 ## Screenshots
 
@@ -8,73 +10,136 @@ Desktop-first Flutter diary app with local-first storage, startup passcode prote
 
 ![Home screen](docs/images/home.png)
 
-Review recent diary entries, mood summary, and quick actions from the desktop home page.
+Review recent entries, mood summaries, and quick actions from the home page.
 
 ### Write diary
 
 ![Diary editor](docs/images/editor.png)
 
-Create rich diary entries with title, text, image import, camera capture, video recording, audio recording, location, and mood selection.
+Create diary entries with title, content, mood, tags, location, images, video, and audio attachments.
 
 ### AI diary assistant
 
 ![AI diary assistant](docs/images/editor-ai.png)
 
-Analyze the current entry and surface a summary, emotional companionship, suggestions, and recommended tags alongside the editor.
+Generate summaries, suggested tags, emotional support text, and problem-oriented prompts for the current draft.
 
 ### Settings
 
 ![Settings screen](docs/images/settings.png)
 
-Manage theme, language, media visibility, startup passcode, app identity, and AI-related preferences in one place.
+Manage theme, language, startup passcode, media visibility, app identity, AI settings, and transcription settings.
 
-## Implemented
+## Features
 
-- `drift` + SQLite persistence for diary entries and media records
-- local file storage for imported images and recorded audio
-- audio recording with `record`
+- Local-first diary storage with `drift` + SQLite
+- Desktop-oriented navigation and responsive layouts
+- Rich diary editor with image import, camera capture, video recording, and audio recording
+- Mood, tags, and location support for each entry
+- Timeline view for browsing all entries
+- Trash flow with preview, restore, multi-select, and permanent cleanup
+- Single-entry export to Markdown and plain text with copied media files
+- Full migration package export/import for entries, trash, media, tags, and mood library
 - 6-digit startup passcode with local hashed storage
-- unsaved-change reminders before leaving the editor
-- responsive navigation (`NavigationRail` on desktop, `NavigationBar` on narrow layouts)
+- Configurable AI analysis using OpenAI-compatible chat completion APIs
+- Audio transcription using `whisper-1`
+- Customizable theme, language, app display name, and app icon
 
-## Data and media paths
+## Tech Stack
 
-The app writes data under app documents:
+- Flutter
+- Riverpod
+- GoRouter
+- Drift + SQLite
+- `record`, `camera`, `media_kit`, `audioplayers`
 
-- `diary_mvp/db/diary.db`
-- `diary_mvp/user_data/diary/images/*`
-- `diary_mvp/user_data/diary/audio/*`
-
-## Project structure
+## Project Structure
 
 ```text
 lib/
   app/
   core/storage/
   features/diary/
+test/
+tools/
+docs/
 ```
 
-- `app/` contains app shell, theme, and routes
-- `core/storage/` contains local file path management
-- `features/diary/data/local/` contains drift database access
-- `features/diary/services/` contains local settings and service integrations
+- `lib/app/` contains app shell, routing, theme, localization, and startup lock
+- `lib/core/storage/` contains local file storage helpers
+- `lib/features/diary/data/local/` contains the database layer
+- `lib/features/diary/presentation/` contains pages and widgets
+- `lib/features/diary/services/` contains AI, export, migration, transcription, location, and settings services
 
-## Run
+## Getting Started
+
+### Requirements
+
+- Flutter SDK with Dart `>=3.4.0 <4.0.0`
+
+### Install dependencies
 
 ```bash
 flutter pub get
+```
+
+### Run on Windows
+
+```bash
 flutter run -d windows
 ```
 
-## Desktop packaging
+### Run tests
 
-Windows installer:
+```bash
+flutter test
+```
+
+## AI and Transcription
+
+AI analysis and audio transcription are optional.
+
+- AI analysis can be configured in the app settings and supports OpenAI-compatible chat completion providers
+- The app includes presets for Qwen / DashScope, OpenAI, Claude-compatible, Gemini-compatible, OpenRouter, and custom providers
+- Audio transcription uses OpenAI `whisper-1`
+- Keys can be saved in app settings, or passed at launch with Dart defines
+
+Example:
+
+```bash
+flutter run -d windows ^
+  --dart-define=DIARY_AI_API_KEY=your_ai_key ^
+  --dart-define=OPENAI_API_KEY=your_openai_key
+```
+
+Environment fallback keys used by the app:
+
+- `DIARY_AI_API_KEY`
+- `DASHSCOPE_API_KEY` (legacy fallback)
+- `OPENAI_API_KEY`
+
+## Local Data Paths
+
+App data is stored under the application documents directory:
+
+- `diary_mvp/db/diary.db`
+- `diary_mvp/user_data/diary/images/`
+- `diary_mvp/user_data/diary/audio/`
+- `diary_mvp/user_data/diary/video/`
+- `diary_mvp/user_data/trash/`
+- `diary_mvp/settings/`
+
+## Packaging
+
+### Windows installer
 
 ```powershell
 powershell -ExecutionPolicy Bypass -File .\tools\build_windows_installer.ps1
 ```
 
-macOS DMG (must be run on a Mac or macOS CI runner):
+### macOS DMG
+
+This must be run on macOS or a macOS CI runner.
 
 ```bash
 chmod +x ./tools/build_macos_installer.sh
@@ -86,4 +151,4 @@ Build outputs:
 - `dist/windows-installer/*.exe`
 - `dist/macos-installer/*.dmg`
 
-If you want both artifacts from CI, use the GitHub Actions workflow at `.github/workflows/build_desktop_installers.yml`.
+If you need CI artifacts, use `.github/workflows/build_desktop_installers.yml`.
