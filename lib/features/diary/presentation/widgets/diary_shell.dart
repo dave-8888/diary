@@ -117,6 +117,7 @@ class DiaryShell extends ConsumerWidget {
                 padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
                 child: _ShellGlassPanel(
                   radius: _panelRadius,
+                  showBorder: false,
                   padding:
                       const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
                   child: CupertinoTheme(
@@ -170,6 +171,7 @@ class DiaryShell extends ConsumerWidget {
                       width: 112,
                       child: _ShellGlassPanel(
                         radius: _panelRadius + 2,
+                        showBorder: false,
                         padding: const EdgeInsets.fromLTRB(10, 16, 10, 10),
                         child: Column(
                           children: [
@@ -362,12 +364,8 @@ class _RailFooterAction extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
-    final isDark = colorScheme.brightness == Brightness.dark;
     final foregroundColor =
         selected ? colorScheme.primary : colorScheme.onSurfaceVariant;
-    final tileColor = selected
-        ? colorScheme.primary.withValues(alpha: isDark ? 0.16 : 0.1)
-        : colorScheme.surface.withValues(alpha: isDark ? 0.14 : 0.22);
 
     return SizedBox(
       width: double.infinity,
@@ -375,49 +373,24 @@ class _RailFooterAction extends StatelessWidget {
         padding: EdgeInsets.zero,
         minimumSize: Size.zero,
         onPressed: onTap,
-        child: ClipRRect(
-          borderRadius: BorderRadius.circular(22),
-          child: BackdropFilter(
-            filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
-            child: AnimatedContainer(
-              duration: const Duration(milliseconds: 180),
-              curve: Curves.easeOutCubic,
-              decoration: BoxDecoration(
-                color: tileColor,
-                borderRadius: BorderRadius.circular(22),
-                boxShadow: [
-                  BoxShadow(
-                    color: colorScheme.shadow.withValues(
-                      alpha: isDark ? 0.1 : 0.035,
-                    ),
-                    blurRadius: 10,
-                    offset: const Offset(0, 6),
-                  ),
-                ],
-              ),
-              child: Padding(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 8, vertical: 11),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Icon(icon, color: foregroundColor),
-                    const SizedBox(height: 6),
-                    Text(
-                      label,
-                      maxLines: 2,
-                      textAlign: TextAlign.center,
-                      overflow: TextOverflow.ellipsis,
-                      style: theme.textTheme.labelMedium?.copyWith(
-                        color: foregroundColor,
-                        fontWeight:
-                            selected ? FontWeight.w700 : FontWeight.w600,
-                      ),
-                    ),
-                  ],
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 11),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(icon, color: foregroundColor),
+              const SizedBox(height: 6),
+              Text(
+                label,
+                maxLines: 2,
+                textAlign: TextAlign.center,
+                overflow: TextOverflow.ellipsis,
+                style: theme.textTheme.labelMedium?.copyWith(
+                  color: foregroundColor,
+                  fontWeight: selected ? FontWeight.w700 : FontWeight.w600,
                 ),
               ),
-            ),
+            ],
           ),
         ),
       ),
@@ -430,11 +403,13 @@ class _ShellGlassPanel extends StatelessWidget {
     required this.child,
     this.padding = EdgeInsets.zero,
     this.radius = 28,
+    this.showBorder = true,
   });
 
   final Widget child;
   final EdgeInsetsGeometry padding;
   final double radius;
+  final bool showBorder;
 
   @override
   Widget build(BuildContext context) {
@@ -462,11 +437,13 @@ class _ShellGlassPanel extends StatelessWidget {
               ],
             ),
             borderRadius: BorderRadius.circular(radius),
-            border: Border.all(
-              color: colorScheme.outlineVariant.withValues(
-                alpha: isDark ? 0.2 : 0.12,
-              ),
-            ),
+            border: showBorder
+                ? Border.all(
+                    color: colorScheme.outlineVariant.withValues(
+                      alpha: isDark ? 0.2 : 0.12,
+                    ),
+                  )
+                : null,
             boxShadow: [
               BoxShadow(
                 color:
