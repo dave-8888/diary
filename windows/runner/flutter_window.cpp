@@ -22,6 +22,22 @@ std::string ReadStringArgument(const flutter::EncodableMap& arguments,
   return value == nullptr ? std::string() : *value;
 }
 
+std::optional<std::string> ReadOptionalStringArgument(
+    const flutter::EncodableMap& arguments,
+    const char* key) {
+  const auto iterator = arguments.find(flutter::EncodableValue(key));
+  if (iterator == arguments.end()) {
+    return std::nullopt;
+  }
+
+  const auto* value = std::get_if<std::string>(&iterator->second);
+  if (value == nullptr) {
+    return std::nullopt;
+  }
+
+  return *value;
+}
+
 std::optional<bool> ReadBoolArgument(const flutter::EncodableMap& arguments,
                                      const char* key) {
   const auto iterator = arguments.find(flutter::EncodableValue(key));
@@ -171,9 +187,9 @@ void FlutterWindow::RegisterWindowIdentityChannel() {
           return;
         }
 
-        const auto title = Utf16FromUtf8(ReadStringArgument(*arguments, "title"));
+        const auto title = ReadOptionalStringArgument(*arguments, "title");
         const auto icon_path =
-            Utf16FromUtf8(ReadStringArgument(*arguments, "iconPath"));
+            ReadOptionalStringArgument(*arguments, "iconPath");
         const auto prefer_dark_frame =
             ReadBoolArgument(*arguments, "preferDarkFrame");
 
@@ -185,21 +201,27 @@ void FlutterWindow::RegisterWindowIdentityChannel() {
           SetFrameThemePreference(FrameThemePreference::kSystem);
         }
 
-        if (!title.empty()) {
-          ApplyWindowTitle(title);
+        if (title.has_value()) {
+          const auto resolved_title = Utf16FromUtf8(*title);
+          if (!resolved_title.empty()) {
+            ApplyWindowTitle(resolved_title);
+          }
         }
 
-        if (icon_path.empty()) {
-          RestoreDefaultWindowIcon();
-          result->Success();
-          return;
-        }
+        if (icon_path.has_value()) {
+          const auto resolved_icon_path = Utf16FromUtf8(*icon_path);
+          if (resolved_icon_path.empty()) {
+            RestoreDefaultWindowIcon();
+            result->Success();
+            return;
+          }
 
-        if (!ApplyWindowIcon(icon_path)) {
-          RestoreDefaultWindowIcon();
-          result->Error("icon-load-failed",
-                        "Failed to load the requested window icon.");
-          return;
+          if (!ApplyWindowIcon(resolved_icon_path)) {
+            RestoreDefaultWindowIcon();
+            result->Error("icon-load-failed",
+                          "Failed to load the requested window icon.");
+            return;
+          }
         }
 
         result->Success();

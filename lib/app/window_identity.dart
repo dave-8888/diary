@@ -65,22 +65,29 @@ class _WindowIdentitySyncState extends ConsumerState<WindowIdentitySync> {
     final normalizedIconPath = iconSelection.windowIconPath.trim();
     final normalizedIconKey =
         normalizedIconPath.isEmpty ? null : iconSelection.cacheKey;
-    if (_lastTitle == title &&
-        _lastIconKey == normalizedIconKey &&
-        _lastPreferDarkFrame == preferDarkFrame) {
+    final titleChanged = _lastTitle != title;
+    final iconChanged = _lastIconKey != normalizedIconKey;
+    final frameChanged = _lastPreferDarkFrame != preferDarkFrame;
+    if (!titleChanged && !iconChanged && !frameChanged) {
       return;
     }
 
-    _lastTitle = title;
-    _lastIconKey = normalizedIconKey;
-    _lastPreferDarkFrame = preferDarkFrame;
-
     try {
-      await _channel.invokeMethod<void>('applyWindowIdentity', {
-        'title': title,
-        'iconPath': normalizedIconPath,
-        'preferDarkFrame': preferDarkFrame,
-      });
+      final arguments = <String, Object?>{};
+      if (titleChanged) {
+        arguments['title'] = title;
+      }
+      if (iconChanged) {
+        arguments['iconPath'] = normalizedIconPath;
+      }
+      if (frameChanged) {
+        arguments['preferDarkFrame'] = preferDarkFrame;
+      }
+
+      await _channel.invokeMethod<void>('applyWindowIdentity', arguments);
+      _lastTitle = title;
+      _lastIconKey = normalizedIconKey;
+      _lastPreferDarkFrame = preferDarkFrame;
     } catch (_) {
       // Keep startup resilient if the native platform doesn't support updates.
     }

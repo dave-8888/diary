@@ -32,7 +32,11 @@ class DiaryController extends AsyncNotifier<List<DiaryEntry>> {
     required List<DiaryMedia> media,
     DiaryEntryAiAnalysis? aiAnalysis,
   }) async {
-    return _runMutation(() async {
+    final previousState = state;
+    final previousEntries =
+        state.valueOrNull ?? await _repository.listEntries();
+
+    try {
       final entry = await _repository.createEntry(
         title: title,
         content: content,
@@ -43,8 +47,15 @@ class DiaryController extends AsyncNotifier<List<DiaryEntry>> {
         aiAnalysis: aiAnalysis,
       );
       ref.invalidate(tagLibraryControllerProvider);
+      state = AsyncData(_upsertVisibleEntry(previousEntries, entry));
       return entry;
-    });
+    } catch (error, stackTrace) {
+      state = previousState;
+      if (previousState is! AsyncData<List<DiaryEntry>>) {
+        state = AsyncError(error, stackTrace);
+      }
+      rethrow;
+    }
   }
 
   Future<DiaryEntry> updateEntry({
@@ -57,7 +68,11 @@ class DiaryController extends AsyncNotifier<List<DiaryEntry>> {
     required List<DiaryMedia> media,
     DiaryEntryAiAnalysis? aiAnalysis,
   }) async {
-    return _runMutation(() async {
+    final previousState = state;
+    final previousEntries =
+        state.valueOrNull ?? await _repository.listEntries();
+
+    try {
       final updated = await _repository.updateEntry(
         entry: entry,
         title: title,
@@ -69,8 +84,15 @@ class DiaryController extends AsyncNotifier<List<DiaryEntry>> {
         aiAnalysis: aiAnalysis,
       );
       ref.invalidate(tagLibraryControllerProvider);
+      state = AsyncData(_upsertVisibleEntry(previousEntries, updated));
       return updated;
-    });
+    } catch (error, stackTrace) {
+      state = previousState;
+      if (previousState is! AsyncData<List<DiaryEntry>>) {
+        state = AsyncError(error, stackTrace);
+      }
+      rethrow;
+    }
   }
 
   Future<void> moveEntryToTrash(DiaryEntry entry) async {
@@ -108,6 +130,18 @@ class DiaryController extends AsyncNotifier<List<DiaryEntry>> {
       state = AsyncError(error, stackTrace);
       rethrow;
     }
+  }
+
+  List<DiaryEntry> _upsertVisibleEntry(
+    List<DiaryEntry> currentEntries,
+    DiaryEntry nextEntry,
+  ) {
+    final nextEntries = currentEntries
+        .where((entry) => entry.id != nextEntry.id && entry.trashedAt == null)
+        .toList(growable: true)
+      ..add(nextEntry);
+    nextEntries.sort((a, b) => b.createdAt.compareTo(a.createdAt));
+    return List.unmodifiable(nextEntries);
   }
 }
 
