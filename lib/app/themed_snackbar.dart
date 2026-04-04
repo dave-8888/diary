@@ -101,8 +101,8 @@ class _CupertinoToastOverlayState extends State<_CupertinoToastOverlay> {
 
   @override
   Widget build(BuildContext context) {
-    return IgnorePointer(
-      child: Positioned.fill(
+    return Positioned.fill(
+      child: IgnorePointer(
         child: SafeArea(
           child: Align(
             alignment: Alignment.topCenter,

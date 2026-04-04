@@ -23,6 +23,7 @@ import 'package:diary_mvp/features/diary/services/diary_ai_settings.dart';
 import 'package:diary_mvp/features/diary/services/diary_list_settings.dart';
 import 'package:diary_mvp/features/diary/services/password_settings.dart';
 import 'package:diary_mvp/features/diary/services/transcription_settings.dart';
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter/services.dart';
@@ -982,7 +983,68 @@ void main() {
     expect(find.text('#archive'), findsOneWidget);
     expect(find.text(strings.previewEntry), findsOneWidget);
     expect(find.text(strings.restoreEntry), findsOneWidget);
-    expect(find.byType(Checkbox), findsOneWidget);
+    expect(find.byIcon(CupertinoIcons.circle), findsOneWidget);
+  });
+
+  testWidgets('trash page permanently clears only selected entries',
+      (tester) async {
+    final repository = FakeDiaryRepository(
+      moods: DiaryMood.values,
+      trashedEntries: [
+        DiaryEntry(
+          id: 'trash-entry-1',
+          title: 'Selected trash',
+          content: 'Only this one should be permanently deleted.',
+          mood: DiaryMood.sad,
+          createdAt: DateTime(2026, 3, 15, 21),
+          trashedAt: DateTime(2026, 3, 16, 8),
+        ),
+        DiaryEntry(
+          id: 'trash-entry-2',
+          title: 'Remaining trash',
+          content: 'This one should stay in the trash.',
+          mood: DiaryMood.calm,
+          createdAt: DateTime(2026, 3, 14, 21),
+          trashedAt: DateTime(2026, 3, 16, 9),
+        ),
+      ],
+    );
+
+    await pumpPage(
+      tester,
+      const TrashPage(),
+      path: '/trash',
+      overrides: buildOverrides(repository: repository),
+    );
+
+    final clearTrashButton =
+        find.widgetWithText(CupertinoButton, strings.clearTrash).first;
+
+    await tester.tap(clearTrashButton);
+    await tester.pumpAndSettle();
+    expect(find.text(strings.clearTrashConfirmTitle), findsNothing);
+
+    await tester.tap(find.byIcon(CupertinoIcons.circle).first);
+    await tester.pumpAndSettle();
+
+    expect(find.text(strings.selectedEntries(1)), findsOneWidget);
+
+    await tester.tap(clearTrashButton);
+    await tester.pumpAndSettle();
+
+    expect(find.text(strings.clearTrashConfirmTitle), findsOneWidget);
+    expect(find.text(strings.clearTrashConfirmMessage(1)), findsOneWidget);
+
+    await tester.tap(
+      find.widgetWithText(CupertinoDialogAction, strings.confirmClearTrash),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text(strings.trashCleared(1)), findsOneWidget);
+    expect(find.text('Selected trash'), findsNothing);
+    expect(find.text('Remaining trash'), findsOneWidget);
+    expect((await repository.listTrashedEntries()).map((entry) => entry.id),
+        ['trash-entry-2']);
   });
 
   testWidgets(
@@ -1766,7 +1828,10 @@ class FakeDiaryRepository implements DiaryRepository {
   }
 
   @override
-  Future<void> deleteEntry(String id) async {}
+  Future<void> deleteEntry(String id) async {
+    _entries.removeWhere((item) => item.id == id);
+    _trashedEntries.removeWhere((item) => item.id == id);
+  }
 
   @override
   Future<List<DiaryEntry>> listEntries() async => _entries;
@@ -1785,12 +1850,17 @@ class FakeDiaryRepository implements DiaryRepository {
 
   @override
   Future<void> saveEntry(DiaryEntry entry) async {
-    final existingIndex = _entries.indexWhere((item) => item.id == entry.id);
+    final targetEntries = entry.trashedAt == null ? _entries : _trashedEntries;
+    final otherEntries = entry.trashedAt == null ? _trashedEntries : _entries;
+    final existingIndex =
+        targetEntries.indexWhere((item) => item.id == entry.id);
     if (existingIndex >= 0) {
-      _entries[existingIndex] = entry;
+      targetEntries[existingIndex] = entry;
+      otherEntries.removeWhere((item) => item.id == entry.id);
       return;
     }
-    _entries.insert(0, entry);
+    otherEntries.removeWhere((item) => item.id == entry.id);
+    targetEntries.insert(0, entry);
   }
 
   @override

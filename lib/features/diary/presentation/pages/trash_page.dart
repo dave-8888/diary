@@ -49,6 +49,9 @@ class _TrashPageState extends ConsumerState<TrashPage> {
             return Center(child: Text(strings.trashEmpty));
           }
 
+          final selectedEntries = entries
+              .where((entry) => _selectedIds.contains(entry.id))
+              .toList(growable: false);
           final selectedCount = _selectedIds.length;
           final allSelected = selectedCount == entries.length;
 
@@ -74,14 +77,7 @@ class _TrashPageState extends ConsumerState<TrashPage> {
                         onPressed:
                             _isRestoring || _isClearing || selectedCount == 0
                                 ? null
-                                : () => _restoreEntries(
-                                      entries
-                                          .where(
-                                            (entry) =>
-                                            _selectedIds.contains(entry.id),
-                                          )
-                                          .toList(growable: false),
-                                    ),
+                                : () => _restoreEntries(selectedEntries),
                         isBusy: _isRestoring,
                         icon: Icons.restore_outlined,
                         label: strings.restoreSelected,
@@ -102,9 +98,10 @@ class _TrashPageState extends ConsumerState<TrashPage> {
                             : strings.selectAll,
                       ),
                       CupertinoActionButton(
-                        onPressed: _isRestoring || _isClearing
-                            ? null
-                            : () => _confirmAndClearTrash(entries),
+                        onPressed:
+                            _isRestoring || _isClearing || selectedCount == 0
+                                ? null
+                                : () => _confirmAndClearTrash(selectedEntries),
                         isBusy: _isClearing,
                         variant: CupertinoActionButtonVariant.tinted,
                         destructive: true,
