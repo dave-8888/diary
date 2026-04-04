@@ -190,20 +190,20 @@ class DiaryShell extends ConsumerWidget {
                             ),
                             const SizedBox(height: 8),
                             _RailFooterAction(
-                              icon: CupertinoIcons.delete_solid,
-                              label: strings.trashNav,
-                              selected: selectedIndex == 2,
-                              onTap: () => _goToIndex(context, 2),
+                              icon: CupertinoIcons.gear_alt_fill,
+                              label: strings.settingsTitle,
+                              selected: isSettingsPage,
+                              onTap: () =>
+                                  _openSettings(context, compact: false),
                             ),
                             const Spacer(),
                             Padding(
                               padding: const EdgeInsets.fromLTRB(6, 10, 6, 4),
                               child: _RailFooterAction(
-                                icon: CupertinoIcons.gear_alt_fill,
-                                label: strings.settingsTitle,
-                                selected: isSettingsPage,
-                                onTap: () =>
-                                    _openSettings(context, compact: false),
+                                icon: CupertinoIcons.delete_solid,
+                                label: strings.trashNav,
+                                selected: selectedIndex == 2,
+                                onTap: () => _goToIndex(context, 2),
                               ),
                             ),
                           ],
