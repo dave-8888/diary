@@ -4,6 +4,7 @@ import 'package:diary_mvp/features/diary/application/diary_controller.dart';
 import 'package:diary_mvp/features/diary/domain/diary_entry.dart';
 import 'package:diary_mvp/features/diary/presentation/widgets/diary_card.dart';
 import 'package:diary_mvp/features/diary/presentation/widgets/diary_shell.dart';
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -25,13 +26,51 @@ class HomePage extends ConsumerWidget {
     return DiaryShell(
       title: appTitle,
       showAppBarTitle: false,
-      floatingActionButton: FloatingActionButton.extended(
+      floatingActionButton: CupertinoButton(
+        padding: EdgeInsets.zero,
+        minimumSize: Size.zero,
         onPressed: () => context.go('/editor'),
-        icon: const Icon(Icons.add),
-        label: Text(strings.newEntry),
+        child: Builder(
+          builder: (context) {
+            final theme = Theme.of(context);
+            return DecoratedBox(
+              decoration: BoxDecoration(
+                color: theme.colorScheme.primary,
+                borderRadius: BorderRadius.circular(999),
+                boxShadow: [
+                  BoxShadow(
+                    color: theme.colorScheme.primary.withValues(alpha: 0.24),
+                    blurRadius: 18,
+                    offset: const Offset(0, 10),
+                  ),
+                ],
+              ),
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 14),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(
+                      CupertinoIcons.add,
+                      size: 18,
+                      color: theme.colorScheme.onPrimary,
+                    ),
+                    const SizedBox(width: 8),
+                    Text(
+                      strings.newEntry,
+                      style: theme.textTheme.labelLarge?.copyWith(
+                        color: theme.colorScheme.onPrimary,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            );
+          },
+        ),
       ),
       child: entriesAsync.when(
-        loading: () => const Center(child: CircularProgressIndicator()),
+        loading: () => const Center(child: CupertinoActivityIndicator()),
         error: (error, stack) => Center(
           child: Text(strings.failedToLoadEntries(error)),
         ),
@@ -98,8 +137,8 @@ class _HomeListState extends State<_HomeList> {
               description: emptyDescription,
               buttonLabel: emptyButtonLabel,
               buttonIcon: hasEntries
-                  ? Icons.filter_alt_off_outlined
-                  : Icons.add_rounded,
+                  ? CupertinoIcons.clear_circled
+                  : CupertinoIcons.add,
               onPressed:
                   hasEntries ? _clearFilter : () => context.go('/editor'),
             )
@@ -146,7 +185,6 @@ class _HomeListState extends State<_HomeList> {
   }
 
   Future<void> _pickDay(BuildContext context) async {
-    final strings = context.strings;
     final bounds = _resolveSelectableBounds();
     final initialDate = _clampDate(
       _selectedDay ??
@@ -155,25 +193,21 @@ class _HomeListState extends State<_HomeList> {
           DateTime.now(),
       bounds,
     );
-    final picked = await showDatePicker(
-      context: context,
-      locale: strings.locale,
+    final cupertinoPicked = await _showCupertinoDayPicker(
+      context,
       initialDate: initialDate,
       firstDate: bounds.firstDate,
       lastDate: bounds.lastDate,
-      initialEntryMode: DatePickerEntryMode.inputOnly,
-      builder: _buildExpandedDatePickerDialog,
     );
-    if (!mounted || picked == null) return;
+    if (!mounted || cupertinoPicked == null) return;
     setState(() {
       _filterMode = _CalendarFilterMode.day;
-      _selectedDay = DateUtils.dateOnly(picked);
+      _selectedDay = DateUtils.dateOnly(cupertinoPicked);
       _selectedRange = null;
     });
   }
 
   Future<void> _pickRange(BuildContext context) async {
-    final strings = context.strings;
     final bounds = _resolveSelectableBounds();
     final fallbackEnd = _clampDate(
       _selectedDay ?? _latestEntryDate ?? DateTime.now(),
@@ -190,14 +224,11 @@ class _HomeListState extends State<_HomeList> {
             start: _clampDate(currentRange.start, bounds),
             end: _clampDate(currentRange.end, bounds),
           );
-    final picked = await showDateRangePicker(
-      context: context,
-      locale: strings.locale,
+    final picked = await _showCupertinoRangePicker(
+      context,
+      initialDateRange: initialDateRange,
       firstDate: bounds.firstDate,
       lastDate: bounds.lastDate,
-      initialDateRange: initialDateRange,
-      initialEntryMode: DatePickerEntryMode.inputOnly,
-      builder: _buildExpandedDatePickerDialog,
     );
     if (!mounted || picked == null) return;
     setState(() {
@@ -315,55 +346,134 @@ class _HomeListState extends State<_HomeList> {
     return '$startLabel - $endLabel';
   }
 
-  Widget _buildExpandedDatePickerDialog(BuildContext context, Widget? child) {
-    if (child == null) {
-      return const SizedBox.shrink();
-    }
-
-    final inheritedTheme = Theme.of(context);
-    final screenSize = MediaQuery.sizeOf(context);
-    final shouldExpand = screenSize.width >= 540 && screenSize.height >= 420;
-    final portraitWidth = screenSize.width < screenSize.height
-        ? screenSize.width
-        : screenSize.height;
-    final portraitHeight = screenSize.width < screenSize.height
-        ? screenSize.height
-        : screenSize.width;
-
-    final themedChild = Theme(
-      data: inheritedTheme.copyWith(
-        datePickerTheme: inheritedTheme.datePickerTheme.copyWith(
-          headerForegroundColor: Colors.transparent,
-          headerHeadlineStyle: const TextStyle(fontSize: 0, height: 0.01),
-          rangePickerHeaderForegroundColor: Colors.transparent,
-          rangePickerHeaderHeadlineStyle: const TextStyle(
-            fontSize: 0,
-            height: 0.01,
+  Future<DateTime?> _showCupertinoDayPicker(
+    BuildContext context, {
+    required DateTime initialDate,
+    required DateTime firstDate,
+    required DateTime lastDate,
+  }) {
+    final strings = context.strings;
+    return showCupertinoModalPopup<DateTime>(
+      context: context,
+      barrierColor: Colors.black.withValues(alpha: 0.18),
+      builder: (popupContext) {
+        var pendingDate = DateUtils.dateOnly(initialDate);
+        return _CupertinoPickerSheet(
+          title: strings.pickDate,
+          cancelLabel: strings.cancelAction,
+          confirmLabel: strings.saveAction,
+          onCancel: () => Navigator.of(popupContext).pop(),
+          onConfirm: () => Navigator.of(popupContext).pop(pendingDate),
+          child: SizedBox(
+            height: 216,
+            child: CupertinoDatePicker(
+              mode: CupertinoDatePickerMode.date,
+              initialDateTime: pendingDate,
+              minimumDate: firstDate,
+              maximumDate: lastDate,
+              onDateTimeChanged: (value) {
+                pendingDate = DateUtils.dateOnly(value);
+              },
+            ),
           ),
-        ),
-      ),
-      child: child,
+        );
+      },
     );
+  }
 
-    final compactDesktopChild = MediaQuery(
-      data: MediaQuery.of(context).copyWith(
-        size: Size(portraitWidth, portraitHeight),
-      ),
-      child: SizedBox(
-        height: 164,
-        child: themedChild,
-      ),
-    );
+  Future<DateTimeRange?> _showCupertinoRangePicker(
+    BuildContext context, {
+    required DateTimeRange initialDateRange,
+    required DateTime firstDate,
+    required DateTime lastDate,
+  }) {
+    final strings = context.strings;
+    final isChinese = strings.locale.languageCode.toLowerCase().startsWith('zh');
+    return showCupertinoModalPopup<DateTimeRange>(
+      context: context,
+      barrierColor: Colors.black.withValues(alpha: 0.18),
+      builder: (popupContext) {
+        var startDate = DateUtils.dateOnly(initialDateRange.start);
+        var endDate = DateUtils.dateOnly(initialDateRange.end);
+        var activeField = _CupertinoRangeField.start;
 
-    if (!shouldExpand) {
-      return themedChild;
-    }
+        return StatefulBuilder(
+          builder: (context, setModalState) {
+            final activeDate = activeField == _CupertinoRangeField.start
+                ? startDate
+                : endDate;
 
-    return Center(
-      child: Transform.scale(
-        scale: 1.12,
-        child: compactDesktopChild,
-      ),
+            return _CupertinoPickerSheet(
+              title: strings.pickDateRange,
+              cancelLabel: strings.cancelAction,
+              confirmLabel: strings.saveAction,
+              onCancel: () => Navigator.of(popupContext).pop(),
+              onConfirm: () => Navigator.of(popupContext).pop(
+                DateTimeRange(start: startDate, end: endDate),
+              ),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Row(
+                    children: [
+                      Expanded(
+                        child: _CupertinoRangeFieldButton(
+                          label: isChinese ? '开始日期' : 'Start',
+                          value: _formatCalendarSelectionDate(strings, startDate),
+                          selected: activeField == _CupertinoRangeField.start,
+                          onTap: () => setModalState(() {
+                            activeField = _CupertinoRangeField.start;
+                          }),
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: _CupertinoRangeFieldButton(
+                          label: isChinese ? '结束日期' : 'End',
+                          value: _formatCalendarSelectionDate(strings, endDate),
+                          selected: activeField == _CupertinoRangeField.end,
+                          onTap: () => setModalState(() {
+                            activeField = _CupertinoRangeField.end;
+                          }),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 12),
+                  SizedBox(
+                    height: 216,
+                    child: CupertinoDatePicker(
+                      key: ValueKey<String>(
+                        '${activeField.name}-${activeDate.toIso8601String()}',
+                      ),
+                      mode: CupertinoDatePickerMode.date,
+                      initialDateTime: activeDate,
+                      minimumDate: firstDate,
+                      maximumDate: lastDate,
+                      onDateTimeChanged: (value) {
+                        final normalized = DateUtils.dateOnly(value);
+                        setModalState(() {
+                          if (activeField == _CupertinoRangeField.start) {
+                            startDate = normalized;
+                            if (startDate.isAfter(endDate)) {
+                              endDate = startDate;
+                            }
+                          } else {
+                            endDate = normalized;
+                            if (endDate.isBefore(startDate)) {
+                              startDate = endDate;
+                            }
+                          }
+                        });
+                      },
+                    ),
+                  ),
+                ],
+              ),
+            );
+          },
+        );
+      },
     );
   }
 }
@@ -418,20 +528,20 @@ class _CalendarFilterCard extends StatelessWidget {
                 spacing: 10,
                 runSpacing: 10,
                 children: [
-                  ChoiceChip(
+                  _FilterActionPill(
                     label: Text(strings.viewAll),
                     selected: mode == _CalendarFilterMode.all,
-                    onSelected: (_) => onSelectAll(),
+                    onTap: onSelectAll,
                   ),
-                  ChoiceChip(
+                  _FilterActionPill(
                     label: Text(strings.pickDate),
                     selected: mode == _CalendarFilterMode.day,
-                    onSelected: (_) => onPickDay(),
+                    onTap: onPickDay,
                   ),
-                  ChoiceChip(
+                  _FilterActionPill(
                     label: Text(strings.pickDateRange),
                     selected: mode == _CalendarFilterMode.range,
-                    onSelected: (_) => onPickRange(),
+                    onTap: onPickRange,
                   ),
                 ],
               ),
@@ -442,11 +552,11 @@ class _CalendarFilterCard extends StatelessWidget {
                 children: [
                   _CountPill(
                     label: selectionLabel,
-                    icon: Icons.event_outlined,
+                    icon: CupertinoIcons.calendar,
                   ),
                   _CountPill(
                     label: strings.matchedEntryCountLabel(matchCount),
-                    icon: Icons.menu_book_outlined,
+                    icon: CupertinoIcons.book,
                   ),
                 ],
               ),
@@ -562,7 +672,7 @@ class _EmptyStateCard extends StatelessWidget {
               child: Padding(
                 padding: const EdgeInsets.all(16),
                 child: Icon(
-                  Icons.auto_stories_outlined,
+                  CupertinoIcons.book_circle,
                   size: 28,
                   color: theme.colorScheme.primary,
                 ),
@@ -583,10 +693,39 @@ class _EmptyStateCard extends StatelessWidget {
               textAlign: TextAlign.center,
             ),
             const SizedBox(height: 18),
-            FilledButton.icon(
+            CupertinoButton(
+              padding: EdgeInsets.zero,
+              minimumSize: Size.zero,
               onPressed: onPressed,
-              icon: Icon(buttonIcon),
-              label: Text(buttonLabel),
+              child: DecoratedBox(
+                decoration: BoxDecoration(
+                  color: theme.colorScheme.primary,
+                  borderRadius: BorderRadius.circular(999),
+                ),
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 12,
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(
+                        buttonIcon,
+                        size: 18,
+                        color: theme.colorScheme.onPrimary,
+                      ),
+                      const SizedBox(width: 8),
+                      Text(
+                        buttonLabel,
+                        style: theme.textTheme.labelLarge?.copyWith(
+                          color: theme.colorScheme.onPrimary,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
             ),
           ],
         ),
@@ -603,4 +742,203 @@ class _SelectableDateBounds {
 
   final DateTime firstDate;
   final DateTime lastDate;
+}
+
+enum _CupertinoRangeField { start, end }
+
+class _FilterActionPill extends StatelessWidget {
+  const _FilterActionPill({
+    required this.label,
+    required this.selected,
+    required this.onTap,
+  });
+
+  final Widget label;
+  final bool selected;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+
+    return CupertinoButton(
+      padding: EdgeInsets.zero,
+      minimumSize: Size.zero,
+      onPressed: onTap,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 180),
+        curve: Curves.easeOutCubic,
+        decoration: BoxDecoration(
+          color: selected
+              ? colorScheme.primary.withValues(alpha: 0.12)
+              : colorScheme.surface.withValues(alpha: 0.58),
+          borderRadius: BorderRadius.circular(999),
+          border: Border.all(
+            color: selected
+                ? colorScheme.primary.withValues(alpha: 0.18)
+                : colorScheme.outlineVariant.withValues(alpha: 0.4),
+          ),
+        ),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+          child: DefaultTextStyle.merge(
+            style: theme.textTheme.labelLarge?.copyWith(
+                  color: selected
+                      ? colorScheme.primary
+                      : colorScheme.onSurfaceVariant,
+                ) ??
+                TextStyle(
+                  color: selected
+                      ? colorScheme.primary
+                      : colorScheme.onSurfaceVariant,
+                ),
+            child: label,
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _CupertinoPickerSheet extends StatelessWidget {
+  const _CupertinoPickerSheet({
+    required this.title,
+    required this.cancelLabel,
+    required this.confirmLabel,
+    required this.onCancel,
+    required this.onConfirm,
+    required this.child,
+  });
+
+  final String title;
+  final String cancelLabel;
+  final String confirmLabel;
+  final VoidCallback onCancel;
+  final VoidCallback onConfirm;
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+
+    return SafeArea(
+      top: false,
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(12, 0, 12, 12),
+        child: Align(
+          alignment: Alignment.bottomCenter,
+          child: CupertinoPopupSurface(
+            isSurfacePainted: false,
+            child: DecoratedBox(
+              decoration: BoxDecoration(
+                color: theme.cardTheme.color ?? theme.colorScheme.surface,
+                borderRadius: BorderRadius.circular(28),
+                border: Border.all(
+                  color: theme.colorScheme.outlineVariant.withValues(alpha: 0.32),
+                ),
+              ),
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(16, 10, 16, 16),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Row(
+                      children: [
+                        CupertinoButton(
+                          padding: EdgeInsets.zero,
+                          minimumSize: Size.zero,
+                          onPressed: onCancel,
+                          child: Text(cancelLabel),
+                        ),
+                        Expanded(
+                          child: Text(
+                            title,
+                            textAlign: TextAlign.center,
+                            style: theme.textTheme.titleMedium,
+                          ),
+                        ),
+                        CupertinoButton(
+                          padding: EdgeInsets.zero,
+                          minimumSize: Size.zero,
+                          onPressed: onConfirm,
+                          child: Text(confirmLabel),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 8),
+                    child,
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _CupertinoRangeFieldButton extends StatelessWidget {
+  const _CupertinoRangeFieldButton({
+    required this.label,
+    required this.value,
+    required this.selected,
+    required this.onTap,
+  });
+
+  final String label;
+  final String value;
+  final bool selected;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+
+    return CupertinoButton(
+      padding: EdgeInsets.zero,
+      minimumSize: Size.zero,
+      onPressed: onTap,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 180),
+        curve: Curves.easeOutCubic,
+        decoration: BoxDecoration(
+          color: selected
+              ? colorScheme.primary.withValues(alpha: 0.12)
+              : colorScheme.surface.withValues(alpha: 0.58),
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(
+            color: selected
+                ? colorScheme.primary.withValues(alpha: 0.18)
+                : colorScheme.outlineVariant.withValues(alpha: 0.32),
+          ),
+        ),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                label,
+                style: theme.textTheme.labelMedium?.copyWith(
+                  color: colorScheme.onSurfaceVariant,
+                ),
+              ),
+              const SizedBox(height: 4),
+              Text(
+                value,
+                style: theme.textTheme.titleSmall?.copyWith(
+                  color: selected
+                      ? colorScheme.primary
+                      : colorScheme.onSurface,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
 }

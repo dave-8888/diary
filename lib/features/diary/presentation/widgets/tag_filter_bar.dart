@@ -1,7 +1,7 @@
 import 'package:diary_mvp/app/localization/app_strings.dart';
 import 'package:diary_mvp/features/diary/application/diary_controller.dart';
 import 'package:diary_mvp/features/diary/presentation/widgets/tag_multi_select_dropdown.dart';
-import 'package:flutter/material.dart';
+import 'package:flutter/cupertino.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 class TagFilterBar extends ConsumerWidget {
@@ -19,7 +19,7 @@ class TagFilterBar extends ConsumerWidget {
         child: SizedBox(
           width: 24,
           height: 24,
-          child: CircularProgressIndicator(strokeWidth: 2),
+          child: CupertinoActivityIndicator(),
         ),
       ),
       error: (error, stack) => Text(strings.failedToLoadTags(error)),

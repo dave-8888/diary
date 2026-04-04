@@ -1,8 +1,10 @@
 import 'dart:async';
 
 import 'package:audioplayers/audioplayers.dart';
+import 'package:diary_mvp/app/cupertino_kit.dart';
 import 'package:diary_mvp/app/localization/app_strings.dart';
 import 'package:diary_mvp/features/diary/domain/diary_entry.dart';
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:path/path.dart' as p;
 
@@ -71,6 +73,8 @@ class _AudioAttachmentTileState extends State<AudioAttachmentTile> {
   @override
   Widget build(BuildContext context) {
     final strings = context.strings;
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
     final baseName = p.basename(widget.media.path);
     final progress = _duration.inMilliseconds <= 0
         ? null
@@ -80,31 +84,36 @@ class _AudioAttachmentTileState extends State<AudioAttachmentTile> {
     return Container(
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: theme.cardTheme.color ?? colorScheme.surface,
         borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: Theme.of(context).colorScheme.outlineVariant),
+        border: Border.all(color: colorScheme.outlineVariant),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
             children: [
-              IconButton.filledTonal(
+              CupertinoButton(
+                padding: EdgeInsets.zero,
+                minimumSize: Size.zero,
                 onPressed: _isLoading ? null : _togglePlayback,
-                tooltip: _playerState == PlayerState.playing
-                    ? strings.pauseAudio
-                    : strings.playAudio,
-                icon: _isLoading
-                    ? const SizedBox(
-                        width: 18,
-                        height: 18,
-                        child: CircularProgressIndicator(strokeWidth: 2),
-                      )
-                    : Icon(
-                        _playerState == PlayerState.playing
-                            ? Icons.pause_rounded
-                            : Icons.play_arrow_rounded,
-                      ),
+                child: DecoratedBox(
+                  decoration: BoxDecoration(
+                    color: colorScheme.primary.withValues(alpha: 0.12),
+                    shape: BoxShape.circle,
+                  ),
+                  child: Padding(
+                    padding: const EdgeInsets.all(10),
+                    child: _isLoading
+                        ? CupertinoActivityIndicator(color: colorScheme.primary)
+                        : Icon(
+                            _playerState == PlayerState.playing
+                                ? CupertinoIcons.pause_solid
+                                : CupertinoIcons.play_fill,
+                            color: colorScheme.primary,
+                          ),
+                  ),
+                ),
               ),
               const SizedBox(width: 12),
               Expanded(
@@ -113,30 +122,54 @@ class _AudioAttachmentTileState extends State<AudioAttachmentTile> {
                   children: [
                     Text(
                       strings.mediaLabel(widget.media, baseName: baseName),
-                      style: Theme.of(context).textTheme.titleMedium,
+                      style: theme.textTheme.titleMedium,
                     ),
                     const SizedBox(height: 2),
                     Text(
                       statusText,
-                      style: Theme.of(context).textTheme.bodySmall,
+                      style: theme.textTheme.bodySmall?.copyWith(
+                        color: colorScheme.onSurfaceVariant,
+                      ),
                     ),
                   ],
                 ),
               ),
               if (widget.onDeleted != null)
-                IconButton(
+                CupertinoActionButton(
                   onPressed: widget.onDeleted,
-                  icon: const Icon(Icons.delete_outline),
+                  variant: CupertinoActionButtonVariant.plain,
+                  destructive: true,
+                  icon: CupertinoIcons.delete,
+                  label: '',
+                  padding: const EdgeInsets.all(10),
+                  minHeight: 0,
                 ),
             ],
           ),
           if (progress != null) ...[
             const SizedBox(height: 10),
-            ClipRRect(
-              borderRadius: BorderRadius.circular(999),
-              child: LinearProgressIndicator(
-                minHeight: 6,
-                value: progress,
+            DecoratedBox(
+              decoration: BoxDecoration(
+                color: colorScheme.surfaceContainerHighest.withValues(alpha: 0.72),
+                borderRadius: BorderRadius.circular(999),
+              ),
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(999),
+                child: SizedBox(
+                  height: 6,
+                  child: Align(
+                    alignment: Alignment.centerLeft,
+                    child: FractionallySizedBox(
+                      widthFactor: progress,
+                      child: DecoratedBox(
+                        decoration: BoxDecoration(
+                          color: colorScheme.primary,
+                          borderRadius: BorderRadius.circular(999),
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
               ),
             ),
           ],

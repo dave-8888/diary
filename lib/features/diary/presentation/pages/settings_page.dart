@@ -1,5 +1,6 @@
 import 'package:diary_mvp/app/app_display_name.dart';
 import 'package:diary_mvp/app/app_icon.dart';
+import 'package:diary_mvp/app/cupertino_kit.dart';
 import 'package:diary_mvp/app/context_tooltip.dart';
 import 'package:diary_mvp/app/localization/app_locale.dart';
 import 'package:diary_mvp/app/localization/app_strings.dart';
@@ -14,6 +15,7 @@ import 'package:diary_mvp/features/diary/services/diary_ai_settings.dart';
 import 'package:diary_mvp/features/diary/services/diary_list_settings.dart';
 import 'package:diary_mvp/features/diary/services/password_settings.dart';
 import 'package:file_picker/file_picker.dart';
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -153,15 +155,13 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
                     runSpacing: 12,
                     children: DiaryThemePreset.values
                         .map(
-                          (themePreset) => ChoiceChip(
+                          (themePreset) => CupertinoPill(
                             selected: themePreset == selectedTheme,
-                            onSelected: _isChangingTheme
+                            onPressed: _isChangingTheme
                                 ? null
-                                : (_) => _changeTheme(themePreset),
-                            avatar: Icon(
+                                : () => _changeTheme(themePreset),
+                            icon:
                               _themeIcon(themePreset),
-                              size: 18,
-                            ),
                             label: Text(strings.titleForTheme(themePreset)),
                           ),
                         )
@@ -179,11 +179,11 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
                     runSpacing: 12,
                     children: AppLanguage.values
                         .map(
-                          (language) => ChoiceChip(
+                          (language) => CupertinoPill(
                             selected: language == selectedLanguage,
-                            onSelected: _isChangingLanguage
+                            onPressed: _isChangingLanguage
                                 ? null
-                                : (_) => _changeLanguage(language),
+                                : () => _changeLanguage(language),
                             label: Text(strings.titleForLanguage(language)),
                           ),
                         )
@@ -218,7 +218,7 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
                   },
                   child: passwordSettingsAsync.when(
                     loading: () =>
-                        const Center(child: CircularProgressIndicator()),
+                        const Center(child: CupertinoActivityIndicator()),
                     error: (error, stack) =>
                         Text(strings.passwordInitializationFailed(error)),
                     data: (settings) =>
@@ -250,10 +250,12 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
                         ],
                       ),
                       const SizedBox(height: 8),
-                      TextField(
+                      CupertinoTextField(
                         controller: _appNameController,
-                        decoration: InputDecoration(
-                          hintText: strings.appNameHint,
+                        placeholder: strings.appNameHint,
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 14,
+                          vertical: 14,
                         ),
                         textInputAction: TextInputAction.done,
                         onSubmitted: (_) => _saveAppName(),
@@ -263,31 +265,20 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
                         spacing: 12,
                         runSpacing: 12,
                         children: [
-                          OutlinedButton(
+                          CupertinoActionButton(
                             onPressed: _isSavingAppName || _isResettingAppName
                                 ? null
                                 : _resetAppName,
-                            child: _isResettingAppName
-                                ? const SizedBox(
-                                    width: 18,
-                                    height: 18,
-                                    child: CircularProgressIndicator(
-                                        strokeWidth: 2),
-                                  )
-                                : Text(strings.resetAppName),
+                            isBusy: _isResettingAppName,
+                            variant: CupertinoActionButtonVariant.outline,
+                            label: strings.resetAppName,
                           ),
-                          FilledButton(
+                          CupertinoActionButton(
                             onPressed: _isSavingAppName || _isResettingAppName
                                 ? null
                                 : _saveAppName,
-                            child: _isSavingAppName
-                                ? const SizedBox(
-                                    width: 18,
-                                    height: 18,
-                                    child: CircularProgressIndicator(
-                                        strokeWidth: 2),
-                                  )
-                                : Text(strings.saveAction),
+                            isBusy: _isSavingAppName,
+                            label: strings.saveAction,
                           ),
                         ],
                       ),
@@ -325,32 +316,22 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
                         spacing: 12,
                         runSpacing: 12,
                         children: [
-                          FilledButton.tonalIcon(
+                          CupertinoActionButton(
                             onPressed:
                                 !supportsWindowIdentity || _isChangingIcon
                                     ? null
                                     : _pickCustomIcon,
-                            icon: _isChangingIcon
-                                ? const SizedBox(
-                                    width: 18,
-                                    height: 18,
-                                    child: CircularProgressIndicator(
-                                        strokeWidth: 2),
-                                  )
-                                : const Icon(Icons.image_search_outlined),
-                            label: Text(strings.pickWindowIcon),
+                            isBusy: _isChangingIcon,
+                            variant: CupertinoActionButtonVariant.tinted,
+                            icon: Icons.image_search_outlined,
+                            label: strings.pickWindowIcon,
                           ),
-                          OutlinedButton.icon(
+                          CupertinoActionButton(
                             onPressed: _isChangingIcon ? null : _resetIcon,
-                            icon: _isChangingIcon
-                                ? const SizedBox(
-                                    width: 18,
-                                    height: 18,
-                                    child: CircularProgressIndicator(
-                                        strokeWidth: 2),
-                                  )
-                                : const Icon(Icons.restart_alt_outlined),
-                            label: Text(strings.resetAppIcon),
+                            isBusy: _isChangingIcon,
+                            variant: CupertinoActionButtonVariant.outline,
+                            icon: Icons.restart_alt_outlined,
+                            label: strings.resetAppIcon,
                           ),
                         ],
                       ),
@@ -372,7 +353,7 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
                           spacing: 12,
                           runSpacing: 12,
                           children: [
-                            FilledButton.icon(
+                            CupertinoActionButton(
                               onPressed: iconSelection.windowIconPath
                                           .trim()
                                           .isEmpty ||
@@ -380,32 +361,19 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
                                       _isResettingBuildWindowIcon
                                   ? null
                                   : () => _syncBuildWindowIcon(iconSelection),
-                              icon: _isSyncingBuildWindowIcon
-                                  ? const SizedBox(
-                                      width: 18,
-                                      height: 18,
-                                      child: CircularProgressIndicator(
-                                        strokeWidth: 2,
-                                      ),
-                                    )
-                                  : const Icon(Icons.install_desktop_outlined),
-                              label: Text(strings.syncBuildWindowIcon),
+                              isBusy: _isSyncingBuildWindowIcon,
+                              icon: Icons.install_desktop_outlined,
+                              label: strings.syncBuildWindowIcon,
                             ),
-                            OutlinedButton.icon(
+                            CupertinoActionButton(
                               onPressed: _isSyncingBuildWindowIcon ||
                                       _isResettingBuildWindowIcon
                                   ? null
                                   : _resetBuildWindowIcon,
-                              icon: _isResettingBuildWindowIcon
-                                  ? const SizedBox(
-                                      width: 18,
-                                      height: 18,
-                                      child: CircularProgressIndicator(
-                                        strokeWidth: 2,
-                                      ),
-                                    )
-                                  : const Icon(Icons.restart_alt_outlined),
-                              label: Text(strings.resetBuildWindowIcon),
+                              isBusy: _isResettingBuildWindowIcon,
+                              variant: CupertinoActionButtonVariant.outline,
+                              icon: Icons.restart_alt_outlined,
+                              label: strings.resetBuildWindowIcon,
                             ),
                           ],
                         ),
@@ -485,55 +453,67 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
                         runSpacing: 10,
                         children: DiaryAiProviderPreset.values
                             .map(
-                              (preset) => ChoiceChip(
+                              (preset) => CupertinoPill(
                                 selected: preset == _selectedDiaryAiPreset,
-                                onSelected: _isSavingDiaryAiConfig ||
+                                onPressed: _isSavingDiaryAiConfig ||
                                         _isResettingDiaryAiConfig
                                     ? null
-                                    : (_) => _selectDiaryAiPreset(preset),
+                                    : () => _selectDiaryAiPreset(preset),
                                 label: Text(preset.label),
                               ),
                             )
                             .toList(growable: false),
                       ),
                       const SizedBox(height: 16),
-                      TextField(
+                      CupertinoTextField(
                         key: const ValueKey('settings-diary-ai-base-url'),
                         controller: _diaryAiBaseUrlController,
-                        decoration: InputDecoration(
-                          labelText: strings.diaryAiBaseUrlLabel,
-                          hintText: strings.diaryAiBaseUrlHint,
+                        placeholder:
+                            '${strings.diaryAiBaseUrlLabel} · ${strings.diaryAiBaseUrlHint}',
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 14,
+                          vertical: 14,
                         ),
                         textInputAction: TextInputAction.next,
                       ),
                       const SizedBox(height: 16),
-                      TextField(
+                      CupertinoTextField(
                         key: const ValueKey('settings-diary-ai-model'),
                         controller: _diaryAiModelController,
-                        decoration: InputDecoration(
-                          labelText: strings.diaryAiModelLabel,
-                          hintText: strings.diaryAiModelHint,
+                        placeholder:
+                            '${strings.diaryAiModelLabel} · ${strings.diaryAiModelHint}',
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 14,
+                          vertical: 14,
                         ),
                         textInputAction: TextInputAction.next,
                       ),
                       const SizedBox(height: 16),
-                      TextField(
+                      CupertinoTextField(
                         key: const ValueKey('settings-diary-ai-api-key'),
                         controller: _diaryAiApiKeyController,
                         obscureText: !_showDiaryAiApiKey,
-                        decoration: InputDecoration(
-                          labelText: strings.diaryAiApiKeyLabel,
-                          hintText: strings.diaryAiApiKeyHint,
-                          suffixIcon: IconButton(
-                            onPressed: () {
-                              setState(
-                                () => _showDiaryAiApiKey = !_showDiaryAiApiKey,
-                              );
-                            },
-                            icon: Icon(
+                        placeholder:
+                            '${strings.diaryAiApiKeyLabel} · ${strings.diaryAiApiKeyHint}',
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 14,
+                          vertical: 14,
+                        ),
+                        suffix: CupertinoButton(
+                          padding: EdgeInsets.zero,
+                          minimumSize: Size.zero,
+                          onPressed: () {
+                            setState(
+                              () => _showDiaryAiApiKey = !_showDiaryAiApiKey,
+                            );
+                          },
+                          child: Padding(
+                            padding: const EdgeInsets.only(right: 12),
+                            child: Icon(
                               _showDiaryAiApiKey
-                                  ? Icons.visibility_off_outlined
-                                  : Icons.visibility_outlined,
+                                  ? CupertinoIcons.eye_slash
+                                  : CupertinoIcons.eye,
+                              size: 18,
                             ),
                           ),
                         ),
@@ -553,35 +533,24 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
                         spacing: 12,
                         runSpacing: 12,
                         children: [
-                          OutlinedButton(
+                          CupertinoActionButton(
                             key: const ValueKey('settings-diary-ai-reset'),
                             onPressed: _isSavingDiaryAiConfig ||
                                     _isResettingDiaryAiConfig
                                 ? null
                                 : _resetDiaryAiConfig,
-                            child: _isResettingDiaryAiConfig
-                                ? const SizedBox(
-                                    width: 18,
-                                    height: 18,
-                                    child: CircularProgressIndicator(
-                                        strokeWidth: 2),
-                                  )
-                                : Text(strings.resetDiaryAiConfig),
+                            isBusy: _isResettingDiaryAiConfig,
+                            variant: CupertinoActionButtonVariant.outline,
+                            label: strings.resetDiaryAiConfig,
                           ),
-                          FilledButton(
+                          CupertinoActionButton(
                             key: const ValueKey('settings-diary-ai-save'),
                             onPressed: _isSavingDiaryAiConfig ||
                                     _isResettingDiaryAiConfig
                                 ? null
                                 : _saveDiaryAiConfig,
-                            child: _isSavingDiaryAiConfig
-                                ? const SizedBox(
-                                    width: 18,
-                                    height: 18,
-                                    child: CircularProgressIndicator(
-                                        strokeWidth: 2),
-                                  )
-                                : Text(strings.saveAction),
+                            isBusy: _isSavingDiaryAiConfig,
+                            label: strings.saveAction,
                           ),
                         ],
                       ),
@@ -601,7 +570,7 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
                   },
                   child: moodLibraryAsync.when(
                     loading: () =>
-                        const Center(child: CircularProgressIndicator()),
+                        const Center(child: CupertinoActivityIndicator()),
                     error: (error, stack) =>
                         Text(strings.failedToLoadMoods(error)),
                     data: (moods) => Column(
@@ -611,23 +580,19 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
                           spacing: 12,
                           runSpacing: 12,
                           children: [
-                            FilledButton.tonalIcon(
+                            CupertinoActionButton(
                               onPressed: () => _openMoodDialog(),
-                              icon: const Icon(Icons.add_rounded),
-                              label: Text(strings.addMood),
+                              variant: CupertinoActionButtonVariant.tinted,
+                              icon: Icons.add_rounded,
+                              label: strings.addMood,
                             ),
-                            OutlinedButton.icon(
+                            CupertinoActionButton(
                               onPressed:
                                   _isResettingMoods ? null : _confirmResetMoods,
-                              icon: _isResettingMoods
-                                  ? const SizedBox(
-                                      width: 18,
-                                      height: 18,
-                                      child: CircularProgressIndicator(
-                                          strokeWidth: 2),
-                                    )
-                                  : const Icon(Icons.restart_alt_outlined),
-                              label: Text(strings.restoreDefaultMoods),
+                              isBusy: _isResettingMoods,
+                              variant: CupertinoActionButtonVariant.outline,
+                              icon: Icons.restart_alt_outlined,
+                              label: strings.restoreDefaultMoods,
                             ),
                           ],
                         ),
@@ -738,10 +703,11 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
                   },
                   child: Align(
                     alignment: Alignment.centerLeft,
-                    child: OutlinedButton.icon(
+                    child: CupertinoActionButton(
                       onPressed: () => context.push('/migration'),
-                      icon: const Icon(Icons.open_in_new_outlined),
-                      label: Text(strings.openMigrationPage),
+                      variant: CupertinoActionButtonVariant.outline,
+                      icon: Icons.open_in_new_outlined,
+                      label: strings.openMigrationPage,
                     ),
                   ),
                 ),
@@ -859,9 +825,9 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
                   _SettingsSectionIcon(icon: icon),
                   const SizedBox(width: 14),
                   Expanded(
-                    child: InkWell(
-                      borderRadius: BorderRadius.circular(18),
+                    child: GestureDetector(
                       onTap: () => onExpandedChanged(!expanded),
+                      behavior: HitTestBehavior.opaque,
                       child: Padding(
                         padding: const EdgeInsets.symmetric(
                           horizontal: 2,
@@ -901,10 +867,14 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
                     ),
                   ),
                   const SizedBox(width: 8),
-                  IconButton(
+                  CupertinoButton(
+                    padding: EdgeInsets.zero,
+                    minimumSize: Size.zero,
                     onPressed: () => onExpandedChanged(!expanded),
-                    icon: Icon(
-                      expanded ? Icons.expand_less : Icons.expand_more,
+                    child: Icon(
+                      expanded
+                          ? CupertinoIcons.chevron_up
+                          : CupertinoIcons.chevron_down,
                     ),
                   ),
                 ],
@@ -978,7 +948,7 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
               ),
             ),
             const SizedBox(width: 12),
-            Switch.adaptive(
+            CupertinoSwitch(
               value: value,
               onChanged: enabled ? onChanged : null,
             ),
@@ -1011,7 +981,7 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
           spacing: 12,
           runSpacing: 12,
           children: [
-            FilledButton.icon(
+            CupertinoActionButton(
               key: ValueKey(
                 hasPassword
                     ? 'settings-change-passcode-button'
@@ -1020,25 +990,18 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
               onPressed: _isDisablingPasscode
                   ? null
                   : () => _showPasscodeDialog(hasPassword: hasPassword),
-              icon: Icon(
-                hasPassword ? Icons.edit_outlined : Icons.lock_outline_rounded,
-              ),
-              label: Text(
-                hasPassword
-                    ? strings.changePasscodeAction
-                    : strings.setPasscodeAction,
-              ),
+              icon:
+                  hasPassword ? Icons.edit_outlined : Icons.lock_outline_rounded,
+              label: hasPassword
+                  ? strings.changePasscodeAction
+                  : strings.setPasscodeAction,
             ),
             if (hasPassword)
-              OutlinedButton(
+              CupertinoActionButton(
                 onPressed: _isDisablingPasscode ? null : _disablePasscode,
-                child: _isDisablingPasscode
-                    ? const SizedBox(
-                        width: 18,
-                        height: 18,
-                        child: CircularProgressIndicator(strokeWidth: 2),
-                      )
-                    : Text(strings.disablePasscode),
+                isBusy: _isDisablingPasscode,
+                variant: CupertinoActionButtonVariant.outline,
+                label: strings.disablePasscode,
               ),
           ],
         ),
@@ -1068,7 +1031,7 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
     required bool hasPassword,
   }) async {
     final strings = context.strings;
-    final didSave = await showDialog<bool>(
+    final didSave = await showCupertinoDialog<bool>(
       context: context,
       builder: (dialogContext) => _PasscodeDialog(hasPassword: hasPassword),
     );
@@ -1085,24 +1048,14 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
 
   Future<void> _disablePasscode() async {
     final strings = context.strings;
-    final confirmed = await showDialog<bool>(
-          context: context,
-          builder: (dialogContext) => AlertDialog(
-            title: Text(strings.disablePasscodeTitle),
-            content: Text(strings.disablePasscodeMessage),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.of(dialogContext).pop(false),
-                child: Text(strings.cancelAction),
-              ),
-              FilledButton(
-                onPressed: () => Navigator.of(dialogContext).pop(true),
-                child: Text(strings.confirmDisablePasscode),
-              ),
-            ],
-          ),
-        ) ??
-        false;
+    final confirmed = await showCupertinoConfirmationDialog(
+      context,
+      title: strings.disablePasscodeTitle,
+      message: strings.disablePasscodeMessage,
+      cancelLabel: strings.cancelAction,
+      confirmLabel: strings.confirmDisablePasscode,
+      isDestructive: true,
+    );
     if (!confirmed || !mounted) {
       return;
     }
@@ -1530,40 +1483,41 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
     );
     final emojiController = TextEditingController(text: mood?.emoji ?? '');
 
-    final result = await showDialog<DiaryMood>(
+    final result = await showCupertinoDialog<DiaryMood>(
       context: context,
-      builder: (dialogContext) => AlertDialog(
+      builder: (dialogContext) => CupertinoAlertDialog(
         title: Text(mood == null ? strings.addMood : strings.editMood),
-        content: SizedBox(
-          width: 420,
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              TextField(
+        content: Column(
+          children: [
+            const SizedBox(height: 12),
+            CupertinoTextField(
                 controller: nameController,
-                decoration: InputDecoration(
-                  labelText: strings.moodNameLabel,
-                  hintText: strings.moodNameHint,
-                ),
+                placeholder: '${strings.moodNameLabel} · ${strings.moodNameHint}',
                 autofocus: true,
-              ),
-              const SizedBox(height: 16),
-              TextField(
-                controller: emojiController,
-                decoration: InputDecoration(
-                  labelText: strings.moodEmojiLabel,
-                  hintText: strings.moodEmojiHint,
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 12,
                 ),
               ),
-            ],
-          ),
+            const SizedBox(height: 12),
+            CupertinoTextField(
+                controller: emojiController,
+                placeholder:
+                    '${strings.moodEmojiLabel} · ${strings.moodEmojiHint}',
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 12,
+                ),
+              ),
+          ],
         ),
         actions: [
-          TextButton(
+          CupertinoDialogAction(
             onPressed: () => Navigator.of(dialogContext).pop(),
             child: Text(strings.cancelAction),
           ),
-          FilledButton(
+          CupertinoDialogAction(
+            isDefaultAction: true,
             onPressed: () {
               final label = nameController.text.trim();
               final emoji = emojiController.text.trim();
@@ -1624,24 +1578,14 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
 
   Future<void> _confirmResetMoods() async {
     final strings = context.strings;
-    final confirmed = await showDialog<bool>(
-          context: context,
-          builder: (dialogContext) => AlertDialog(
-            title: Text(strings.restoreDefaultMoodsTitle),
-            content: Text(strings.restoreDefaultMoodsMessage),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.of(dialogContext).pop(false),
-                child: Text(strings.cancelAction),
-              ),
-              FilledButton(
-                onPressed: () => Navigator.of(dialogContext).pop(true),
-                child: Text(strings.restoreDefaultMoods),
-              ),
-            ],
-          ),
-        ) ??
-        false;
+    final confirmed = await showCupertinoConfirmationDialog(
+      context,
+      title: strings.restoreDefaultMoodsTitle,
+      message: strings.restoreDefaultMoodsMessage,
+      cancelLabel: strings.cancelAction,
+      confirmLabel: strings.restoreDefaultMoods,
+      isDestructive: true,
+    );
     if (!confirmed || !mounted) return;
 
     setState(() => _isResettingMoods = true);
@@ -1766,95 +1710,88 @@ class _PasscodeDialogState extends ConsumerState<_PasscodeDialog> {
   Widget build(BuildContext context) {
     final strings = context.strings;
 
-    return AlertDialog(
+    return CupertinoAlertDialog(
       title: Text(
         widget.hasPassword
             ? strings.changePasscodeAction
             : strings.setPasscodeAction,
       ),
-      content: ConstrainedBox(
-        constraints: const BoxConstraints(maxWidth: 420),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            if (widget.hasPassword) ...[
-              _PasswordDialogField(
-                controller: _currentController,
-                labelText: strings.currentPasscodeLabel,
-                hintText: strings.passcodeHint,
-                isVisible: _showCurrentPassword,
-                onVisibilityChanged: () {
-                  setState(() {
-                    _showCurrentPassword = !_showCurrentPassword;
-                  });
-                },
-                valueKey: const ValueKey('settings-passcode-current'),
-                textInputAction: TextInputAction.next,
-                autofocus: true,
-                onChanged: _clearErrorIfNeeded,
-                onSubmitted: (_) {},
-              ),
-              const SizedBox(height: 16),
-            ],
+      content: Column(
+        children: [
+          const SizedBox(height: 12),
+          if (widget.hasPassword) ...[
             _PasswordDialogField(
-              controller: _newController,
-              labelText: strings.newPasscodeLabel,
+              controller: _currentController,
+              labelText: strings.currentPasscodeLabel,
               hintText: strings.passcodeHint,
-              isVisible: _showNewPassword,
+              isVisible: _showCurrentPassword,
               onVisibilityChanged: () {
                 setState(() {
-                  _showNewPassword = !_showNewPassword;
+                  _showCurrentPassword = !_showCurrentPassword;
                 });
               },
-              valueKey: const ValueKey('settings-passcode-new'),
+              valueKey: const ValueKey('settings-passcode-current'),
               textInputAction: TextInputAction.next,
-              autofocus: !widget.hasPassword,
+              autofocus: true,
               onChanged: _clearErrorIfNeeded,
               onSubmitted: (_) {},
             ),
-            const SizedBox(height: 16),
-            _PasswordDialogField(
-              controller: _confirmController,
-              labelText: strings.confirmPasscodeLabel,
-              hintText: strings.passcodeHint,
-              isVisible: _showConfirmPassword,
-              onVisibilityChanged: () {
-                setState(() {
-                  _showConfirmPassword = !_showConfirmPassword;
-                });
-              },
-              valueKey: const ValueKey('settings-passcode-confirm'),
-              textInputAction: TextInputAction.done,
-              onChanged: _clearErrorIfNeeded,
-              onSubmitted: (_) => _submit(),
-            ),
-            if (_errorText != null) ...[
-              const SizedBox(height: 14),
-              Text(
-                _errorText!,
-                style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                      color: Theme.of(context).colorScheme.error,
-                    ),
-              ),
-            ],
+            const SizedBox(height: 12),
           ],
-        ),
+          _PasswordDialogField(
+            controller: _newController,
+            labelText: strings.newPasscodeLabel,
+            hintText: strings.passcodeHint,
+            isVisible: _showNewPassword,
+            onVisibilityChanged: () {
+              setState(() {
+                _showNewPassword = !_showNewPassword;
+              });
+            },
+            valueKey: const ValueKey('settings-passcode-new'),
+            textInputAction: TextInputAction.next,
+            autofocus: !widget.hasPassword,
+            onChanged: _clearErrorIfNeeded,
+            onSubmitted: (_) {},
+          ),
+          const SizedBox(height: 12),
+          _PasswordDialogField(
+            controller: _confirmController,
+            labelText: strings.confirmPasscodeLabel,
+            hintText: strings.passcodeHint,
+            isVisible: _showConfirmPassword,
+            onVisibilityChanged: () {
+              setState(() {
+                _showConfirmPassword = !_showConfirmPassword;
+              });
+            },
+            valueKey: const ValueKey('settings-passcode-confirm'),
+            textInputAction: TextInputAction.done,
+            onChanged: _clearErrorIfNeeded,
+            onSubmitted: (_) => _submit(),
+          ),
+          if (_errorText != null) ...[
+            const SizedBox(height: 12),
+            Text(
+              _errorText!,
+              style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                    color: Theme.of(context).colorScheme.error,
+                  ),
+            ),
+          ],
+        ],
       ),
       actions: [
-        TextButton(
+        CupertinoDialogAction(
           onPressed: _isSaving ? null : () => Navigator.of(context).pop(false),
           child: Text(strings.cancelAction),
         ),
-        FilledButton(
+        CupertinoDialogAction(
           key: const ValueKey('settings-passcode-dialog-submit'),
+          isDefaultAction: true,
           onPressed: _isSaving ? null : _submit,
           child: _isSaving
-              ? const SizedBox(
-                  width: 18,
-                  height: 18,
-                  child: CircularProgressIndicator(strokeWidth: 2),
-                )
+              ? const CupertinoActivityIndicator()
               : Text(
                   widget.hasPassword
                       ? strings.changePasscodeAction
@@ -1964,7 +1901,7 @@ class _PasswordDialogField extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return TextField(
+    return CupertinoTextField(
       key: valueKey,
       controller: controller,
       obscureText: !isVisible,
@@ -1973,15 +1910,17 @@ class _PasswordDialogField extends StatelessWidget {
       enableSuggestions: false,
       autocorrect: false,
       textInputAction: textInputAction,
-      decoration: InputDecoration(
-        labelText: labelText,
-        hintText: hintText,
-        suffixIcon: IconButton(
-          onPressed: onVisibilityChanged,
-          icon: Icon(
-            isVisible
-                ? Icons.visibility_off_outlined
-                : Icons.visibility_outlined,
+      placeholder: '$labelText · $hintText',
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+      suffix: CupertinoButton(
+        padding: EdgeInsets.zero,
+        minimumSize: Size.zero,
+        onPressed: onVisibilityChanged,
+        child: Padding(
+          padding: const EdgeInsets.only(right: 12),
+          child: Icon(
+            isVisible ? CupertinoIcons.eye_slash : CupertinoIcons.eye,
+            size: 18,
           ),
         ),
       ),
@@ -2009,9 +1948,10 @@ class _IconOptionCard extends StatelessWidget {
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
 
-    return InkWell(
-      borderRadius: BorderRadius.circular(22),
-      onTap: onTap,
+    return CupertinoButton(
+      padding: EdgeInsets.zero,
+      minimumSize: Size.zero,
+      onPressed: onTap,
       child: Container(
         width: 134,
         padding: const EdgeInsets.all(14),

@@ -4,7 +4,7 @@ import 'package:diary_mvp/features/diary/application/diary_controller.dart';
 import 'package:diary_mvp/features/diary/domain/diary_entry.dart';
 import 'package:diary_mvp/features/diary/presentation/widgets/diary_shell.dart';
 import 'package:diary_mvp/features/diary/presentation/widgets/entry_readonly_view.dart';
-import 'package:flutter/material.dart';
+import 'package:flutter/cupertino.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
@@ -33,16 +33,13 @@ class _TrashPreviewPageState extends ConsumerState<TrashPreviewPage> {
       showAppBarTitle: false,
       actions: [
         if (entry != null)
-          IconButton(
+          CupertinoButton(
+            padding: EdgeInsets.zero,
+            minimumSize: Size.zero,
             onPressed: _isRestoring ? null : _restoreEntry,
-            tooltip: strings.restoreFromTrash,
-            icon: _isRestoring
-                ? const SizedBox(
-                    width: 18,
-                    height: 18,
-                    child: CircularProgressIndicator(strokeWidth: 2),
-                  )
-                : const Icon(Icons.restore_outlined),
+            child: _isRestoring
+                ? const CupertinoActivityIndicator()
+                : const Icon(CupertinoIcons.arrow_uturn_left),
           ),
       ],
       child: entry == null

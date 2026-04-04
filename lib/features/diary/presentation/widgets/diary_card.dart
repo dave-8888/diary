@@ -1,6 +1,7 @@
-import 'package:diary_mvp/app/localization/app_strings.dart';
+import 'package:diary_mvp/app/cupertino_kit.dart';
 import 'package:diary_mvp/features/diary/domain/diary_entry.dart';
 import 'package:diary_mvp/features/diary/presentation/widgets/entry_list_preview.dart';
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:diary_mvp/features/diary/services/diary_list_settings.dart';
@@ -19,7 +20,6 @@ class DiaryCard extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final strings = context.strings;
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
     final showVisualMedia = ref
@@ -28,15 +28,16 @@ class DiaryCard extends ConsumerWidget {
         true;
     final trailingActions = <Widget>[
       if (entry.location != null)
-        Chip(
+        CupertinoPill(
+          icon: Icons.place_outlined,
           label: Text(entry.location!),
-          avatar: const Icon(Icons.place_outlined, size: 18),
         ),
       if (onEdit != null)
-        IconButton(
+        CupertinoButton(
+          padding: EdgeInsets.zero,
+          minimumSize: Size.zero,
           onPressed: onEdit,
-          tooltip: strings.editEntry,
-          icon: const Icon(Icons.edit_outlined),
+          child: const Icon(CupertinoIcons.pencil),
         ),
     ];
 
@@ -116,8 +117,9 @@ class DiaryCard extends ConsumerWidget {
               ),
               onTap == null
                   ? body
-                  : InkWell(
+                  : GestureDetector(
                       onTap: onTap,
+                      behavior: HitTestBehavior.opaque,
                       child: body,
                     ),
             ],

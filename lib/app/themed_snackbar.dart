@@ -1,4 +1,7 @@
+import 'dart:async';
+
 import 'package:diary_mvp/app/theme.dart';
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -9,32 +12,131 @@ enum AppSnackBarTone {
   error,
 }
 
+OverlayEntry? _activeToastEntry;
+
 extension AppSnackBarContext on BuildContext {
   void showAppSnackBar(
     String message, {
     AppSnackBarTone tone = AppSnackBarTone.info,
     Duration duration = const Duration(seconds: 3),
   }) {
-    final messenger = ScaffoldMessenger.maybeOf(this);
-    if (messenger == null) return;
+    final overlay = Overlay.maybeOf(this, rootOverlay: true);
+    if (overlay == null) return;
 
-    messenger.hideCurrentSnackBar();
-    messenger.showSnackBar(
-      buildAppSnackBar(
-        this,
+    _activeToastEntry?.remove();
+    _activeToastEntry = null;
+
+    late final OverlayEntry entry;
+    entry = OverlayEntry(
+      builder: (context) => _CupertinoToastOverlay(
         message: message,
         tone: tone,
         duration: duration,
+        onDismissed: () {
+          if (_activeToastEntry == entry) {
+            _activeToastEntry = null;
+          }
+          entry.remove();
+        },
+      ),
+    );
+
+    _activeToastEntry = entry;
+    overlay.insert(entry);
+  }
+}
+
+class _CupertinoToastOverlay extends StatefulWidget {
+  const _CupertinoToastOverlay({
+    required this.message,
+    required this.tone,
+    required this.duration,
+    required this.onDismissed,
+  });
+
+  final String message;
+  final AppSnackBarTone tone;
+  final Duration duration;
+  final VoidCallback onDismissed;
+
+  @override
+  State<_CupertinoToastOverlay> createState() => _CupertinoToastOverlayState();
+}
+
+class _CupertinoToastOverlayState extends State<_CupertinoToastOverlay> {
+  Timer? _hideTimer;
+  Timer? _removeTimer;
+  bool _visible = false;
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      setState(() => _visible = true);
+    });
+
+    _hideTimer = Timer(widget.duration, _dismiss);
+  }
+
+  @override
+  void dispose() {
+    _hideTimer?.cancel();
+    _removeTimer?.cancel();
+    super.dispose();
+  }
+
+  void _dismiss() {
+    if (!_visible) {
+      widget.onDismissed();
+      return;
+    }
+
+    setState(() => _visible = false);
+    _removeTimer = Timer(
+      const Duration(milliseconds: 220),
+      widget.onDismissed,
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return IgnorePointer(
+      child: Positioned.fill(
+        child: SafeArea(
+          child: Align(
+            alignment: Alignment.topCenter,
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(16, 10, 16, 0),
+              child: AnimatedSlide(
+                duration: const Duration(milliseconds: 220),
+                curve: Curves.easeOutCubic,
+                offset: _visible ? Offset.zero : const Offset(0, -0.12),
+                child: AnimatedOpacity(
+                  duration: const Duration(milliseconds: 220),
+                  opacity: _visible ? 1 : 0,
+                  child: ConstrainedBox(
+                    constraints: const BoxConstraints(maxWidth: 460),
+                    child: buildAppSnackBar(
+                      context,
+                      message: widget.message,
+                      tone: widget.tone,
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ),
       ),
     );
   }
 }
 
-SnackBar buildAppSnackBar(
+Widget buildAppSnackBar(
   BuildContext context, {
   required String message,
   AppSnackBarTone tone = AppSnackBarTone.info,
-  Duration duration = const Duration(seconds: 3),
 }) {
   final theme = Theme.of(context);
   final colorScheme = theme.colorScheme;
@@ -44,91 +146,62 @@ SnackBar buildAppSnackBar(
   final preset = resolveThemePreset(themeAsync);
   final palette = _paletteForTheme(preset);
   final toneColor = _toneColor(tone, colorScheme, theme.brightness);
-  final iconColor = _mixColor(toneColor, palette.textColor, 0.08);
-  final iconBackground = _mixColor(palette.panelColor, toneColor, 0.22);
-  final borderColor = _mixColor(palette.borderColor, toneColor, 0.34);
+  final iconBackground = _mixColor(palette.panelColor, toneColor, 0.2);
+  final borderColor = _mixColor(palette.borderColor, toneColor, 0.32);
 
-  return SnackBar(
-    duration: duration,
-    behavior: SnackBarBehavior.floating,
-    backgroundColor: Colors.transparent,
-    elevation: 0,
-    margin: const EdgeInsets.fromLTRB(20, 0, 20, 20),
-    padding: EdgeInsets.zero,
-    content: Container(
+  return CupertinoPopupSurface(
+    isSurfacePainted: false,
+    child: DecoratedBox(
       decoration: BoxDecoration(
         gradient: LinearGradient(
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
           colors: palette.gradientColors,
         ),
-        borderRadius: BorderRadius.circular(20),
+        borderRadius: BorderRadius.circular(22),
         border: Border.all(color: borderColor, width: 1),
         boxShadow: [
           BoxShadow(
             color: palette.shadowColor,
             blurRadius: 18,
-            offset: const Offset(0, 10),
+            offset: const Offset(0, 12),
           ),
         ],
       ),
-      child: Row(
-        children: [
-          Container(
-            width: 6,
-            height: 72,
-            decoration: BoxDecoration(
-              color: toneColor,
-              borderRadius: const BorderRadius.horizontal(
-                left: Radius.circular(20),
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(14, 12, 14, 12),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            DecoratedBox(
+              decoration: BoxDecoration(
+                color: iconBackground,
+                borderRadius: BorderRadius.circular(14),
+              ),
+              child: Padding(
+                padding: const EdgeInsets.all(10),
+                child: Icon(
+                  _iconForTone(tone),
+                  size: 18,
+                  color: toneColor,
+                ),
               ),
             ),
-          ),
-          Expanded(
-            child: Padding(
-              padding: const EdgeInsets.fromLTRB(14, 12, 14, 12),
-              child: Row(
-                children: [
-                  Container(
-                    width: 40,
-                    height: 40,
-                    decoration: BoxDecoration(
-                      color: iconBackground,
-                      borderRadius: BorderRadius.circular(14),
-                      border: Border.all(
-                        color: toneColor.withValues(alpha: 0.22),
-                      ),
-                    ),
-                    child: Icon(
-                      _iconForTone(tone),
-                      size: 20,
-                      color: iconColor,
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: Text(
-                      message,
-                      maxLines: 3,
-                      overflow: TextOverflow.ellipsis,
-                      style: theme.textTheme.bodyMedium?.copyWith(
-                        color: palette.textColor,
-                        fontWeight: FontWeight.w600,
-                        height: 1.35,
-                      ),
-                    ),
-                  ),
-                  const SizedBox(width: 10),
-                  Icon(
-                    palette.themeIcon,
-                    size: 18,
-                    color: palette.iconTint,
-                  ),
-                ],
+            const SizedBox(width: 12),
+            Expanded(
+              child: Text(
+                message,
+                maxLines: 3,
+                overflow: TextOverflow.ellipsis,
+                style: theme.textTheme.bodyMedium?.copyWith(
+                  color: palette.textColor,
+                  fontWeight: FontWeight.w600,
+                  height: 1.32,
+                ),
               ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     ),
   );
@@ -141,8 +214,6 @@ class _SnackBarPalette {
     required this.borderColor,
     required this.textColor,
     required this.shadowColor,
-    required this.iconTint,
-    required this.themeIcon,
   });
 
   final List<Color> gradientColors;
@@ -150,8 +221,6 @@ class _SnackBarPalette {
   final Color borderColor;
   final Color textColor;
   final Color shadowColor;
-  final Color iconTint;
-  final IconData themeIcon;
 }
 
 _SnackBarPalette _paletteForTheme(DiaryThemePreset preset) {
@@ -166,8 +235,6 @@ _SnackBarPalette _paletteForTheme(DiaryThemePreset preset) {
         borderColor: Color(0xFF8CBEC1),
         textColor: Color(0xFF24464B),
         shadowColor: Color(0x1F28666E),
-        iconTint: Color(0xFF28666E),
-        themeIcon: Icons.wb_sunny_outlined,
       );
     case DiaryThemePreset.girlPink:
       return const _SnackBarPalette(
@@ -179,8 +246,6 @@ _SnackBarPalette _paletteForTheme(DiaryThemePreset preset) {
         borderColor: Color(0xFFE2A7C4),
         textColor: Color(0xFF4C233A),
         shadowColor: Color(0x1FD46BA7),
-        iconTint: Color(0xFFD46BA7),
-        themeIcon: Icons.favorite_border,
       );
     case DiaryThemePreset.barbieShockPink:
       return const _SnackBarPalette(
@@ -192,8 +257,6 @@ _SnackBarPalette _paletteForTheme(DiaryThemePreset preset) {
         borderColor: Color(0x66FFFFFF),
         textColor: Colors.white,
         shadowColor: Color(0x33FF1493),
-        iconTint: Colors.white,
-        themeIcon: Icons.auto_awesome,
       );
     case DiaryThemePreset.kidPink:
       return const _SnackBarPalette(
@@ -205,8 +268,6 @@ _SnackBarPalette _paletteForTheme(DiaryThemePreset preset) {
         borderColor: Color(0xFFF3C4D7),
         textColor: Color(0xFF5A3346),
         shadowColor: Color(0x1FFF7DB8),
-        iconTint: Color(0xFFFF7DB8),
-        themeIcon: Icons.toys_outlined,
       );
     case DiaryThemePreset.happyBoy:
       return const _SnackBarPalette(
@@ -218,8 +279,6 @@ _SnackBarPalette _paletteForTheme(DiaryThemePreset preset) {
         borderColor: Color(0xFFBDD8F3),
         textColor: Color(0xFF173B57),
         shadowColor: Color(0x1F2395FF),
-        iconTint: Color(0xFF2395FF),
-        themeIcon: Icons.sports_basketball_outlined,
       );
     case DiaryThemePreset.night:
       return const _SnackBarPalette(
@@ -231,8 +290,6 @@ _SnackBarPalette _paletteForTheme(DiaryThemePreset preset) {
         borderColor: Color(0xFF35506F),
         textColor: Color(0xFFEAF1FF),
         shadowColor: Color(0x33000000),
-        iconTint: Color(0xFF8ED3FF),
-        themeIcon: Icons.dark_mode_outlined,
       );
     case DiaryThemePreset.cyberpunk:
       return const _SnackBarPalette(
@@ -244,8 +301,6 @@ _SnackBarPalette _paletteForTheme(DiaryThemePreset preset) {
         borderColor: Color(0x66FF47A6),
         textColor: Color(0xFFF8EDFF),
         shadowColor: Color(0x33000000),
-        iconTint: Color(0xFF00F6FF),
-        themeIcon: Icons.bolt_outlined,
       );
     case DiaryThemePreset.hacker:
       return const _SnackBarPalette(
@@ -257,8 +312,6 @@ _SnackBarPalette _paletteForTheme(DiaryThemePreset preset) {
         borderColor: Color(0xFF245C2A),
         textColor: Color(0xFFB9FFB3),
         shadowColor: Color(0x33000000),
-        iconTint: Color(0xFF5CFF6A),
-        themeIcon: Icons.memory_outlined,
       );
     case DiaryThemePreset.spaceLines:
       return const _SnackBarPalette(
@@ -270,8 +323,6 @@ _SnackBarPalette _paletteForTheme(DiaryThemePreset preset) {
         borderColor: Color(0xFFC8D4E8),
         textColor: Color(0xFF142033),
         shadowColor: Color(0x1F4A63FF),
-        iconTint: Color(0xFF4A63FF),
-        themeIcon: Icons.rocket_launch_outlined,
       );
   }
 }
@@ -298,13 +349,13 @@ Color _toneColor(
 IconData _iconForTone(AppSnackBarTone tone) {
   switch (tone) {
     case AppSnackBarTone.success:
-      return Icons.check_circle_outline_rounded;
+      return CupertinoIcons.check_mark_circled_solid;
     case AppSnackBarTone.info:
-      return Icons.info_outline_rounded;
+      return CupertinoIcons.info_circle_fill;
     case AppSnackBarTone.warning:
-      return Icons.warning_amber_rounded;
+      return CupertinoIcons.exclamationmark_triangle_fill;
     case AppSnackBarTone.error:
-      return Icons.error_outline_rounded;
+      return CupertinoIcons.xmark_circle_fill;
   }
 }
 

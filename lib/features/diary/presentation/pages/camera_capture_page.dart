@@ -2,12 +2,14 @@ import 'dart:typed_data';
 
 import 'package:camera/camera.dart';
 import 'package:crop_your_image/crop_your_image.dart';
+import 'package:diary_mvp/app/cupertino_kit.dart';
 import 'package:diary_mvp/app/themed_snackbar.dart';
 import 'package:diary_mvp/app/localization/app_strings.dart';
 import 'package:diary_mvp/core/storage/local_storage_service.dart';
 import 'package:diary_mvp/features/diary/domain/diary_entry.dart';
 import 'package:diary_mvp/features/diary/presentation/models/captured_media_result.dart';
 import 'package:diary_mvp/features/diary/presentation/widgets/local_video_player.dart';
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -94,27 +96,26 @@ class _CameraCapturePageState extends ConsumerState<CameraCapturePage>
         !_hasCapturedMedia &&
         !_isVideoRecording;
 
-    return Scaffold(
+    return CupertinoPageScaffold(
       backgroundColor: Colors.black,
-      appBar: AppBar(
-        title: Text(_pageTitle(strings)),
-        backgroundColor: Colors.black,
-        foregroundColor: Colors.white,
-        actions: [
-          if (canSwitchCamera)
-            IconButton(
-              tooltip: strings.switchCamera,
-              onPressed: _switchCamera,
-              icon: const Icon(Icons.cameraswitch_outlined),
+      child: SafeArea(
+        bottom: false,
+        child: Column(
+          children: [
+            _buildTopBar(
+              context,
+              strings,
+              canSwitchCamera: canSwitchCamera,
             ),
-        ],
-      ),
-      body: _buildBody(context, controller, canChangeMode),
-      bottomNavigationBar: SafeArea(
-        top: false,
-        child: Padding(
-          padding: const EdgeInsets.fromLTRB(24, 12, 24, 24),
-          child: _buildBottomBar(context, controller),
+            Expanded(child: _buildBody(context, controller, canChangeMode)),
+            SafeArea(
+              top: false,
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(24, 12, 24, 24),
+                child: _buildBottomBar(context, controller),
+              ),
+            ),
+          ],
         ),
       ),
     );
@@ -133,6 +134,69 @@ class _CameraCapturePageState extends ConsumerState<CameraCapturePage>
     return _captureMode == CameraCaptureMode.video
         ? strings.recordVideo
         : strings.cameraCapture;
+  }
+
+  Widget _buildTopBar(
+    BuildContext context,
+    AppStrings strings, {
+    required bool canSwitchCamera,
+  }) {
+    final theme = Theme.of(context);
+
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 8, 16, 12),
+      child: Row(
+        children: [
+          _buildTopBarButton(
+            icon: CupertinoIcons.back,
+            onTap: () => Navigator.of(context).maybePop(),
+          ),
+          Expanded(
+            child: Text(
+              _pageTitle(strings),
+              textAlign: TextAlign.center,
+              style: theme.textTheme.titleMedium?.copyWith(
+                color: Colors.white,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+          ),
+          SizedBox.square(
+            dimension: 40,
+            child: canSwitchCamera
+                ? _buildTopBarButton(
+                    icon: Icons.cameraswitch_outlined,
+                    onTap: _switchCamera,
+                  )
+                : null,
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildTopBarButton({
+    required IconData icon,
+    required VoidCallback onTap,
+  }) {
+    return CupertinoButton(
+      padding: EdgeInsets.zero,
+      minimumSize: Size.zero,
+      onPressed: onTap,
+      child: DecoratedBox(
+        decoration: BoxDecoration(
+          color: Colors.white.withValues(alpha: 0.12),
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(
+            color: Colors.white.withValues(alpha: 0.08),
+          ),
+        ),
+        child: Padding(
+          padding: const EdgeInsets.all(10),
+          child: Icon(icon, color: Colors.white, size: 20),
+        ),
+      ),
+    );
   }
 
   Widget _buildBody(
@@ -157,25 +221,28 @@ class _CameraCapturePageState extends ConsumerState<CameraCapturePage>
         Padding(
           padding: const EdgeInsets.fromLTRB(24, 16, 24, 8),
           child: Center(
-            child: SegmentedButton<CameraCaptureMode>(
-              segments: [
-                ButtonSegment(
-                  value: CameraCaptureMode.photo,
-                  icon: const Icon(Icons.photo_camera_outlined),
+            child: Wrap(
+              spacing: 12,
+              runSpacing: 12,
+              alignment: WrapAlignment.center,
+              children: [
+                CupertinoPill(
+                  selected: _captureMode == CameraCaptureMode.photo,
+                  onPressed: canChangeMode
+                      ? () => setState(() => _captureMode = CameraCaptureMode.photo)
+                      : null,
+                  icon: Icons.photo_camera_outlined,
                   label: Text(context.strings.photoMode),
                 ),
-                ButtonSegment(
-                  value: CameraCaptureMode.video,
-                  icon: const Icon(Icons.videocam_outlined),
+                CupertinoPill(
+                  selected: _captureMode == CameraCaptureMode.video,
+                  onPressed: canChangeMode
+                      ? () => setState(() => _captureMode = CameraCaptureMode.video)
+                      : null,
+                  icon: Icons.videocam_outlined,
                   label: Text(context.strings.videoMode),
                 ),
               ],
-              selected: {_captureMode},
-              onSelectionChanged: canChangeMode
-                  ? (selection) {
-                      setState(() => _captureMode = selection.first);
-                    }
-                  : null,
             ),
           ),
         ),
@@ -192,7 +259,7 @@ class _CameraCapturePageState extends ConsumerState<CameraCapturePage>
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const CircularProgressIndicator(),
+            const CupertinoActivityIndicator(),
             const SizedBox(height: 16),
             Text(
               strings.cameraLoading,
@@ -396,27 +463,23 @@ class _CameraCapturePageState extends ConsumerState<CameraCapturePage>
       return Row(
         children: [
           Expanded(
-            child: OutlinedButton(
+            child: CupertinoActionButton(
               onPressed: _isCapturing
                   ? null
                   : () => setState(() => _isCropping = false),
-              child: Text(strings.cancelCrop),
+              expand: true,
+              variant: CupertinoActionButtonVariant.outline,
+              label: strings.cancelCrop,
             ),
           ),
           const SizedBox(width: 12),
           Expanded(
-            child: FilledButton.icon(
+            child: CupertinoActionButton(
               onPressed: _isCapturing ? null : _applyCrop,
-              icon: _isCapturing
-                  ? const SizedBox(
-                      width: 18,
-                      height: 18,
-                      child: CircularProgressIndicator(strokeWidth: 2),
-                    )
-                  : const Icon(Icons.crop),
-              label: Text(
-                _isCapturing ? strings.croppingPhoto : strings.applyCrop,
-              ),
+              expand: true,
+              isBusy: _isCapturing,
+              icon: Icons.crop,
+              label: _isCapturing ? strings.croppingPhoto : strings.applyCrop,
             ),
           ),
         ],
@@ -427,32 +490,32 @@ class _CameraCapturePageState extends ConsumerState<CameraCapturePage>
       return Row(
         children: [
           Expanded(
-            child: OutlinedButton.icon(
+            child: CupertinoActionButton(
               onPressed: _isCapturing ? null : _retakePhoto,
-              icon: const Icon(Icons.replay_outlined),
-              label: Text(strings.retakePhoto),
+              expand: true,
+              variant: CupertinoActionButtonVariant.outline,
+              icon: Icons.replay_outlined,
+              label: strings.retakePhoto,
             ),
           ),
           const SizedBox(width: 12),
           Expanded(
-            child: FilledButton.tonalIcon(
+            child: CupertinoActionButton(
               onPressed: _isCapturing ? null : _startCropping,
-              icon: const Icon(Icons.crop_outlined),
-              label: Text(strings.cropPhoto),
+              expand: true,
+              variant: CupertinoActionButtonVariant.tinted,
+              icon: Icons.crop_outlined,
+              label: strings.cropPhoto,
             ),
           ),
           const SizedBox(width: 12),
           Expanded(
-            child: FilledButton.icon(
+            child: CupertinoActionButton(
               onPressed: _isCapturing ? null : _usePhoto,
-              icon: _isCapturing
-                  ? const SizedBox(
-                      width: 18,
-                      height: 18,
-                      child: CircularProgressIndicator(strokeWidth: 2),
-                    )
-                  : const Icon(Icons.check_circle_outline),
-              label: Text(_isCapturing ? strings.saving : strings.usePhoto),
+              expand: true,
+              isBusy: _isCapturing,
+              icon: Icons.check_circle_outline,
+              label: _isCapturing ? strings.saving : strings.usePhoto,
             ),
           ),
         ],
@@ -463,24 +526,22 @@ class _CameraCapturePageState extends ConsumerState<CameraCapturePage>
       return Row(
         children: [
           Expanded(
-            child: OutlinedButton.icon(
+            child: CupertinoActionButton(
               onPressed: _isCapturing ? null : _retakeVideo,
-              icon: const Icon(Icons.replay_outlined),
-              label: Text(strings.retakeVideo),
+              expand: true,
+              variant: CupertinoActionButtonVariant.outline,
+              icon: Icons.replay_outlined,
+              label: strings.retakeVideo,
             ),
           ),
           const SizedBox(width: 12),
           Expanded(
-            child: FilledButton.icon(
+            child: CupertinoActionButton(
               onPressed: _isCapturing ? null : _useVideo,
-              icon: _isCapturing
-                  ? const SizedBox(
-                      width: 18,
-                      height: 18,
-                      child: CircularProgressIndicator(strokeWidth: 2),
-                    )
-                  : const Icon(Icons.check_circle_outline),
-              label: Text(_isCapturing ? strings.saving : strings.useVideo),
+              expand: true,
+              isBusy: _isCapturing,
+              icon: Icons.check_circle_outline,
+              label: _isCapturing ? strings.saving : strings.useVideo,
             ),
           ),
         ],
@@ -488,52 +549,36 @@ class _CameraCapturePageState extends ConsumerState<CameraCapturePage>
     }
 
     if (_captureMode == CameraCaptureMode.video) {
-      return FilledButton.icon(
+      return CupertinoActionButton(
         onPressed: _isCapturing
             ? null
             : _isVideoRecording
                 ? _stopVideoRecording
                 : (_canStartVideoRecording(controller)
-                    ? _startVideoRecording
-                    : null),
-        icon: _isCapturing
-            ? const SizedBox(
-                width: 18,
-                height: 18,
-                child: CircularProgressIndicator(strokeWidth: 2),
-              )
-            : Icon(
-                _isVideoRecording
-                    ? Icons.stop_circle_outlined
-                    : Icons.videocam_outlined,
-              ),
-        label: Text(
-          _isCapturing
-              ? strings.saving
-              : _isVideoRecording
-                  ? strings.stopVideoRecording
-                  : strings.startVideoRecording,
-        ),
-        style: FilledButton.styleFrom(
-          minimumSize: const Size.fromHeight(54),
-          backgroundColor: _isVideoRecording ? Colors.redAccent : null,
-        ),
+                ? _startVideoRecording
+                : null),
+        expand: true,
+        minHeight: 54,
+        isBusy: _isCapturing,
+        destructive: _isVideoRecording,
+        icon: _isVideoRecording
+            ? Icons.stop_circle_outlined
+            : Icons.videocam_outlined,
+        label: _isCapturing
+            ? strings.saving
+            : _isVideoRecording
+                ? strings.stopVideoRecording
+                : strings.startVideoRecording,
       );
     }
 
-    return FilledButton.icon(
+    return CupertinoActionButton(
       onPressed: _canCapturePhoto(controller) ? _capturePhoto : null,
-      icon: _isCapturing
-          ? const SizedBox(
-              width: 18,
-              height: 18,
-              child: CircularProgressIndicator(strokeWidth: 2),
-            )
-          : const Icon(Icons.camera_alt_outlined),
-      label: Text(_isCapturing ? strings.saving : strings.takePhoto),
-      style: FilledButton.styleFrom(
-        minimumSize: const Size.fromHeight(54),
-      ),
+      expand: true,
+      minHeight: 54,
+      isBusy: _isCapturing,
+      icon: Icons.camera_alt_outlined,
+      label: _isCapturing ? strings.saving : strings.takePhoto,
     );
   }
 

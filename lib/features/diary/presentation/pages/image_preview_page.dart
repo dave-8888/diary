@@ -2,6 +2,7 @@ import 'dart:io';
 
 import 'package:diary_mvp/app/localization/app_strings.dart';
 import 'package:diary_mvp/features/diary/domain/diary_entry.dart';
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:path/path.dart' as p;
 
@@ -18,11 +19,12 @@ class ImagePreviewPage extends StatelessWidget {
     final strings = context.strings;
     final image = media;
 
-    return Scaffold(
-      appBar: AppBar(
-        title: Text(strings.imagePreviewPageTitle),
+    return CupertinoPageScaffold(
+      navigationBar: CupertinoNavigationBar(
+        middle: Text(strings.imagePreviewPageTitle),
       ),
-      body: SafeArea(
+      child: SafeArea(
+        top: false,
         child: image == null
             ? Center(child: Text(strings.noImageSelected))
             : LayoutBuilder(

@@ -26,7 +26,11 @@ class DiaryApp extends ConsumerWidget {
       localeResolutionCallback: (localeValue, supportedLocales) {
         return AppStrings.resolveLocale(localeValue);
       },
-      localizationsDelegates: GlobalMaterialLocalizations.delegates,
+      localizationsDelegates: const [
+        GlobalMaterialLocalizations.delegate,
+        GlobalCupertinoLocalizations.delegate,
+        GlobalWidgetsLocalizations.delegate,
+      ],
       builder: (context, child) {
         return WindowIdentitySync(
           child: AppStartupLockGate(

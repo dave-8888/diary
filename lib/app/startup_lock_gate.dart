@@ -1,5 +1,6 @@
 import 'package:diary_mvp/app/localization/app_strings.dart';
 import 'package:diary_mvp/features/diary/services/password_settings.dart';
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -127,74 +128,122 @@ class _StartupLockScreenState extends ConsumerState<_StartupLockScreen> {
   Widget build(BuildContext context) {
     final strings = context.strings;
     final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
 
-    return Scaffold(
-      body: Center(
-        child: ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: 420),
-          child: Card(
-            margin: const EdgeInsets.all(24),
-            child: Padding(
-              padding: const EdgeInsets.all(24),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    strings.unlockAppTitle,
-                    style: theme.textTheme.headlineSmall?.copyWith(
-                      fontWeight: FontWeight.w700,
-                    ),
+    return CupertinoPageScaffold(
+      backgroundColor: theme.scaffoldBackgroundColor,
+      child: SafeArea(
+        child: Center(
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 420),
+            child: DecoratedBox(
+              decoration: BoxDecoration(
+                color: theme.cardTheme.color ?? colorScheme.surface,
+                borderRadius: BorderRadius.circular(28),
+                border: Border.all(
+                  color: colorScheme.outlineVariant.withValues(alpha: 0.34),
+                ),
+                boxShadow: [
+                  BoxShadow(
+                    color: colorScheme.shadow.withValues(alpha: 0.08),
+                    blurRadius: 24,
+                    offset: const Offset(0, 16),
                   ),
-                  const SizedBox(height: 10),
-                  Text(
-                    strings.unlockAppHint,
-                    style: theme.textTheme.bodyMedium?.copyWith(
-                      color: theme.colorScheme.onSurfaceVariant,
+                ],
+              ),
+              child: Padding(
+                padding: const EdgeInsets.all(24),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      strings.unlockAppTitle,
+                      style: theme.textTheme.headlineSmall?.copyWith(
+                        fontWeight: FontWeight.w700,
+                      ),
                     ),
-                  ),
-                  const SizedBox(height: 20),
-                  TextField(
-                    key: const ValueKey('startup-passcode-field'),
-                    controller: _passwordController,
-                    obscureText: !_showPassword,
-                    autofocus: true,
-                    keyboardType: TextInputType.visiblePassword,
-                    enableSuggestions: false,
-                    autocorrect: false,
-                    textInputAction: TextInputAction.done,
-                    decoration: InputDecoration(
-                      labelText: strings.passcodeLabel,
-                      hintText: strings.passcodeHint,
-                      errorText: _errorText,
-                      suffixIcon: IconButton(
+                    const SizedBox(height: 10),
+                    Text(
+                      strings.unlockAppHint,
+                      style: theme.textTheme.bodyMedium?.copyWith(
+                        color: theme.colorScheme.onSurfaceVariant,
+                      ),
+                    ),
+                    const SizedBox(height: 20),
+                    CupertinoTextField(
+                      key: const ValueKey('startup-passcode-field'),
+                      controller: _passwordController,
+                      obscureText: !_showPassword,
+                      autofocus: true,
+                      keyboardType: TextInputType.visiblePassword,
+                      enableSuggestions: false,
+                      autocorrect: false,
+                      textInputAction: TextInputAction.done,
+                      placeholder: strings.passcodeHint,
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 16,
+                        vertical: 14,
+                      ),
+                      suffix: CupertinoButton(
+                        padding: const EdgeInsets.only(right: 10),
+                        minimumSize: Size.zero,
                         onPressed: () {
                           setState(() => _showPassword = !_showPassword);
                         },
-                        icon: Icon(
+                        child: Icon(
                           _showPassword
-                              ? Icons.visibility_off_outlined
-                              : Icons.visibility_outlined,
+                              ? CupertinoIcons.eye_slash
+                              : CupertinoIcons.eye,
+                          color: colorScheme.onSurfaceVariant,
+                          size: 20,
+                        ),
+                      ),
+                      onSubmitted: (_) => _unlock(),
+                    ),
+                    if (_errorText != null) ...[
+                      const SizedBox(height: 10),
+                      Text(
+                        _errorText!,
+                        style: theme.textTheme.bodySmall?.copyWith(
+                          color: colorScheme.error,
+                        ),
+                      ),
+                    ],
+                    const SizedBox(height: 16),
+                    SizedBox(
+                      width: double.infinity,
+                      child: CupertinoButton(
+                        padding: EdgeInsets.zero,
+                        minimumSize: Size.zero,
+                        onPressed: _isUnlocking ? null : _unlock,
+                        child: DecoratedBox(
+                          decoration: BoxDecoration(
+                            color: colorScheme.primary.withValues(
+                              alpha: _isUnlocking ? 0.5 : 1,
+                            ),
+                            borderRadius: BorderRadius.circular(999),
+                          ),
+                          child: Padding(
+                            padding: const EdgeInsets.symmetric(vertical: 14),
+                            child: Center(
+                              child: _isUnlocking
+                                  ? CupertinoActivityIndicator(
+                                      color: colorScheme.onPrimary,
+                                    )
+                                  : Text(
+                                      strings.unlockAction,
+                                      style: theme.textTheme.labelLarge?.copyWith(
+                                        color: colorScheme.onPrimary,
+                                      ),
+                                    ),
+                            ),
+                          ),
                         ),
                       ),
                     ),
-                    onSubmitted: (_) => _unlock(),
-                  ),
-                  const SizedBox(height: 16),
-                  SizedBox(
-                    width: double.infinity,
-                    child: FilledButton(
-                      onPressed: _isUnlocking ? null : _unlock,
-                      child: _isUnlocking
-                          ? const SizedBox(
-                              width: 18,
-                              height: 18,
-                              child: CircularProgressIndicator(strokeWidth: 2),
-                            )
-                          : Text(strings.unlockAction),
-                    ),
-                  ),
-                ],
+                  ],
+                ),
               ),
             ),
           ),
@@ -237,9 +286,9 @@ class _LockLoadingView extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return const Scaffold(
-      body: Center(
-        child: CircularProgressIndicator(),
+    return const CupertinoPageScaffold(
+      child: Center(
+        child: CupertinoActivityIndicator(),
       ),
     );
   }
@@ -254,8 +303,8 @@ class _LockErrorView extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      body: Center(
+    return CupertinoPageScaffold(
+      child: Center(
         child: Padding(
           padding: const EdgeInsets.all(24),
           child: Text(

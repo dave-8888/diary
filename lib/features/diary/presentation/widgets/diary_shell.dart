@@ -3,6 +3,7 @@ import 'dart:ui';
 import 'package:diary_mvp/app/app_icon.dart';
 import 'package:diary_mvp/app/localization/app_strings.dart';
 import 'package:diary_mvp/app/theme.dart';
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -50,38 +51,62 @@ class DiaryShell extends ConsumerWidget {
         final appBarActions = [
           ...actions,
           if (useCompactLayout && !isSettingsPage)
-            IconButton(
+            CupertinoButton(
+              padding: EdgeInsets.zero,
+              minimumSize: Size.zero,
               onPressed: () => _openSettings(context, compact: true),
-              tooltip: strings.settingsTooltip,
-              icon: const Icon(Icons.settings_outlined),
+              child: Icon(
+                CupertinoIcons.gear_alt,
+                color: Theme.of(context).colorScheme.primary,
+              ),
             ),
         ];
         final shouldShowAppBar = showAppBarTitle || appBarActions.isNotEmpty;
 
         if (useCompactLayout) {
           return Scaffold(
-            appBar: shouldShowAppBar
-                ? AppBar(
-                    toolbarHeight: 78,
-                    titleSpacing: 20,
-                    title: showAppBarTitle
-                        ? _AppBarTitle(
-                            pageTitle: title,
-                            iconSelection: selectedIcon,
-                          )
-                        : null,
-                    centerTitle: false,
-                    backgroundColor: Colors.transparent,
-                    actions: appBarActions,
-                  )
-                : null,
+            backgroundColor: Colors.transparent,
             floatingActionButton: floatingActionButton,
             body: _ThemedShellBackground(
               themePreset: selectedTheme,
               child: SafeArea(
-                child: Padding(
-                  padding: compactBodyPadding ?? const EdgeInsets.all(16),
-                  child: child,
+                bottom: false,
+                child: Column(
+                  children: [
+                    if (shouldShowAppBar)
+                      Padding(
+                        padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
+                        child: _ShellGlassPanel(
+                          radius: _panelRadius,
+                          padding: const EdgeInsets.fromLTRB(16, 12, 12, 12),
+                          child: Row(
+                            children: [
+                              if (showAppBarTitle)
+                                Expanded(
+                                  child: _AppBarTitle(
+                                    pageTitle: title,
+                                    iconSelection: selectedIcon,
+                                  ),
+                                )
+                              else
+                                const Spacer(),
+                              ...appBarActions.map(
+                                (action) => Padding(
+                                  padding: const EdgeInsets.only(left: 8),
+                                  child: action,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    Expanded(
+                      child: Padding(
+                        padding: compactBodyPadding ?? const EdgeInsets.all(16),
+                        child: child,
+                      ),
+                    ),
+                  ],
                 ),
               ),
             ),
@@ -91,29 +116,37 @@ class DiaryShell extends ConsumerWidget {
                 padding: const EdgeInsets.fromLTRB(12, 0, 12, 12),
                 child: _ShellGlassPanel(
                   radius: _panelRadius,
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 6, vertical: 6),
-                  child: NavigationBar(
-                    backgroundColor: Colors.transparent,
-                    surfaceTintColor: Colors.transparent,
-                    elevation: 0,
-                    selectedIndex: selectedIndex ?? 0,
-                    onDestinationSelected: (index) =>
-                        _goToIndex(context, index),
-                    destinations: [
-                      NavigationDestination(
-                        icon: const Icon(Icons.home_outlined),
-                        label: strings.homeNav,
-                      ),
-                      NavigationDestination(
-                        icon: const Icon(Icons.edit_note_outlined),
-                        label: strings.writeNav,
-                      ),
-                      NavigationDestination(
-                        icon: const Icon(Icons.delete_outline),
-                        label: strings.trashNav,
-                      ),
-                    ],
+                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 8),
+                  child: CupertinoTheme(
+                    data: CupertinoTheme.of(context),
+                    child: CupertinoTabBar(
+                      border: null,
+                      backgroundColor: Colors.transparent,
+                      activeColor: Theme.of(context).colorScheme.primary,
+                      inactiveColor:
+                          Theme.of(context).colorScheme.onSurfaceVariant,
+                      currentIndex: selectedIndex ?? 0,
+                      onTap: (index) => _goToIndex(context, index),
+                      items: [
+                        BottomNavigationBarItem(
+                          icon: const Icon(CupertinoIcons.house),
+                          activeIcon: const Icon(CupertinoIcons.house_fill),
+                          label: strings.homeNav,
+                        ),
+                        BottomNavigationBarItem(
+                          icon: const Icon(CupertinoIcons.square_pencil),
+                          activeIcon: const Icon(
+                            CupertinoIcons.square_pencil,
+                          ),
+                          label: strings.writeNav,
+                        ),
+                        BottomNavigationBarItem(
+                          icon: const Icon(CupertinoIcons.delete),
+                          activeIcon: const Icon(CupertinoIcons.delete_solid),
+                          label: strings.trashNav,
+                        ),
+                      ],
+                    ),
                   ),
                 ),
               ),
@@ -122,21 +155,7 @@ class DiaryShell extends ConsumerWidget {
         }
 
         return Scaffold(
-          appBar: shouldShowAppBar
-              ? AppBar(
-                  toolbarHeight: 80,
-                  titleSpacing: 24,
-                  title: showAppBarTitle
-                      ? _AppBarTitle(
-                          pageTitle: title,
-                          iconSelection: selectedIcon,
-                        )
-                      : null,
-                  centerTitle: false,
-                  backgroundColor: Colors.transparent,
-                  actions: appBarActions,
-                )
-              : null,
+          backgroundColor: Colors.transparent,
           floatingActionButton: floatingActionButton,
           body: _ThemedShellBackground(
             themePreset: selectedTheme,
@@ -146,50 +165,42 @@ class DiaryShell extends ConsumerWidget {
                 child: Row(
                   children: [
                     SizedBox(
-                      width: 102,
+                      width: 118,
                       child: _ShellGlassPanel(
                         radius: _panelRadius + 2,
-                        padding: const EdgeInsets.fromLTRB(10, 12, 10, 10),
+                        padding: const EdgeInsets.fromLTRB(10, 14, 10, 10),
                         child: Column(
                           children: [
                             _RailBrand(
                               iconSelection: selectedIcon,
                               title: title,
                             ),
-                            const SizedBox(height: 10),
-                            Expanded(
-                              child: NavigationRail(
-                                backgroundColor: Colors.transparent,
-                                selectedIndex: selectedIndex,
-                                onDestinationSelected: (index) =>
-                                    _goToIndex(context, index),
-                                groupAlignment: -0.95,
-                                labelType: NavigationRailLabelType.all,
-                                destinations: [
-                                  NavigationRailDestination(
-                                    icon: const Icon(Icons.home_outlined),
-                                    selectedIcon: const Icon(Icons.home),
-                                    label: Text(strings.homeNav),
-                                  ),
-                                  NavigationRailDestination(
-                                    icon: const Icon(Icons.edit_note_outlined),
-                                    selectedIcon: const Icon(Icons.edit_note),
-                                    label: Text(strings.writeNav),
-                                  ),
-                                  NavigationRailDestination(
-                                    icon: const Icon(Icons.delete_outline),
-                                    selectedIcon: const Icon(Icons.delete),
-                                    label: Text(strings.trashNav),
-                                  ),
-                                ],
-                              ),
+                            const SizedBox(height: 14),
+                            _RailFooterAction(
+                              icon: CupertinoIcons.house_fill,
+                              label: strings.homeNav,
+                              selected: selectedIndex == 0,
+                              onTap: () => _goToIndex(context, 0),
                             ),
+                            const SizedBox(height: 8),
+                            _RailFooterAction(
+                              icon: CupertinoIcons.square_pencil,
+                              label: strings.writeNav,
+                              selected: selectedIndex == 1,
+                              onTap: () => _goToIndex(context, 1),
+                            ),
+                            const SizedBox(height: 8),
+                            _RailFooterAction(
+                              icon: CupertinoIcons.delete_solid,
+                              label: strings.trashNav,
+                              selected: selectedIndex == 2,
+                              onTap: () => _goToIndex(context, 2),
+                            ),
+                            const Spacer(),
                             Padding(
                               padding: const EdgeInsets.fromLTRB(6, 10, 6, 4),
                               child: _RailFooterAction(
-                                icon: isSettingsPage
-                                    ? Icons.settings
-                                    : Icons.settings_outlined,
+                                icon: CupertinoIcons.gear_alt_fill,
                                 label: strings.settingsTitle,
                                 selected: isSettingsPage,
                                 onTap: () =>
@@ -202,10 +213,45 @@ class DiaryShell extends ConsumerWidget {
                     ),
                     const SizedBox(width: 20),
                     Expanded(
-                      child: Padding(
-                        padding:
-                            expandedBodyPadding ?? const EdgeInsets.all(20),
-                        child: child,
+                      child: Column(
+                        children: [
+                          if (shouldShowAppBar)
+                            Padding(
+                              padding: const EdgeInsets.only(bottom: 16),
+                              child: _ShellGlassPanel(
+                                radius: _panelRadius,
+                                padding:
+                                    const EdgeInsets.fromLTRB(18, 12, 14, 12),
+                                child: Row(
+                                  children: [
+                                    if (showAppBarTitle)
+                                      Expanded(
+                                        child: _AppBarTitle(
+                                          pageTitle: title,
+                                          iconSelection: selectedIcon,
+                                        ),
+                                      )
+                                    else
+                                      const Spacer(),
+                                    ...appBarActions.map(
+                                      (action) => Padding(
+                                        padding: const EdgeInsets.only(left: 8),
+                                        child: action,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ),
+                          Expanded(
+                            child: Padding(
+                              padding:
+                                  expandedBodyPadding ??
+                                  const EdgeInsets.all(20),
+                              child: child,
+                            ),
+                          ),
+                        ],
                       ),
                     ),
                   ],
@@ -294,8 +340,7 @@ class _AppBarTitle extends StatelessWidget {
             pageTitle,
             overflow: TextOverflow.ellipsis,
             style: theme.textTheme.titleMedium?.copyWith(
-              fontWeight: FontWeight.w800,
-              letterSpacing: 0.12,
+              fontWeight: FontWeight.w700,
             ),
           ),
         ),
@@ -322,20 +367,30 @@ class _RailFooterAction extends StatelessWidget {
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
     final surfaceColor = theme.cardTheme.color ?? colorScheme.surface;
-    final foregroundColor = selected
-        ? colorScheme.onSecondaryContainer
-        : colorScheme.onSurfaceVariant;
+    final isDark = colorScheme.brightness == Brightness.dark;
+    final foregroundColor =
+        selected ? colorScheme.primary : colorScheme.onSurfaceVariant;
 
     return SizedBox(
       width: double.infinity,
-      child: Material(
-        color: selected
-            ? colorScheme.secondaryContainer.withValues(alpha: 0.88)
-            : surfaceColor.withValues(alpha: 0.2),
-        borderRadius: BorderRadius.circular(22),
-        child: InkWell(
-          onTap: onTap,
-          borderRadius: BorderRadius.circular(22),
+      child: CupertinoButton(
+        padding: EdgeInsets.zero,
+        minimumSize: Size.zero,
+        onPressed: onTap,
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 180),
+          curve: Curves.easeOutCubic,
+          decoration: BoxDecoration(
+            color: selected
+                ? colorScheme.primary.withValues(alpha: isDark ? 0.22 : 0.12)
+                : surfaceColor.withValues(alpha: isDark ? 0.12 : 0.32),
+            borderRadius: BorderRadius.circular(22),
+            border: Border.all(
+              color: selected
+                  ? colorScheme.primary.withValues(alpha: 0.18)
+                  : colorScheme.outlineVariant.withValues(alpha: 0.28),
+            ),
+          ),
           child: Padding(
             padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 12),
             child: Column(

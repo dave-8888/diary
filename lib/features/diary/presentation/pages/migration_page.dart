@@ -1,3 +1,4 @@
+import 'package:diary_mvp/app/cupertino_kit.dart';
 import 'package:diary_mvp/app/context_tooltip.dart';
 import 'package:diary_mvp/app/localization/app_strings.dart';
 import 'package:diary_mvp/app/themed_snackbar.dart';
@@ -124,22 +125,15 @@ class _MigrationPageState extends ConsumerState<MigrationPage> {
               ],
             ),
             const SizedBox(height: 14),
-            FilledButton.icon(
+            CupertinoActionButton(
               onPressed: onPressed,
-              icon: isBusy
-                  ? const SizedBox(
-                      width: 18,
-                      height: 18,
-                      child: CircularProgressIndicator(strokeWidth: 2),
-                    )
-                  : Icon(icon),
-              style: isDanger
-                  ? FilledButton.styleFrom(
-                      backgroundColor: theme.colorScheme.errorContainer,
-                      foregroundColor: theme.colorScheme.onErrorContainer,
-                    )
-                  : null,
-              label: Text(buttonLabel),
+              isBusy: isBusy,
+              destructive: isDanger,
+              variant: isDanger
+                  ? CupertinoActionButtonVariant.tinted
+                  : CupertinoActionButtonVariant.filled,
+              icon: icon,
+              label: buttonLabel,
             ),
           ],
         ),
@@ -216,24 +210,14 @@ class _MigrationPageState extends ConsumerState<MigrationPage> {
       return;
     }
 
-    final confirmed = await showDialog<bool>(
-          context: context,
-          builder: (dialogContext) => AlertDialog(
-            title: Text(strings.importMigrationConfirmTitle),
-            content: Text(strings.importMigrationConfirmMessage),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.of(dialogContext).pop(false),
-                child: Text(strings.cancelAction),
-              ),
-              FilledButton(
-                onPressed: () => Navigator.of(dialogContext).pop(true),
-                child: Text(strings.confirmImportMigration),
-              ),
-            ],
-          ),
-        ) ??
-        false;
+    final confirmed = await showCupertinoConfirmationDialog(
+      context,
+      title: strings.importMigrationConfirmTitle,
+      message: strings.importMigrationConfirmMessage,
+      cancelLabel: strings.cancelAction,
+      confirmLabel: strings.confirmImportMigration,
+      isDestructive: true,
+    );
     if (!confirmed || !mounted) return;
 
     setState(() => _isImporting = true);

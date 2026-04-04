@@ -1,3 +1,4 @@
+import 'package:diary_mvp/app/cupertino_kit.dart';
 import 'package:diary_mvp/app/localization/app_strings.dart';
 import 'package:diary_mvp/features/diary/domain/diary_entry.dart';
 import 'package:diary_mvp/features/diary/presentation/widgets/audio_attachment_tile.dart';
@@ -38,22 +39,22 @@ class EntryReadonlyView extends StatelessWidget {
           spacing: 10,
           runSpacing: 10,
           children: [
-            Chip(
-              avatar: Text(entry.mood.emoji),
+            CupertinoPill(
+              leading: Text(entry.mood.emoji),
               label: Text(strings.moodLabel(entry.mood)),
             ),
-            Chip(
-              avatar: const Icon(Icons.schedule_outlined, size: 18),
+            CupertinoPill(
+              icon: Icons.schedule_outlined,
               label: Text(strings.formatDateTime(entry.createdAt)),
             ),
             if (entry.location != null)
-              Chip(
-                avatar: const Icon(Icons.place_outlined, size: 18),
+              CupertinoPill(
+                icon: Icons.place_outlined,
                 label: Text(entry.location!),
               ),
             if (showTrashedInfo && entry.trashedAt != null)
-              Chip(
-                avatar: const Icon(Icons.delete_outline, size: 18),
+              CupertinoPill(
+                icon: Icons.delete_outline,
                 label: Text(strings.trashedAtLabel(entry.trashedAt!)),
               ),
           ],
@@ -63,7 +64,9 @@ class EntryReadonlyView extends StatelessWidget {
           Wrap(
             spacing: 8,
             runSpacing: 8,
-            children: entry.tags.map((tag) => Chip(label: Text(tag))).toList(),
+            children: entry.tags
+                .map((tag) => CupertinoPill(label: Text(tag)))
+                .toList(),
           ),
         ],
         if (visualMedia.isNotEmpty) ...[
@@ -156,7 +159,7 @@ class _AiAnalysisSection extends StatelessWidget {
                   spacing: 8,
                   runSpacing: 8,
                   children: suggestedTags
-                      .map((tag) => Chip(label: Text(tag)))
+                      .map((tag) => CupertinoPill(label: Text(tag)))
                       .toList(growable: false),
                 ),
               ),

@@ -1,5 +1,7 @@
+import 'package:diary_mvp/app/cupertino_kit.dart';
 import 'package:diary_mvp/app/localization/app_strings.dart';
 import 'package:diary_mvp/features/diary/domain/diary_entry.dart';
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 
 class MoodSelector extends StatelessWidget {
@@ -17,17 +19,15 @@ class MoodSelector extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final strings = context.strings;
-    final theme = Theme.of(context);
 
     return Wrap(
       spacing: 12,
       runSpacing: 12,
       children: moods.map((mood) {
         final selected = mood.id == valueId;
-        return ChoiceChip(
+        return CupertinoPill(
           selected: selected,
-          onSelected: (_) => onChanged(mood),
-          showCheckmark: false,
+          onPressed: () => onChanged(mood),
           label: Row(
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.center,
@@ -44,8 +44,7 @@ class MoodSelector extends StatelessWidget {
               Text(strings.moodLabel(mood)),
             ],
           ),
-          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 10),
-          selectedColor: theme.colorScheme.secondaryContainer,
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
         );
       }).toList(growable: false),
     );

@@ -1,6 +1,7 @@
 import 'package:diary_mvp/app/localization/app_strings.dart';
 import 'package:diary_mvp/features/diary/domain/diary_entry.dart';
 import 'package:diary_mvp/features/diary/presentation/widgets/local_video_player.dart';
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 
 class VideoAttachmentCard extends StatefulWidget {
@@ -36,17 +37,17 @@ class _VideoAttachmentCardState extends State<VideoAttachmentCard> {
     return Tooltip(
       message: strings.tapToPreviewVideo,
       waitDuration: Duration.zero,
-      child: AnimatedScale(
-        duration: const Duration(milliseconds: 180),
-        curve: Curves.easeOutCubic,
-        scale: _isHovered ? 1.01 : 1,
-        child: Material(
-          color: theme.colorScheme.surface,
-          borderRadius: BorderRadius.circular(22),
-          child: InkWell(
-            onTap: widget.onTap,
-            onHover: (value) => setState(() => _isHovered = value),
-            borderRadius: BorderRadius.circular(22),
+      child: MouseRegion(
+        onEnter: (_) => setState(() => _isHovered = true),
+        onExit: (_) => setState(() => _isHovered = false),
+        child: AnimatedScale(
+          duration: const Duration(milliseconds: 180),
+          curve: Curves.easeOutCubic,
+          scale: _isHovered ? 1.01 : 1,
+          child: CupertinoButton(
+            padding: EdgeInsets.zero,
+            minimumSize: Size.zero,
+            onPressed: widget.onTap,
             child: AnimatedContainer(
               duration: const Duration(milliseconds: 180),
               curve: Curves.easeOutCubic,
@@ -152,7 +153,7 @@ class _VideoAttachmentCardState extends State<VideoAttachmentCard> {
                               child: const Padding(
                                 padding: EdgeInsets.all(10),
                                 child: Icon(
-                                  Icons.play_circle_fill_rounded,
+                                  CupertinoIcons.play_circle_fill,
                                   size: 58,
                                   color: Colors.white,
                                 ),
@@ -164,11 +165,24 @@ class _VideoAttachmentCardState extends State<VideoAttachmentCard> {
                           Positioned(
                             top: 10,
                             right: 10,
-                            child: IconButton.filledTonal(
+                            child: CupertinoButton(
+                              padding: EdgeInsets.zero,
+                              minimumSize: Size.zero,
                               onPressed: widget.onDeleted,
-                              tooltip: MaterialLocalizations.of(context)
-                                  .deleteButtonTooltip,
-                              icon: const Icon(Icons.close_rounded),
+                              child: DecoratedBox(
+                                decoration: BoxDecoration(
+                                  color: Colors.black.withValues(alpha: 0.28),
+                                  shape: BoxShape.circle,
+                                ),
+                                child: const Padding(
+                                  padding: EdgeInsets.all(8),
+                                  child: Icon(
+                                    CupertinoIcons.clear_thick,
+                                    color: Colors.white,
+                                    size: 16,
+                                  ),
+                                ),
+                              ),
                             ),
                           ),
                       ],

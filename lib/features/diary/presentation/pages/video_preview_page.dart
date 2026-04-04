@@ -1,6 +1,7 @@
 import 'package:diary_mvp/app/localization/app_strings.dart';
 import 'package:diary_mvp/features/diary/domain/diary_entry.dart';
 import 'package:diary_mvp/features/diary/presentation/widgets/local_video_player.dart';
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 
 class VideoPreviewPage extends StatelessWidget {
@@ -19,11 +20,12 @@ class VideoPreviewPage extends StatelessWidget {
         ? null
         : strings.formatDateTime(video!.capturedAt!);
 
-    return Scaffold(
-      appBar: AppBar(
-        title: Text(strings.videoPreviewPageTitle),
+    return CupertinoPageScaffold(
+      navigationBar: CupertinoNavigationBar(
+        middle: Text(strings.videoPreviewPageTitle),
       ),
-      body: SafeArea(
+      child: SafeArea(
+        top: false,
         child: video == null
             ? Center(child: Text(strings.noVideoSelected))
             : LayoutBuilder(

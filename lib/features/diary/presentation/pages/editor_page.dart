@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'dart:math';
 import 'dart:ui' as ui;
 
+import 'package:diary_mvp/app/cupertino_kit.dart';
 import 'package:diary_mvp/app/context_tooltip.dart';
 import 'package:diary_mvp/app/localization/app_strings.dart';
 import 'package:diary_mvp/app/themed_snackbar.dart';
@@ -18,6 +19,7 @@ import 'package:diary_mvp/features/diary/services/diary_ai_settings.dart';
 import 'package:diary_mvp/features/diary/services/export_service.dart';
 import 'package:diary_mvp/features/diary/services/location_service.dart';
 import 'package:file_picker/file_picker.dart';
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -176,18 +178,61 @@ class _EditorPageState extends ConsumerState<EditorPage>
           child: DiaryShell(
             title: _isEditing ? strings.editEntry : strings.newEntry,
             showAppBarTitle: false,
-            floatingActionButton: FloatingActionButton.extended(
+            floatingActionButton: CupertinoButton(
+              padding: EdgeInsets.zero,
+              minimumSize: Size.zero,
               onPressed:
                   _isSaving || _isDeleting || _isExporting ? null : _save,
-              icon: _isSaving
-                  ? _buttonProgressIndicator(
-                      color: Theme.of(context).colorScheme.onPrimary,
-                    )
-                  : const Icon(Icons.save_outlined),
-              label: Text(
-                _isSaving
-                    ? strings.saving
-                    : (_isEditing ? strings.updateEntry : strings.saveEntry),
+              child: Builder(
+                builder: (context) {
+                  final theme = Theme.of(context);
+                  return DecoratedBox(
+                    decoration: BoxDecoration(
+                      color: theme.colorScheme.primary.withValues(
+                        alpha: _isSaving || _isDeleting || _isExporting ? 0.5 : 1,
+                      ),
+                      borderRadius: BorderRadius.circular(999),
+                      boxShadow: [
+                        BoxShadow(
+                          color: theme.colorScheme.primary.withValues(alpha: 0.24),
+                          blurRadius: 18,
+                          offset: const Offset(0, 10),
+                        ),
+                      ],
+                    ),
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 18,
+                        vertical: 14,
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          _isSaving
+                              ? _buttonProgressIndicator(
+                                  color: theme.colorScheme.onPrimary,
+                                )
+                              : Icon(
+                                  CupertinoIcons.check_mark,
+                                  size: 18,
+                                  color: theme.colorScheme.onPrimary,
+                                ),
+                          const SizedBox(width: 8),
+                          Text(
+                            _isSaving
+                                ? strings.saving
+                                : (_isEditing
+                                      ? strings.updateEntry
+                                      : strings.saveEntry),
+                            style: theme.textTheme.labelLarge?.copyWith(
+                              color: theme.colorScheme.onPrimary,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  );
+                },
               ),
             ),
             compactBodyPadding:
@@ -300,29 +345,30 @@ class _EditorPageState extends ConsumerState<EditorPage>
             spacing: 12,
             runSpacing: 12,
             children: [
-              FilledButton.tonalIcon(
+              CupertinoActionButton(
                 onPressed: _pickImages,
-                icon: const Icon(Icons.image_outlined),
-                label: Text(strings.importImage),
+                variant: CupertinoActionButtonVariant.tinted,
+                icon: Icons.image_outlined,
+                label: strings.importImage,
               ),
-              FilledButton.tonalIcon(
+              CupertinoActionButton(
                 onPressed: _takePhoto,
-                icon: const Icon(Icons.camera_alt_outlined),
-                label: Text(strings.takePhoto),
+                variant: CupertinoActionButtonVariant.tinted,
+                icon: Icons.camera_alt_outlined,
+                label: strings.takePhoto,
               ),
-              FilledButton.tonalIcon(
+              CupertinoActionButton(
                 onPressed: _recordVideo,
-                icon: const Icon(Icons.videocam_outlined),
-                label: Text(strings.recordVideo),
+                variant: CupertinoActionButtonVariant.tinted,
+                icon: Icons.videocam_outlined,
+                label: strings.recordVideo,
               ),
-              FilledButton.tonalIcon(
+              CupertinoActionButton(
                 onPressed: _isRecording ? _stopRecording : _startRecording,
-                icon: Icon(
-                  _isRecording ? Icons.stop_circle_outlined : Icons.mic_none,
-                ),
-                label: Text(
-                  _isRecording ? strings.stopRecording : strings.startRecording,
-                ),
+                variant: CupertinoActionButtonVariant.tinted,
+                icon: _isRecording ? Icons.stop_circle_outlined : Icons.mic_none,
+                label:
+                    _isRecording ? strings.stopRecording : strings.startRecording,
               ),
             ],
           ),
@@ -360,11 +406,11 @@ class _EditorPageState extends ConsumerState<EditorPage>
                     runSpacing: 8,
                     children: otherMedia
                         .map(
-                          (media) => Chip(
-                            avatar: Icon(_iconForMedia(media.type), size: 18),
-                            label: Text(_mediaLabel(media)),
-                            onDeleted: () =>
-                                setState(() => _media.remove(media)),
+                          (media) => _buildRemovablePill(
+                            context,
+                            icon: _iconForMedia(media.type),
+                            label: _mediaLabel(media),
+                            onDeleted: () => setState(() => _media.remove(media)),
                           ),
                         )
                         .toList(),
@@ -381,25 +427,21 @@ class _EditorPageState extends ConsumerState<EditorPage>
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          TextField(
+          CupertinoTextField(
             controller: _titleController,
             focusNode: _titleFocusNode,
             undoController: _titleUndoController,
-            decoration: InputDecoration(
-              labelText: strings.titleLabel,
-              hintText: strings.titleHint,
-            ),
+            placeholder: strings.titleHint,
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
           ),
           const SizedBox(height: 14),
-          TextField(
+          CupertinoTextField(
             controller: _contentController,
             focusNode: _contentFocusNode,
             undoController: _contentUndoController,
             maxLines: 12,
-            decoration: InputDecoration(
-              labelText: strings.contentLabel,
-              hintText: strings.contentHint,
-            ),
+            placeholder: strings.contentHint,
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
           ),
         ],
       ),
@@ -410,30 +452,27 @@ class _EditorPageState extends ConsumerState<EditorPage>
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          TextField(
+          CupertinoTextField(
             controller: _locationController,
             focusNode: _locationFocusNode,
             undoController: _locationUndoController,
-            decoration: InputDecoration(
-              labelText: strings.locationLabel,
-              hintText: strings.locationHint,
-              suffixIcon: _isLocating
-                  ? const Padding(
-                      padding: EdgeInsets.all(12),
-                      child: SizedBox(
-                        width: 20,
-                        height: 20,
-                        child: CircularProgressIndicator(strokeWidth: 2),
-                      ),
-                    )
-                  : IconButton(
-                      onPressed: _isSaving || _isDeleting
-                          ? null
-                          : _fillCurrentLocation,
-                      tooltip: strings.useCurrentLocation,
-                      icon: const Icon(Icons.my_location_outlined),
+            placeholder: strings.locationHint,
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
+            suffix: _isLocating
+                ? const Padding(
+                    padding: EdgeInsets.only(right: 12),
+                    child: CupertinoActivityIndicator(),
+                  )
+                : CupertinoButton(
+                    padding: EdgeInsets.zero,
+                    minimumSize: Size.zero,
+                    onPressed:
+                        _isSaving || _isDeleting ? null : _fillCurrentLocation,
+                    child: const Padding(
+                      padding: EdgeInsets.only(right: 12),
+                      child: Icon(Icons.my_location_outlined, size: 18),
                     ),
-            ),
+                  ),
           ),
           const SizedBox(height: 18),
           Text(
@@ -444,7 +483,7 @@ class _EditorPageState extends ConsumerState<EditorPage>
           moodLibraryAsync.when(
             loading: () => const Padding(
               padding: EdgeInsets.symmetric(vertical: 8),
-              child: CircularProgressIndicator(),
+              child: CupertinoActivityIndicator(),
             ),
             error: (error, stack) => Text(strings.failedToLoadMoods(error)),
             data: (moods) {
@@ -492,24 +531,14 @@ class _EditorPageState extends ConsumerState<EditorPage>
     }
 
     final strings = context.strings;
-    final shouldLeave = await showDialog<bool>(
-          context: context,
-          builder: (dialogContext) => AlertDialog(
-            title: Text(strings.unsavedChangesTitle),
-            content: Text(strings.unsavedChangesMessage),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.of(dialogContext).pop(false),
-                child: Text(strings.stayOnPage),
-              ),
-              FilledButton(
-                onPressed: () => Navigator.of(dialogContext).pop(true),
-                child: Text(strings.leaveWithoutSaving),
-              ),
-            ],
-          ),
-        ) ??
-        false;
+    final shouldLeave = await showCupertinoConfirmationDialog(
+      context,
+      title: strings.unsavedChangesTitle,
+      message: strings.unsavedChangesMessage,
+      cancelLabel: strings.stayOnPage,
+      confirmLabel: strings.leaveWithoutSaving,
+      isDestructive: true,
+    );
 
     return shouldLeave;
   }
@@ -758,8 +787,7 @@ class _EditorPageState extends ConsumerState<EditorPage>
     return SizedBox(
       width: 18,
       height: 18,
-      child: CircularProgressIndicator(
-        strokeWidth: 2,
+      child: CupertinoActivityIndicator(
         color: color,
       ),
     );
@@ -867,29 +895,18 @@ class _EditorPageState extends ConsumerState<EditorPage>
       onExpandedChanged: (expanded) {
         setState(() => _isAiExpanded = expanded);
       },
-      headerAction: FilledButton.tonalIcon(
+      headerAction: CupertinoActionButton(
         onPressed: _isAnalyzingAi || _isSaving || _isDeleting || _isExporting
             ? null
             : _analyzeWithAi,
-        style: FilledButton.styleFrom(
-          visualDensity: VisualDensity.compact,
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-        ),
-        icon: _isAnalyzingAi
-            ? _buttonProgressIndicator(
-                color: colorScheme.onSecondaryContainer,
-              )
-            : const Icon(Icons.auto_fix_high_outlined),
-        label: Text(
-          _isAnalyzingAi
-              ? strings.analyzingDiaryWithAi
-              : hasAiSuggestion
-                  ? strings.reanalyzeDiaryWithAi
-                  : strings.analyzeDiaryWithAi,
-          maxLines: 1,
-          overflow: TextOverflow.ellipsis,
-          softWrap: false,
-        ),
+        isBusy: _isAnalyzingAi,
+        variant: CupertinoActionButtonVariant.tinted,
+        icon: Icons.auto_fix_high_outlined,
+        label: _isAnalyzingAi
+            ? strings.analyzingDiaryWithAi
+            : hasAiSuggestion
+                ? strings.reanalyzeDiaryWithAi
+                : strings.analyzeDiaryWithAi,
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -953,17 +970,15 @@ class _EditorPageState extends ConsumerState<EditorPage>
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          TextField(
+          CupertinoTextField(
             key: const ValueKey('editor-tag-input'),
             controller: _tagController,
             focusNode: _tagFocusNode,
             undoController: _tagUndoController,
             textInputAction: TextInputAction.done,
             onSubmitted: (_) => _createTagFromInput(),
-            decoration: InputDecoration(
-              labelText: strings.tagsLabel,
-              hintText: strings.tagHint,
-            ),
+            placeholder: strings.tagHint,
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
           ),
           const SizedBox(height: 18),
           Text(
@@ -1038,9 +1053,9 @@ class _EditorPageState extends ConsumerState<EditorPage>
                 builder: (context, constraints) {
                   final stackHeaderAction =
                       headerAction != null && constraints.maxWidth < 460;
-                  final titleArea = InkWell(
-                    borderRadius: BorderRadius.circular(18),
+                  final titleArea = GestureDetector(
                     onTap: () => onExpandedChanged(!expanded),
+                    behavior: HitTestBehavior.opaque,
                     child: Padding(
                       padding: const EdgeInsets.symmetric(
                         horizontal: 2,
@@ -1302,26 +1317,17 @@ class _EditorPageState extends ConsumerState<EditorPage>
     final colorScheme = theme.colorScheme;
     final selected = _hasTag(tag);
 
-    return FilterChip(
+    return CupertinoPill(
+      selected: selected,
+      onPressed: () => setState(() => _toggleTag(tag)),
       label: Text(
         tag,
         style: theme.textTheme.labelSmall?.copyWith(
           fontWeight: selected ? FontWeight.w700 : FontWeight.w600,
+          color: selected ? colorScheme.primary : null,
         ),
       ),
-      selected: selected,
-      showCheckmark: false,
-      visualDensity: VisualDensity.compact,
-      materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
-      padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 0),
-      labelPadding: const EdgeInsets.symmetric(horizontal: 2),
-      side: BorderSide(
-        color: selected
-            ? colorScheme.primary.withValues(alpha: 0.45)
-            : colorScheme.outlineVariant.withValues(alpha: 0.55),
-      ),
-      selectedColor: colorScheme.secondaryContainer.withValues(alpha: 0.74),
-      onSelected: (_) => setState(() => _toggleTag(tag)),
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
     );
   }
 
@@ -1369,21 +1375,58 @@ class _EditorPageState extends ConsumerState<EditorPage>
     required String tag,
     required VoidCallback onDeleted,
   }) {
+    return _buildRemovablePill(
+      context,
+      label: tag,
+      onDeleted: onDeleted,
+    );
+  }
+
+  Widget _buildRemovablePill(
+    BuildContext context, {
+    required String label,
+    required VoidCallback onDeleted,
+    IconData? icon,
+  }) {
     final theme = Theme.of(context);
 
-    return Chip(
-      label: Text(
-        tag,
-        style: theme.textTheme.labelSmall?.copyWith(
-          fontWeight: FontWeight.w600,
+    return CupertinoButton(
+      padding: EdgeInsets.zero,
+      minimumSize: Size.zero,
+      onPressed: onDeleted,
+      child: DecoratedBox(
+        decoration: BoxDecoration(
+          color: theme.colorScheme.surface.withValues(alpha: 0.72),
+          borderRadius: BorderRadius.circular(999),
+          border: Border.all(
+            color: theme.colorScheme.outlineVariant.withValues(alpha: 0.45),
+          ),
+        ),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              if (icon != null) ...[
+                Icon(
+                  icon,
+                  size: 15,
+                  color: theme.colorScheme.primary,
+                ),
+                const SizedBox(width: 6),
+              ],
+              Text(
+                label,
+                style: theme.textTheme.labelSmall?.copyWith(
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+              const SizedBox(width: 6),
+              const Icon(Icons.close_rounded, size: 14),
+            ],
+          ),
         ),
       ),
-      materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
-      visualDensity: const VisualDensity(horizontal: -2, vertical: -2),
-      padding: EdgeInsets.zero,
-      labelPadding: const EdgeInsets.symmetric(horizontal: 4),
-      deleteIcon: const Icon(Icons.close_rounded, size: 14),
-      onDeleted: onDeleted,
     );
   }
 
@@ -1662,24 +1705,14 @@ class _EditorPageState extends ConsumerState<EditorPage>
     if (entry == null) return;
 
     final strings = context.strings;
-    final confirmed = await showDialog<bool>(
-          context: context,
-          builder: (context) => AlertDialog(
-            title: Text(strings.deleteEntryConfirmTitle),
-            content: Text(strings.deleteEntryConfirmMessage(entry.title)),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.of(context).pop(false),
-                child: Text(strings.cancelAction),
-              ),
-              FilledButton(
-                onPressed: () => Navigator.of(context).pop(true),
-                child: Text(strings.confirmDelete),
-              ),
-            ],
-          ),
-        ) ??
-        false;
+    final confirmed = await showCupertinoConfirmationDialog(
+      context,
+      title: strings.deleteEntryConfirmTitle,
+      message: strings.deleteEntryConfirmMessage(entry.title),
+      cancelLabel: strings.cancelAction,
+      confirmLabel: strings.confirmDelete,
+      isDestructive: true,
+    );
 
     if (!confirmed || !mounted) return;
     await _deleteEntry();

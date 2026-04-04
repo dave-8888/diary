@@ -1,3 +1,4 @@
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:media_kit/media_kit.dart';
 import 'package:media_kit_video/media_kit_video.dart';
@@ -70,7 +71,7 @@ class _LocalVideoPlayerState extends State<LocalVideoPlayer> {
         if (snapshot.connectionState != ConnectionState.done) {
           return const ColoredBox(
             color: Colors.black,
-            child: Center(child: CircularProgressIndicator()),
+            child: Center(child: CupertinoActivityIndicator()),
           );
         }
 

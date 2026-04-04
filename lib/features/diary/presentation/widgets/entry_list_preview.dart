@@ -1,3 +1,4 @@
+import 'package:diary_mvp/app/cupertino_kit.dart';
 import 'package:diary_mvp/app/localization/app_strings.dart';
 import 'package:diary_mvp/features/diary/domain/diary_entry.dart';
 import 'package:diary_mvp/features/diary/presentation/widgets/audio_attachment_tile.dart';
@@ -65,8 +66,8 @@ class EntryListPreview extends StatelessWidget {
     final detailChips = <Widget>[
       ...extraChips,
       ...otherMedia.map(
-        (media) => Chip(
-          avatar: Icon(_iconForMedia(media.type), size: 18),
+        (media) => CupertinoPill(
+          icon: _iconForMedia(media.type),
           label: Text(_labelForMedia(strings, media)),
         ),
       ),
@@ -199,7 +200,9 @@ class EntryListPreview extends StatelessWidget {
           Wrap(
             spacing: 8,
             runSpacing: 8,
-            children: entry.tags.map((tag) => Chip(label: Text(tag))).toList(),
+            children: entry.tags
+                .map((tag) => CupertinoPill(label: Text(tag)))
+                .toList(),
           ),
         ],
         if (detailChips.isNotEmpty) ...[

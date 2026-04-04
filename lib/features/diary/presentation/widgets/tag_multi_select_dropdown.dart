@@ -1,3 +1,5 @@
+import 'package:diary_mvp/app/cupertino_kit.dart';
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 
 class TagMultiSelectDropdown extends StatefulWidget {
@@ -72,32 +74,57 @@ class _TagMultiSelectDropdownState extends State<TagMultiSelectDropdown> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        InkWell(
-          onTap: widget.enabled ? _toggleExpanded : null,
-          borderRadius: BorderRadius.circular(16),
-          child: InputDecorator(
-            isEmpty: false,
-            isFocused: _expanded,
-            decoration: InputDecoration(
-              labelText: widget.labelText,
-              floatingLabelBehavior: FloatingLabelBehavior.always,
-              enabled: widget.enabled,
-              suffixIcon: Icon(
-                _expanded
-                    ? Icons.expand_less_rounded
-                    : Icons.expand_more_rounded,
+        Text(
+          widget.labelText,
+          style: theme.textTheme.labelLarge?.copyWith(
+            color: colorScheme.onSurfaceVariant,
+          ),
+        ),
+        const SizedBox(height: 6),
+        CupertinoButton(
+          padding: EdgeInsets.zero,
+          minimumSize: Size.zero,
+          onPressed: widget.enabled ? _toggleExpanded : null,
+          child: Opacity(
+            opacity: widget.enabled ? 1 : 0.5,
+            child: DecoratedBox(
+              decoration: BoxDecoration(
+                color: colorScheme.surface.withValues(alpha: 0.72),
+                borderRadius: BorderRadius.circular(18),
+                border: Border.all(
+                  color: _expanded
+                      ? colorScheme.primary.withValues(alpha: 0.2)
+                      : colorScheme.outlineVariant.withValues(alpha: 0.55),
+                ),
               ),
-            ),
-            child: Text(
-              _displayText(),
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: hasSelection
-                  ? theme.textTheme.bodyLarge
-                  : theme.textTheme.bodyLarge?.copyWith(
-                      color:
-                          colorScheme.onSurfaceVariant.withValues(alpha: 0.72),
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: Text(
+                        _displayText(),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: hasSelection
+                            ? theme.textTheme.bodyLarge
+                            : theme.textTheme.bodyLarge?.copyWith(
+                                color: colorScheme.onSurfaceVariant
+                                    .withValues(alpha: 0.72),
+                              ),
+                      ),
                     ),
+                    const SizedBox(width: 10),
+                    Icon(
+                      _expanded
+                          ? CupertinoIcons.chevron_up
+                          : CupertinoIcons.chevron_down,
+                      size: 18,
+                      color: colorScheme.onSurfaceVariant,
+                    ),
+                  ],
+                ),
+              ),
             ),
           ),
         ),
@@ -123,28 +150,34 @@ class _TagMultiSelectDropdownState extends State<TagMultiSelectDropdown> {
                       children: [
                         Padding(
                           padding: const EdgeInsets.fromLTRB(12, 12, 12, 8),
-                          child: TextField(
+                          child: CupertinoTextField(
                             controller: _searchController,
                             focusNode: _searchFocusNode,
                             enabled: widget.enabled,
                             onChanged: (_) => setState(() {}),
-                            decoration: InputDecoration(
-                              isDense: true,
-                              hintText: widget.searchHintText,
-                              prefixIcon: const Icon(Icons.search_rounded),
-                              suffixIcon: _searchController.text.isEmpty
-                                  ? null
-                                  : IconButton(
-                                      tooltip: MaterialLocalizations.of(context)
-                                          .deleteButtonTooltip,
-                                      onPressed: () {
-                                        _searchController.clear();
-                                        setState(() {});
-                                        _requestSearchFocus();
-                                      },
-                                      icon: const Icon(Icons.close_rounded),
-                                    ),
+                            placeholder: widget.searchHintText,
+                            prefix: const Padding(
+                              padding: EdgeInsets.only(left: 10),
+                              child: Icon(CupertinoIcons.search, size: 18),
                             ),
+                            suffix: _searchController.text.isEmpty
+                                ? null
+                                : CupertinoButton(
+                                    padding: EdgeInsets.zero,
+                                    minimumSize: Size.zero,
+                                    onPressed: () {
+                                      _searchController.clear();
+                                      setState(() {});
+                                      _requestSearchFocus();
+                                    },
+                                    child: const Padding(
+                                      padding: EdgeInsets.only(right: 10),
+                                      child: Icon(
+                                        CupertinoIcons.clear_thick_circled,
+                                        size: 18,
+                                      ),
+                                    ),
+                                  ),
                           ),
                         ),
                         if (widget.selectedValues.isNotEmpty)
@@ -152,14 +185,19 @@ class _TagMultiSelectDropdownState extends State<TagMultiSelectDropdown> {
                             padding: const EdgeInsets.fromLTRB(12, 0, 12, 8),
                             child: Align(
                               alignment: Alignment.centerRight,
-                              child: TextButton(
+                              child: CupertinoActionButton(
                                 onPressed:
                                     widget.enabled ? _clearSelection : null,
-                                child: Text(widget.clearSelectionText),
+                                variant: CupertinoActionButtonVariant.plain,
+                                label: widget.clearSelectionText,
                               ),
                             ),
                           ),
-                        const Divider(height: 1),
+                        Container(
+                          height: 1,
+                          color:
+                              colorScheme.outlineVariant.withValues(alpha: 0.45),
+                        ),
                         Builder(
                           builder: (context) {
                             if (widget.options.isEmpty) {
@@ -231,42 +269,55 @@ class _TagMultiSelectDropdownState extends State<TagMultiSelectDropdown> {
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
 
-    return Material(
-      color: selected
-          ? colorScheme.secondaryContainer.withValues(alpha: 0.45)
-          : Colors.transparent,
-      child: InkWell(
-        onTap: widget.enabled ? () => _toggleSelection(tag) : null,
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-          child: Row(
-            children: [
-              Checkbox(
-                value: selected,
-                visualDensity: VisualDensity.compact,
-                onChanged: widget.enabled ? (_) => _toggleSelection(tag) : null,
-              ),
-              const SizedBox(width: 4),
-              Expanded(
-                child: Text(
-                  tag,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: theme.textTheme.bodyMedium?.copyWith(
-                    fontWeight: selected ? FontWeight.w700 : FontWeight.w500,
-                  ),
+    return GestureDetector(
+      onTap: widget.enabled ? () => _toggleSelection(tag) : null,
+      behavior: HitTestBehavior.opaque,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 160),
+        curve: Curves.easeOutCubic,
+        margin: const EdgeInsets.symmetric(horizontal: 6),
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
+        decoration: BoxDecoration(
+          color: selected
+              ? colorScheme.primary.withValues(alpha: 0.1)
+              : Colors.transparent,
+          borderRadius: BorderRadius.circular(14),
+        ),
+        child: Row(
+          children: [
+            Icon(
+              selected
+                  ? CupertinoIcons.check_mark_circled_solid
+                  : CupertinoIcons.circle,
+              size: 20,
+              color: selected
+                  ? colorScheme.primary
+                  : colorScheme.outline.withValues(alpha: 0.86),
+            ),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Text(
+                tag,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: theme.textTheme.bodyMedium?.copyWith(
+                  fontWeight: selected ? FontWeight.w700 : FontWeight.w500,
                 ),
               ),
-              if (widget.onDeleteOption != null)
-                IconButton(
-                  tooltip: widget.deleteOptionTooltipText,
-                  visualDensity: VisualDensity.compact,
-                  onPressed:
-                      widget.enabled ? () => widget.onDeleteOption!(tag) : null,
-                  icon: const Icon(Icons.close_rounded, size: 18),
+            ),
+            if (widget.onDeleteOption != null)
+              CupertinoButton(
+                padding: EdgeInsets.zero,
+                minimumSize: Size.zero,
+                onPressed:
+                    widget.enabled ? () => widget.onDeleteOption!(tag) : null,
+                child: Icon(
+                  CupertinoIcons.clear_circled_solid,
+                  size: 18,
+                  color: colorScheme.error,
                 ),
-            ],
-          ),
+              ),
+          ],
         ),
       ),
     );
