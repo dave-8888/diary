@@ -10,7 +10,7 @@ Diary MVP is a desktop-first Flutter diary app focused on local-first storage, p
 
 ![Home screen](docs/images/home.png)
 
-Review recent entries, mood summaries, and quick actions from the home page.
+Browse recent entries, locations, moods, and quick actions from the home page.
 
 ### Write diary
 
@@ -22,7 +22,13 @@ Create diary entries with title, content, mood, tags, location, images, video, a
 
 ![AI diary assistant](docs/images/editor-ai.png)
 
-Generate summaries, suggested tags, emotional support text, and problem-oriented prompts for the current draft.
+Review AI-generated summaries, suggested tags, emotional support text, and follow-up prompts alongside the current draft.
+
+### Trash
+
+![Trash screen](docs/images/trash.png)
+
+Preview deleted entries, restore items, and clean up the trash list when needed.
 
 ### Settings
 
