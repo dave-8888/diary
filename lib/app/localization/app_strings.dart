@@ -219,22 +219,22 @@ class AppStrings {
   String get appIdentityTitle =>
       isChinese ? '\u5e94\u7528\u6807\u8bc6' : 'App identity';
   String get appIdentityHint => isChinese
-      ? '\u81ea\u5b9a\u4e49\u5e94\u7528\u540d\uff0c\u5e76\u7528\u540c\u4e00\u5957\u56fe\u6807\u540c\u6b65\u5e94\u7528\u5185\u548c Windows \u5916\u5c42\u7a97\u53e3\u3002'
-      : 'Customize the app name, and keep the in-app and Windows outer icon in sync with one icon setting.';
+      ? '\u81ea\u5b9a\u4e49\u5e94\u7528\u540d\uff0c\u5e76\u7528\u540c\u4e00\u5957\u56fe\u6807\u540c\u6b65\u5e94\u7528\u5185\u4e0e\u684c\u9762\u7aef\u56fe\u6807\u3002'
+      : 'Customize the app name, and keep the in-app identity and supported desktop app icon in sync with one icon setting.';
   String get appNameDesktopHint => isChinese
-      ? '\u4fdd\u5b58\u540e\u4f1a\u540c\u6b65\u66f4\u65b0\u5e94\u7528\u5185\u540d\u79f0\u548c Windows \u6807\u9898\u680f\u540d\u79f0\u3002'
-      : 'Saving here updates both the in-app name and the Windows title bar name.';
+      ? '\u4fdd\u5b58\u540e\u4f1a\u540c\u6b65\u66f4\u65b0\u5e94\u7528\u5185\u540d\u79f0\u4ee5\u53ca\u652f\u6301\u5e73\u53f0\u7684\u684c\u9762\u7a97\u53e3\u6807\u9898\u3002'
+      : 'Saving here updates both the in-app name and the desktop window title on supported platforms.';
   String get appIconTitle =>
       isChinese ? '\u5e94\u7528\u56fe\u6807' : 'App icon';
   String get appIconHint => isChinese
-      ? '\u53ef\u4ee5\u9009\u62e9\u9884\u8bbe\u56fe\u6807\uff0c\u4e5f\u53ef\u4ee5\u4e0a\u4f20 PNG / JPG / WebP / BMP \u56fe\u7247\u4f5c\u4e3a\u81ea\u5b9a\u4e49\u56fe\u6807\u3002\u8bbe\u7f6e\u540e\uff0c\u5e94\u7528\u5185\u548c Windows \u5916\u5c42\u56fe\u6807\u4f1a\u4e00\u8d77\u66f4\u65b0\u3002'
-      : 'Choose a preset icon or upload a PNG / JPG / WebP / BMP image as a custom icon. The in-app and Windows outer icon will update together.';
+      ? '\u53ef\u4ee5\u9009\u62e9\u9884\u8bbe\u56fe\u6807\uff0c\u4e5f\u53ef\u4ee5\u4e0a\u4f20 PNG / JPG / WebP / BMP \u56fe\u7247\u4f5c\u4e3a\u81ea\u5b9a\u4e49\u56fe\u6807\u3002\u8bbe\u7f6e\u540e\uff0c\u5e94\u7528\u5185\u56fe\u6807\u9884\u89c8\u4e0e\u652f\u6301\u5e73\u53f0\u7684\u684c\u9762\u56fe\u6807\u4f1a\u4e00\u8d77\u66f4\u65b0\u3002'
+      : 'Choose a preset icon or upload a PNG / JPG / WebP / BMP image as a custom icon. The in-app preview and the supported desktop app icon update together.';
   String get resetAppIcon => isChinese
       ? '\u6062\u590d\u9ed8\u8ba4\u5e94\u7528\u56fe\u6807'
       : 'Reset app icon';
   String get appIconUpdated => isChinese
-      ? '\u5e94\u7528\u56fe\u6807\u5df2\u66f4\u65b0\uff0c\u5e94\u7528\u5185\u548c Windows \u5916\u5c42\u5df2\u540c\u6b65\u3002'
-      : 'App icon updated and synced to the Windows outer window.';
+      ? '\u5e94\u7528\u56fe\u6807\u5df2\u66f4\u65b0\uff0c\u5e94\u7528\u5185\u4e0e\u652f\u6301\u5e73\u53f0\u7684\u684c\u9762\u56fe\u6807\u5df2\u540c\u6b65\u3002'
+      : 'App icon updated and synced to the supported desktop app icon.';
   String get appIconReset => isChinese
       ? '\u5df2\u6062\u590d\u9ed8\u8ba4\u56fe\u6807\u3002'
       : 'App icon reset to default.';
@@ -247,8 +247,8 @@ class AppStrings {
       ? '\u53ef\u4ee5\u9009\u62e9 PNG / JPG / WebP / BMP \u56fe\u7247\uff0c\u5e94\u7528\u4f1a\u81ea\u52a8\u88c1\u526a\u6210\u65b9\u5f62\u5e76\u7f29\u653e\u5230 256x256\uff0c\u7528\u4e8e\u6807\u9898\u680f\u548c\u4efb\u52a1\u680f\u9884\u89c8\u3002'
       : 'Choose a PNG / JPG / WebP / BMP image. The app will crop it to a square and resize it to 256x256 for the title bar and taskbar preview.';
   String get windowIconPlatformHint => isChinese
-      ? '\u76ee\u524d\u53ea\u6709 Windows \u684c\u9762\u7aef\u652f\u6301\u5b9e\u65f6\u66f4\u65b0\u5916\u5c42\u7a97\u53e3\u56fe\u6807\u3002'
-      : 'Live outer window icon updates are currently available on Windows desktop only.';
+      ? '\u76ee\u524d\u53ea\u6709 Windows \u548c macOS \u684c\u9762\u7aef\u652f\u6301\u5b9e\u65f6\u66f4\u65b0\u684c\u9762\u56fe\u6807\u3002'
+      : 'Live desktop icon updates are currently available on Windows and macOS.';
   String get buildWindowIconHint => isChinese
       ? '\u5982\u679c\u4f60\u5e0c\u671b `exe` \u9ed8\u8ba4\u56fe\u6807\u4e5f\u4e00\u8d77\u66f4\u65b0\uff0c\u53ef\u4ee5\u628a\u5f53\u524d\u5916\u5c42\u56fe\u6807\u540c\u6b65\u5230 Windows \u6784\u5efa\u8d44\u6e90\u3002\u9700\u8981\u91cd\u65b0 `flutter run/build windows` \u540e\u751f\u6548\u3002'
       : 'If you also want the default `exe` icon to change, sync the current outer icon into the Windows build resources. Rebuild with `flutter run/build windows` afterward.';

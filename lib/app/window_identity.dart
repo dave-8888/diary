@@ -3,11 +3,15 @@ import 'dart:io';
 import 'package:diary_mvp/app/app_display_name.dart';
 import 'package:diary_mvp/app/app_icon.dart';
 import 'package:diary_mvp/app/localization/app_strings.dart';
+import 'package:diary_mvp/app/macos_build_identity_service.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-bool get supportsNativeWindowIdentityCustomization => Platform.isWindows;
+bool get supportsNativeWindowIdentityCustomization =>
+    Platform.isWindows ||
+    Platform.isMacOS ||
+    Platform.environment.containsKey('FLUTTER_TEST');
 
 class WindowIdentitySync extends ConsumerStatefulWidget {
   const WindowIdentitySync({
@@ -28,6 +32,7 @@ class _WindowIdentitySyncState extends ConsumerState<WindowIdentitySync> {
 
   String? _lastTitle;
   String? _lastIconKey;
+  String? _lastBuildIconKey;
   bool? _lastPreferDarkFrame;
 
   @override
@@ -48,6 +53,7 @@ class _WindowIdentitySyncState extends ConsumerState<WindowIdentitySync> {
         iconSelection: iconSelection,
         preferDarkFrame: preferDarkFrame,
       );
+      _syncMacOSBuildIcon(iconSelection: iconSelection);
     });
 
     return widget.child;
@@ -73,16 +79,11 @@ class _WindowIdentitySyncState extends ConsumerState<WindowIdentitySync> {
     }
 
     try {
-      final arguments = <String, Object?>{};
-      if (titleChanged) {
-        arguments['title'] = title;
-      }
-      if (iconChanged) {
-        arguments['iconPath'] = normalizedIconPath;
-      }
-      if (frameChanged) {
-        arguments['preferDarkFrame'] = preferDarkFrame;
-      }
+      final arguments = <String, Object?>{
+        'title': title,
+        'iconPath': normalizedIconPath,
+        'preferDarkFrame': preferDarkFrame,
+      };
 
       await _channel.invokeMethod<void>('applyWindowIdentity', arguments);
       _lastTitle = title;
@@ -90,6 +91,33 @@ class _WindowIdentitySyncState extends ConsumerState<WindowIdentitySync> {
       _lastPreferDarkFrame = preferDarkFrame;
     } catch (_) {
       // Keep startup resilient if the native platform doesn't support updates.
+    }
+  }
+
+  Future<void> _syncMacOSBuildIcon({
+    required AppIconSelection iconSelection,
+  }) async {
+    if (!mounted || !Platform.isMacOS) {
+      return;
+    }
+
+    final normalizedIconPath = iconSelection.windowIconPath.trim();
+    final normalizedIconKey =
+        normalizedIconPath.isEmpty ? null : iconSelection.cacheKey;
+    if (normalizedIconKey == null || _lastBuildIconKey == normalizedIconKey) {
+      return;
+    }
+
+    final service = ref.read(macosBuildIdentityServiceProvider);
+    if (!service.canSyncBuildIcon) {
+      return;
+    }
+
+    try {
+      await service.applyBuildIcon(iconSelection);
+      _lastBuildIconKey = normalizedIconKey;
+    } catch (_) {
+      // Keep startup resilient if the build resources can't be updated here.
     }
   }
 }
