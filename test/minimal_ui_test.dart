@@ -173,6 +173,48 @@ void main() {
     expect(sidebarRectAfterScroll.top, sidebarTopBeforeScroll);
   });
 
+  testWidgets('home page quick filters can narrow entries on wide layouts',
+      (tester) async {
+    await tester.binding.setSurfaceSize(const Size(1600, 760));
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day, 9);
+    final older = today.subtract(const Duration(days: 10));
+    final repository = FakeDiaryRepository(
+      entries: [
+        DiaryEntry(
+          id: 'today-entry',
+          title: 'Today entry',
+          content: 'Should stay visible when filtering to today.',
+          mood: DiaryMood.calm,
+          createdAt: today,
+        ),
+        DiaryEntry(
+          id: 'older-entry',
+          title: 'Older entry',
+          content: 'Should be filtered out by today.',
+          mood: DiaryMood.calm,
+          createdAt: older,
+        ),
+      ],
+      moods: DiaryMood.values,
+    );
+
+    await pumpPage(
+      tester,
+      const HomePage(),
+      path: '/',
+      overrides: buildOverrides(repository: repository),
+    );
+
+    await tester.tap(find.byKey(const ValueKey('home-quick-filter-today')));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Today entry'), findsOneWidget);
+    expect(find.text('Older entry'), findsNothing);
+  });
+
   testWidgets(
       'editor page keeps AI available, removes transcription, and hides empty video panel',
       (tester) async {

@@ -512,6 +512,12 @@ class AppStrings {
       isChinese ? '\u5168\u90e8\u65e5\u8bb0' : 'All entries';
   String get matchedEntriesTitle =>
       isChinese ? '\u5f53\u524d\u7ed3\u679c' : 'Current results';
+  String get quickFiltersTitle =>
+      isChinese ? '\u5feb\u6377\u7b5b\u9009' : 'Quick filters';
+  String get customFiltersTitle =>
+      isChinese ? '\u81ea\u5b9a\u4e49\u7b5b\u9009' : 'Custom filters';
+  String get last7Days => isChinese ? '\u8fd1 7 \u5929' : 'Last 7 days';
+  String get thisMonth => isChinese ? '\u672c\u6708' : 'This month';
   String get recentEntries =>
       isChinese ? '\u6700\u8fd1\u65e5\u8bb0' : 'Recent entries';
   String get allTags => isChinese ? '\u5168\u90e8\u6807\u7b7e' : 'All tags';
