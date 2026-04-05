@@ -6,6 +6,8 @@ Diary MVP is a desktop-first Flutter diary app focused on local-first storage, p
 
 ## Screenshots
 
+> Note: The UI is still evolving, so screenshots and layout details may change in later versions.
+
 ### Home
 
 ![Home screen](docs/images/home.png)
