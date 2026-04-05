@@ -501,6 +501,17 @@ class AppStrings {
       isChinese ? '\u66f4\u6539\u8303\u56f4' : 'Change range';
   String get clearDateFilter =>
       isChinese ? '\u6e05\u9664\u7b5b\u9009' : 'Clear filter';
+  String get browseOverviewTitle =>
+      isChinese ? '\u6d4f\u89c8\u6982\u89c8' : 'Browse overview';
+  String get browseOverviewHint => isChinese
+      ? '\u5148\u786e\u8ba4\u5f53\u524d\u8303\u56f4\u548c\u7ed3\u679c\uff0c\u518d\u4ece\u5de6\u4fa7\u7ee7\u7eed\u6d4f\u89c8\u65e5\u8bb0\u3002'
+      : 'Check the current scope and results first, then keep browsing entries on the left.';
+  String get currentScopeTitle =>
+      isChinese ? '\u5f53\u524d\u8303\u56f4' : 'Current scope';
+  String get totalEntriesTitle =>
+      isChinese ? '\u5168\u90e8\u65e5\u8bb0' : 'All entries';
+  String get matchedEntriesTitle =>
+      isChinese ? '\u5f53\u524d\u7ed3\u679c' : 'Current results';
   String get recentEntries =>
       isChinese ? '\u6700\u8fd1\u65e5\u8bb0' : 'Recent entries';
   String get allTags => isChinese ? '\u5168\u90e8\u6807\u7b7e' : 'All tags';

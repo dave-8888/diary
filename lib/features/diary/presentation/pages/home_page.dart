@@ -117,65 +117,121 @@ class _HomeListState extends State<_HomeList> {
     final emptyButtonLabel =
         hasEntries ? strings.clearDateFilter : strings.newEntry;
     final listSpacing = MediaQuery.sizeOf(context).width < 720 ? 16.0 : 18.0;
-    final content = SingleChildScrollView(
-      child: Padding(
-        padding: const EdgeInsets.only(bottom: 36),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            _CalendarFilterCard(
-              mode: _filterMode,
-              selectionLabel: _selectionLabel(strings),
-              matchCount: filteredEntries.length,
-              onSelectAll: _clearFilter,
-              onPickDay: () => _pickDay(context),
-              onPickRange: () => _pickRange(context),
+    final entrySectionTitle = _sectionTitle(strings);
+    final entryListContent = Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        if (filteredEntries.isEmpty)
+          _EmptyStateCard(
+            title: emptyTitle,
+            description: emptyDescription,
+            buttonLabel: emptyButtonLabel,
+            buttonIcon:
+                hasEntries ? CupertinoIcons.clear_circled : CupertinoIcons.add,
+            onPressed: hasEntries ? _clearFilter : () => context.go('/editor'),
+          )
+        else
+          for (var index = 0; index < filteredEntries.length; index++) ...[
+            DiaryCard(
+              entry: filteredEntries[index],
+              onEdit: () => _openEditor(context, filteredEntries[index]),
+              onTap: () => _openEditor(context, filteredEntries[index]),
             ),
-            const SizedBox(height: 36),
-            _SectionHeader(
-              title: _sectionTitle(strings),
-              trailing: _CountPill(
-                label: strings.entryCountLabel(filteredEntries.length),
-              ),
-            ),
-            const SizedBox(height: 18),
-            if (filteredEntries.isEmpty)
-              _EmptyStateCard(
-                title: emptyTitle,
-                description: emptyDescription,
-                buttonLabel: emptyButtonLabel,
-                buttonIcon: hasEntries
-                    ? CupertinoIcons.clear_circled
-                    : CupertinoIcons.add,
-                onPressed:
-                    hasEntries ? _clearFilter : () => context.go('/editor'),
-              )
-            else
-              for (var index = 0; index < filteredEntries.length; index++) ...[
-                DiaryCard(
-                  entry: filteredEntries[index],
-                  onEdit: () => _openEditor(context, filteredEntries[index]),
-                  onTap: () => _openEditor(context, filteredEntries[index]),
-                ),
-                if (index != filteredEntries.length - 1)
-                  SizedBox(height: listSpacing),
-              ],
+            if (index != filteredEntries.length - 1)
+              SizedBox(height: listSpacing),
           ],
-        ),
+      ],
+    );
+    final entryCountPill = _CountPill(
+      key: const ValueKey<String>('home-entry-count-pill'),
+      label: strings.entryCountLabel(filteredEntries.length),
+    );
+    final compactFilterPanel = SizedBox(
+      key: const ValueKey<String>('home-calendar-filter-panel'),
+      child: _CalendarFilterCard(
+        mode: _filterMode,
+        selectionLabel: _selectionLabel(strings),
+        matchCount: filteredEntries.length,
+        onSelectAll: _clearFilter,
+        onPickDay: () => _pickDay(context),
+        onPickRange: () => _pickRange(context),
       ),
+    );
+    final entryListPanel = Column(
+      key: const ValueKey<String>('home-entry-list-panel'),
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        _SectionHeader(
+          title: entrySectionTitle,
+          trailing: null,
+        ),
+        const SizedBox(height: 18),
+        entryListContent,
+      ],
+    );
+    final sidebar = _HomeSidebar(
+      key: const ValueKey<String>('home-right-sidebar'),
+      totalEntriesCount: entries.length,
+      matchCount: filteredEntries.length,
+      selectionLabel: _selectionLabel(strings),
+      mode: _filterMode,
+      onSelectAll: _clearFilter,
+      onPickDay: () => _pickDay(context),
+      onPickRange: () => _pickRange(context),
     );
 
     return LayoutBuilder(
       builder: (context, constraints) {
-        if (constraints.maxWidth <= 960) {
-          return content;
+        final isWideLayout = constraints.maxWidth > 960;
+        if (!isWideLayout) {
+          return SingleChildScrollView(
+            child: Padding(
+              padding: const EdgeInsets.only(bottom: 36),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  compactFilterPanel,
+                  const SizedBox(height: 36),
+                  _SectionHeader(
+                    title: entrySectionTitle,
+                    trailing: entryCountPill,
+                  ),
+                  const SizedBox(height: 18),
+                  entryListContent,
+                ],
+              ),
+            ),
+          );
         }
 
         return Align(
           alignment: Alignment.topCenter,
           child: ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: 860),
-            child: content,
+            constraints: const BoxConstraints(maxWidth: 1120),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Expanded(
+                  child: SingleChildScrollView(
+                    key: const ValueKey<String>('home-entry-scroll-view'),
+                    child: Padding(
+                      padding: const EdgeInsets.only(bottom: 36),
+                      child: entryListPanel,
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 28),
+                SizedBox(
+                  width: 320,
+                  child: SingleChildScrollView(
+                    child: Padding(
+                      padding: const EdgeInsets.only(bottom: 24),
+                      child: sidebar,
+                    ),
+                  ),
+                ),
+              ],
+            ),
           ),
         );
       },
@@ -577,6 +633,479 @@ class _CalendarFilterCard extends StatelessWidget {
   }
 }
 
+class _HomeSidebar extends StatelessWidget {
+  const _HomeSidebar({
+    super.key,
+    required this.totalEntriesCount,
+    required this.matchCount,
+    required this.selectionLabel,
+    required this.mode,
+    required this.onSelectAll,
+    required this.onPickDay,
+    required this.onPickRange,
+  });
+
+  final int totalEntriesCount;
+  final int matchCount;
+  final String selectionLabel;
+  final _CalendarFilterMode mode;
+  final VoidCallback onSelectAll;
+  final VoidCallback onPickDay;
+  final VoidCallback onPickRange;
+
+  @override
+  Widget build(BuildContext context) {
+    final strings = context.strings;
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+    final modeLabel = _modeLabel(strings);
+    final dayActionLabel =
+        mode == _CalendarFilterMode.day ? strings.changeDate : strings.pickDate;
+    final rangeActionLabel = mode == _CalendarFilterMode.range
+        ? strings.changeDateRange
+        : strings.pickDateRange;
+
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Card(
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(22, 22, 22, 22),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  strings.browseOverviewTitle,
+                  style: theme.textTheme.labelLarge?.copyWith(
+                    color: colorScheme.primary,
+                    fontWeight: FontWeight.w700,
+                    letterSpacing: 0.2,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  strings.browseOverviewHint,
+                  style: theme.textTheme.bodySmall?.copyWith(
+                    color: colorScheme.onSurfaceVariant,
+                    height: 1.5,
+                  ),
+                ),
+                const SizedBox(height: 18),
+                DecoratedBox(
+                  decoration: BoxDecoration(
+                    color: colorScheme.primary.withValues(alpha: 0.08),
+                    borderRadius: BorderRadius.circular(22),
+                    border: Border.all(
+                      color: colorScheme.primary.withValues(alpha: 0.12),
+                    ),
+                  ),
+                  child: Padding(
+                    padding: const EdgeInsets.fromLTRB(16, 16, 16, 14),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          strings.currentScopeTitle,
+                          style: theme.textTheme.labelMedium?.copyWith(
+                            color: colorScheme.primary,
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                        const SizedBox(height: 10),
+                        Text(
+                          selectionLabel,
+                          style: theme.textTheme.titleLarge?.copyWith(
+                            fontSize: 24,
+                            fontWeight: FontWeight.w700,
+                            height: 1.15,
+                            letterSpacing: -0.5,
+                          ),
+                        ),
+                        const SizedBox(height: 14),
+                        _SidebarStatusChip(
+                          icon: _modeIcon(),
+                          label: modeLabel,
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 16),
+                Row(
+                  children: [
+                    Expanded(
+                      child: _SidebarMetricTile(
+                        key: const ValueKey<String>('home-entry-count-pill'),
+                        title: strings.totalEntriesTitle,
+                        value: '$totalEntriesCount',
+                        emphasized: false,
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: _SidebarMetricTile(
+                        key: const ValueKey<String>('home-match-count-pill'),
+                        title: strings.matchedEntriesTitle,
+                        value: '$matchCount',
+                        emphasized: true,
+                      ),
+                    ),
+                  ],
+                ),
+                if (mode != _CalendarFilterMode.all) ...[
+                  const SizedBox(height: 16),
+                  _SidebarUtilityButton(
+                    icon: CupertinoIcons.clear_circled,
+                    label: strings.clearDateFilter,
+                    onTap: onSelectAll,
+                  ),
+                ],
+              ],
+            ),
+          ),
+        ),
+        const SizedBox(height: 16),
+        Card(
+          key: const ValueKey<String>('home-calendar-filter-panel'),
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(22, 22, 22, 20),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  strings.calendarViewTitle,
+                  style: theme.textTheme.titleMedium?.copyWith(
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  strings.calendarViewHint,
+                  style: theme.textTheme.bodySmall?.copyWith(
+                    color: colorScheme.onSurfaceVariant,
+                    height: 1.5,
+                  ),
+                ),
+                const SizedBox(height: 18),
+                _SidebarFilterOption(
+                  title: strings.viewAll,
+                  subtitle: strings.allDatesLabel,
+                  icon: CupertinoIcons.square_grid_2x2,
+                  selected: mode == _CalendarFilterMode.all,
+                  onTap: onSelectAll,
+                ),
+                const SizedBox(height: 10),
+                _SidebarFilterOption(
+                  title: dayActionLabel,
+                  subtitle: mode == _CalendarFilterMode.day
+                      ? selectionLabel
+                      : strings.singleDateFilter,
+                  icon: CupertinoIcons.calendar_today,
+                  selected: mode == _CalendarFilterMode.day,
+                  onTap: onPickDay,
+                ),
+                const SizedBox(height: 10),
+                _SidebarFilterOption(
+                  title: rangeActionLabel,
+                  subtitle: mode == _CalendarFilterMode.range
+                      ? selectionLabel
+                      : strings.rangeFilter,
+                  icon: CupertinoIcons.calendar,
+                  selected: mode == _CalendarFilterMode.range,
+                  onTap: onPickRange,
+                ),
+              ],
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  String _modeLabel(AppStrings strings) {
+    switch (mode) {
+      case _CalendarFilterMode.all:
+        return strings.allDatesLabel;
+      case _CalendarFilterMode.day:
+        return strings.singleDateFilter;
+      case _CalendarFilterMode.range:
+        return strings.rangeFilter;
+    }
+  }
+
+  IconData _modeIcon() {
+    switch (mode) {
+      case _CalendarFilterMode.all:
+        return CupertinoIcons.square_grid_2x2;
+      case _CalendarFilterMode.day:
+        return CupertinoIcons.calendar_today;
+      case _CalendarFilterMode.range:
+        return CupertinoIcons.calendar;
+    }
+  }
+}
+
+class _SidebarStatusChip extends StatelessWidget {
+  const _SidebarStatusChip({
+    required this.icon,
+    required this.label,
+  });
+
+  final IconData icon;
+  final String label;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        color: colorScheme.surface.withValues(alpha: 0.82),
+        borderRadius: BorderRadius.circular(999),
+        border: Border.all(
+          color: colorScheme.primary.withValues(alpha: 0.12),
+        ),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(icon, size: 16, color: colorScheme.primary),
+            const SizedBox(width: 8),
+            Text(
+              label,
+              style: theme.textTheme.labelMedium?.copyWith(
+                color: colorScheme.primary,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _SidebarMetricTile extends StatelessWidget {
+  const _SidebarMetricTile({
+    super.key,
+    required this.title,
+    required this.value,
+    required this.emphasized,
+  });
+
+  final String title;
+  final String value;
+  final bool emphasized;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        color: emphasized
+            ? colorScheme.primary.withValues(alpha: 0.1)
+            : colorScheme.surface.withValues(alpha: 0.34),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(
+          color: emphasized
+              ? colorScheme.primary.withValues(alpha: 0.16)
+              : colorScheme.outlineVariant.withValues(alpha: 0.28),
+        ),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(14, 14, 14, 12),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              value,
+              style: theme.textTheme.headlineSmall?.copyWith(
+                fontWeight: FontWeight.w700,
+                letterSpacing: -0.5,
+                color: emphasized ? colorScheme.primary : colorScheme.onSurface,
+              ),
+            ),
+            const SizedBox(height: 6),
+            Text(
+              title,
+              style: theme.textTheme.bodySmall?.copyWith(
+                color: emphasized
+                    ? colorScheme.primary.withValues(alpha: 0.88)
+                    : colorScheme.onSurfaceVariant,
+                fontWeight: FontWeight.w600,
+                height: 1.35,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _SidebarUtilityButton extends StatelessWidget {
+  const _SidebarUtilityButton({
+    required this.icon,
+    required this.label,
+    required this.onTap,
+  });
+
+  final IconData icon;
+  final String label;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+
+    return CupertinoButton(
+      padding: EdgeInsets.zero,
+      minimumSize: Size.zero,
+      onPressed: onTap,
+      child: DecoratedBox(
+        decoration: BoxDecoration(
+          color: colorScheme.surface.withValues(alpha: 0.32),
+          borderRadius: BorderRadius.circular(18),
+          border: Border.all(
+            color: colorScheme.outlineVariant.withValues(alpha: 0.24),
+          ),
+        ),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(icon, size: 18, color: colorScheme.onSurfaceVariant),
+              const SizedBox(width: 8),
+              Text(
+                label,
+                style: theme.textTheme.labelLarge?.copyWith(
+                  color: colorScheme.onSurfaceVariant,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _SidebarFilterOption extends StatelessWidget {
+  const _SidebarFilterOption({
+    required this.title,
+    required this.subtitle,
+    required this.icon,
+    required this.selected,
+    required this.onTap,
+  });
+
+  final String title;
+  final String subtitle;
+  final IconData icon;
+  final bool selected;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+
+    return CupertinoButton(
+      padding: EdgeInsets.zero,
+      minimumSize: Size.zero,
+      onPressed: onTap,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 180),
+        curve: Curves.easeOutCubic,
+        decoration: BoxDecoration(
+          color: selected
+              ? colorScheme.primary.withValues(alpha: 0.1)
+              : colorScheme.surface.withValues(alpha: 0.3),
+          borderRadius: BorderRadius.circular(22),
+          border: Border.all(
+            color: selected
+                ? colorScheme.primary.withValues(alpha: 0.18)
+                : colorScheme.outlineVariant.withValues(alpha: 0.24),
+          ),
+        ),
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(14, 14, 14, 14),
+          child: Row(
+            children: [
+              DecoratedBox(
+                decoration: BoxDecoration(
+                  color: selected
+                      ? colorScheme.primary.withValues(alpha: 0.16)
+                      : colorScheme.surface.withValues(alpha: 0.78),
+                  borderRadius: BorderRadius.circular(16),
+                ),
+                child: Padding(
+                  padding: const EdgeInsets.all(10),
+                  child: Icon(
+                    icon,
+                    size: 18,
+                    color: selected
+                        ? colorScheme.primary
+                        : colorScheme.onSurfaceVariant,
+                  ),
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      title,
+                      style: theme.textTheme.titleSmall?.copyWith(
+                        fontWeight: FontWeight.w700,
+                        color: selected
+                            ? colorScheme.primary
+                            : colorScheme.onSurface,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      subtitle,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      style: theme.textTheme.bodySmall?.copyWith(
+                        color: selected
+                            ? colorScheme.primary.withValues(alpha: 0.84)
+                            : colorScheme.onSurfaceVariant,
+                        height: 1.4,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(width: 8),
+              Icon(
+                selected
+                    ? CupertinoIcons.check_mark_circled_solid
+                    : CupertinoIcons.chevron_right,
+                size: selected ? 20 : 16,
+                color: selected
+                    ? colorScheme.primary
+                    : colorScheme.onSurfaceVariant,
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
 class _SectionHeader extends StatelessWidget {
   const _SectionHeader({
     this.title,
@@ -624,6 +1153,7 @@ class _SectionHeader extends StatelessWidget {
 
 class _CountPill extends StatelessWidget {
   const _CountPill({
+    super.key,
     required this.label,
   });
 

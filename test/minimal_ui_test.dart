@@ -114,6 +114,66 @@ void main() {
   });
 
   testWidgets(
+      'home page places the date filter to the right of the diary list on wide layouts',
+      (tester) async {
+    await tester.binding.setSurfaceSize(const Size(1600, 760));
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+
+    final repository = FakeDiaryRepository(
+      entries: [
+        for (var index = 0; index < 12; index++)
+          DiaryEntry(
+            id: 'wide-layout-entry-$index',
+            title: 'Wide layout $index',
+            content: 'Desktop home page should split into two columns.',
+            mood: DiaryMood.calm,
+            createdAt: DateTime(2026, 3, 18, 9).subtract(
+              Duration(days: index),
+            ),
+          ),
+      ],
+      moods: DiaryMood.values,
+    );
+
+    await pumpPage(
+      tester,
+      const HomePage(),
+      path: '/',
+      overrides: buildOverrides(repository: repository),
+    );
+
+    final listPanel = find.byKey(const ValueKey('home-entry-list-panel'));
+    final countPill = find.byKey(const ValueKey('home-entry-count-pill'));
+    final filterPanel =
+        find.byKey(const ValueKey('home-calendar-filter-panel'));
+    final rightSidebar = find.byKey(const ValueKey('home-right-sidebar'));
+    final scrollView = find.byKey(const ValueKey('home-entry-scroll-view'));
+
+    expect(listPanel, findsOneWidget);
+    expect(countPill, findsOneWidget);
+    expect(filterPanel, findsOneWidget);
+    expect(rightSidebar, findsOneWidget);
+    expect(scrollView, findsOneWidget);
+
+    final listRect = tester.getRect(listPanel);
+    final sidebarRect = tester.getRect(rightSidebar);
+    final countRect = tester.getRect(countPill);
+    final filterRect = tester.getRect(filterPanel);
+
+    expect((listRect.top - sidebarRect.top).abs(), lessThan(1));
+    expect(listRect.right, lessThan(sidebarRect.left));
+    expect(listRect.right, lessThan(countRect.left));
+    expect(countRect.bottom, lessThan(filterRect.top));
+
+    final sidebarTopBeforeScroll = sidebarRect.top;
+    await tester.drag(scrollView, const Offset(0, -400));
+    await tester.pumpAndSettle();
+
+    final sidebarRectAfterScroll = tester.getRect(rightSidebar);
+    expect(sidebarRectAfterScroll.top, sidebarTopBeforeScroll);
+  });
+
+  testWidgets(
       'editor page keeps AI available, removes transcription, and hides empty video panel',
       (tester) async {
     final repository = FakeDiaryRepository(
