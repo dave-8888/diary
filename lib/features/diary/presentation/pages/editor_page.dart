@@ -10,6 +10,7 @@ import 'package:diary_mvp/core/storage/local_storage_service.dart';
 import 'package:diary_mvp/features/diary/application/diary_controller.dart';
 import 'package:diary_mvp/features/diary/domain/diary_entry.dart';
 import 'package:diary_mvp/features/diary/presentation/models/captured_media_result.dart';
+import 'package:diary_mvp/features/diary/presentation/utils/camera_support.dart';
 import 'package:diary_mvp/features/diary/presentation/widgets/audio_attachment_tile.dart';
 import 'package:diary_mvp/features/diary/presentation/widgets/diary_shell.dart';
 import 'package:diary_mvp/features/diary/presentation/widgets/image_media_grid.dart';
@@ -189,12 +190,14 @@ class _EditorPageState extends ConsumerState<EditorPage>
                   return DecoratedBox(
                     decoration: BoxDecoration(
                       color: theme.colorScheme.primary.withValues(
-                        alpha: _isSaving || _isDeleting || _isExporting ? 0.5 : 1,
+                        alpha:
+                            _isSaving || _isDeleting || _isExporting ? 0.5 : 1,
                       ),
                       borderRadius: BorderRadius.circular(999),
                       boxShadow: [
                         BoxShadow(
-                          color: theme.colorScheme.primary.withValues(alpha: 0.24),
+                          color:
+                              theme.colorScheme.primary.withValues(alpha: 0.24),
                           blurRadius: 18,
                           offset: const Offset(0, 10),
                         ),
@@ -222,8 +225,8 @@ class _EditorPageState extends ConsumerState<EditorPage>
                             _isSaving
                                 ? strings.saving
                                 : (_isEditing
-                                      ? strings.updateEntry
-                                      : strings.saveEntry),
+                                    ? strings.updateEntry
+                                    : strings.saveEntry),
                             style: theme.textTheme.labelLarge?.copyWith(
                               color: theme.colorScheme.onPrimary,
                             ),
@@ -366,9 +369,11 @@ class _EditorPageState extends ConsumerState<EditorPage>
               CupertinoActionButton(
                 onPressed: _isRecording ? _stopRecording : _startRecording,
                 variant: CupertinoActionButtonVariant.tinted,
-                icon: _isRecording ? Icons.stop_circle_outlined : Icons.mic_none,
-                label:
-                    _isRecording ? strings.stopRecording : strings.startRecording,
+                icon:
+                    _isRecording ? Icons.stop_circle_outlined : Icons.mic_none,
+                label: _isRecording
+                    ? strings.stopRecording
+                    : strings.startRecording,
               ),
             ],
           ),
@@ -410,7 +415,8 @@ class _EditorPageState extends ConsumerState<EditorPage>
                             context,
                             icon: _iconForMedia(media.type),
                             label: _mediaLabel(media),
-                            onDeleted: () => setState(() => _media.remove(media)),
+                            onDeleted: () =>
+                                setState(() => _media.remove(media)),
                           ),
                         )
                         .toList(),
@@ -1473,6 +1479,14 @@ class _EditorPageState extends ConsumerState<EditorPage>
     required String mode,
   }) async {
     final strings = context.strings;
+    if (!supportsInAppCameraCapture) {
+      context.showAppSnackBar(
+        strings.cameraUnsupportedPlatform,
+        tone: AppSnackBarTone.warning,
+      );
+      return;
+    }
+
     final result = await context.push<CapturedMediaResult>(
       mode == 'video' ? '/camera?mode=video' : '/camera',
     );

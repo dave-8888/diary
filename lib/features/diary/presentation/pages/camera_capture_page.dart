@@ -1,5 +1,3 @@
-import 'dart:typed_data';
-
 import 'package:camera/camera.dart';
 import 'package:crop_your_image/crop_your_image.dart';
 import 'package:diary_mvp/app/cupertino_kit.dart';
@@ -8,13 +6,18 @@ import 'package:diary_mvp/app/localization/app_strings.dart';
 import 'package:diary_mvp/core/storage/local_storage_service.dart';
 import 'package:diary_mvp/features/diary/domain/diary_entry.dart';
 import 'package:diary_mvp/features/diary/presentation/models/captured_media_result.dart';
+import 'package:diary_mvp/features/diary/presentation/utils/camera_support.dart';
 import 'package:diary_mvp/features/diary/presentation/widgets/local_video_player.dart';
 import 'package:flutter/cupertino.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 enum CameraCaptureMode { photo, video }
+
+enum _PermissionKind { camera, microphone }
 
 class CameraCapturePage extends ConsumerStatefulWidget {
   const CameraCapturePage({
@@ -30,6 +33,10 @@ class CameraCapturePage extends ConsumerStatefulWidget {
 
 class _CameraCapturePageState extends ConsumerState<CameraCapturePage>
     with WidgetsBindingObserver {
+  static const MethodChannel _permissionsChannel = MethodChannel(
+    'diary_mvp/camera_permissions',
+  );
+
   final CropController _cropController = CropController();
 
   List<CameraDescription> _cameras = const [];
@@ -42,6 +49,7 @@ class _CameraCapturePageState extends ConsumerState<CameraCapturePage>
   bool _isCropping = false;
   bool _isVideoRecording = false;
   Object? _error;
+  _PermissionKind? _permissionIssue;
 
   String? _capturedPhotoPath;
   String? _capturedVideoPath;
@@ -56,7 +64,11 @@ class _CameraCapturePageState extends ConsumerState<CameraCapturePage>
     super.initState();
     _captureMode = widget.initialMode;
     WidgetsBinding.instance.addObserver(this);
-    _loadCameras();
+    if (supportsInAppCameraCapture) {
+      _prepareCamera();
+    } else {
+      _isInitializing = false;
+    }
   }
 
   @override
@@ -229,7 +241,8 @@ class _CameraCapturePageState extends ConsumerState<CameraCapturePage>
                 CupertinoPill(
                   selected: _captureMode == CameraCaptureMode.photo,
                   onPressed: canChangeMode
-                      ? () => setState(() => _captureMode = CameraCaptureMode.photo)
+                      ? () =>
+                          setState(() => _captureMode = CameraCaptureMode.photo)
                       : null,
                   icon: Icons.photo_camera_outlined,
                   label: Text(context.strings.photoMode),
@@ -237,7 +250,8 @@ class _CameraCapturePageState extends ConsumerState<CameraCapturePage>
                 CupertinoPill(
                   selected: _captureMode == CameraCaptureMode.video,
                   onPressed: canChangeMode
-                      ? () => setState(() => _captureMode = CameraCaptureMode.video)
+                      ? () =>
+                          setState(() => _captureMode = CameraCaptureMode.video)
                       : null,
                   icon: Icons.videocam_outlined,
                   label: Text(context.strings.videoMode),
@@ -253,6 +267,19 @@ class _CameraCapturePageState extends ConsumerState<CameraCapturePage>
 
   Widget _buildLiveBody(BuildContext context, CameraController? controller) {
     final strings = context.strings;
+
+    if (!supportsInAppCameraCapture) {
+      return Center(
+        child: Padding(
+          padding: const EdgeInsets.all(24),
+          child: Text(
+            strings.cameraUnsupportedPlatform,
+            style: const TextStyle(color: Colors.white),
+            textAlign: TextAlign.center,
+          ),
+        ),
+      );
+    }
 
     if (_isInitializing) {
       return Center(
@@ -271,6 +298,38 @@ class _CameraCapturePageState extends ConsumerState<CameraCapturePage>
     }
 
     if (_error != null) {
+      final permissionIssue = _permissionIssue;
+      if (permissionIssue != null) {
+        final message = switch (permissionIssue) {
+          _PermissionKind.camera => strings.cameraPermissionOpenSettings,
+          _PermissionKind.microphone =>
+            strings.microphonePermissionOpenSettings,
+        };
+
+        return Center(
+          child: Padding(
+            padding: const EdgeInsets.all(24),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  message,
+                  style: const TextStyle(color: Colors.white),
+                  textAlign: TextAlign.center,
+                ),
+                const SizedBox(height: 16),
+                CupertinoActionButton(
+                  onPressed: () => _openSystemSettings(permissionIssue),
+                  variant: CupertinoActionButtonVariant.outline,
+                  icon: Icons.settings_outlined,
+                  label: strings.settingsTooltip,
+                ),
+              ],
+            ),
+          ),
+        );
+      }
+
       return Center(
         child: Padding(
           padding: const EdgeInsets.all(24),
@@ -459,6 +518,10 @@ class _CameraCapturePageState extends ConsumerState<CameraCapturePage>
   Widget _buildBottomBar(BuildContext context, CameraController? controller) {
     final strings = context.strings;
 
+    if (!supportsInAppCameraCapture) {
+      return const SizedBox.shrink();
+    }
+
     if (_isCropping) {
       return Row(
         children: [
@@ -555,8 +618,8 @@ class _CameraCapturePageState extends ConsumerState<CameraCapturePage>
             : _isVideoRecording
                 ? _stopVideoRecording
                 : (_canStartVideoRecording(controller)
-                ? _startVideoRecording
-                : null),
+                    ? _startVideoRecording
+                    : null),
         expand: true,
         minHeight: 54,
         isBusy: _isCapturing,
@@ -619,6 +682,64 @@ class _CameraCapturePageState extends ConsumerState<CameraCapturePage>
         _isInitializing = false;
         _error = error;
       });
+    }
+  }
+
+  Future<void> _prepareCamera() async {
+    setState(() {
+      _isInitializing = true;
+      _error = null;
+      _permissionIssue = null;
+    });
+
+    final hasCameraPermission =
+        await _requestPermission(_PermissionKind.camera);
+    if (!hasCameraPermission) {
+      if (!mounted) return;
+      setState(() {
+        _isInitializing = false;
+        _permissionIssue = _PermissionKind.camera;
+        _error = 'camera_permission_denied';
+      });
+      return;
+    }
+
+    await _loadCameras();
+  }
+
+  Future<bool> _requestPermission(_PermissionKind kind) async {
+    if (defaultTargetPlatform != TargetPlatform.macOS) {
+      return true;
+    }
+
+    try {
+      return await _permissionsChannel.invokeMethod<bool>(
+            'requestPermission',
+            {
+              'type':
+                  kind == _PermissionKind.microphone ? 'microphone' : 'camera',
+            },
+          ) ??
+          false;
+    } on PlatformException {
+      return false;
+    }
+  }
+
+  Future<void> _openSystemSettings(_PermissionKind kind) async {
+    if (defaultTargetPlatform != TargetPlatform.macOS) {
+      return;
+    }
+
+    try {
+      await _permissionsChannel.invokeMethod<void>(
+        'openSettings',
+        {
+          'type': kind == _PermissionKind.microphone ? 'microphone' : 'camera',
+        },
+      );
+    } on PlatformException {
+      // Best-effort only.
     }
   }
 
@@ -705,6 +826,18 @@ class _CameraCapturePageState extends ConsumerState<CameraCapturePage>
     final strings = context.strings;
     final controller = _controller;
     if (!_canStartVideoRecording(controller)) return;
+
+    final hasMicrophonePermission = await _requestPermission(
+      _PermissionKind.microphone,
+    );
+    if (!hasMicrophonePermission) {
+      if (!mounted) return;
+      setState(() {
+        _permissionIssue = _PermissionKind.microphone;
+        _error = 'microphone_permission_denied';
+      });
+      return;
+    }
 
     setState(() => _isCapturing = true);
 

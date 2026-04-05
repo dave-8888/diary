@@ -917,9 +917,18 @@ class AppStrings {
   String get cameraUnavailable => isChinese
       ? '\u672a\u68c0\u6d4b\u5230\u53ef\u7528\u76f8\u673a\u3002'
       : 'No camera available.';
+  String get cameraUnsupportedPlatform => isChinese
+      ? '\u5f53\u524d\u5e73\u53f0\u6682\u4e0d\u652f\u6301\u5185\u7f6e\u76f8\u673a\u62cd\u6444\u3002'
+      : 'This platform does not support the built-in camera capture flow.';
+  String get cameraPermissionOpenSettings => isChinese
+      ? '\u76f8\u673a\u6743\u9650\u672a\u5f00\u542f\uff0c\u8bf7\u5728\u7cfb\u7edf\u8bbe\u7f6e\u4e2d\u5141\u8bb8\u3002'
+      : 'Camera access is not enabled. Please allow it in system settings.';
   String get cameraPermissionDenied => isChinese
       ? '\u76f8\u673a\u6743\u9650\u88ab\u62d2\u7edd\u3002'
       : 'Camera permission denied.';
+  String get microphonePermissionOpenSettings => isChinese
+      ? '\u9ea6\u514b\u98ce\u6743\u9650\u672a\u5f00\u542f\uff0c\u8bf7\u5728\u7cfb\u7edf\u8bbe\u7f6e\u4e2d\u5141\u8bb8\u3002'
+      : 'Microphone access is not enabled. Please allow it in system settings.';
   String cameraInitializationFailed(Object error) => isChinese
       ? '\u76f8\u673a\u521d\u59cb\u5316\u5931\u8d25\uff1a$error'
       : 'Camera initialization failed: $error';
