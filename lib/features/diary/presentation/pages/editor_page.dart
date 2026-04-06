@@ -10,6 +10,7 @@ import 'package:diary_mvp/core/storage/local_storage_service.dart';
 import 'package:diary_mvp/features/diary/application/diary_controller.dart';
 import 'package:diary_mvp/features/diary/domain/diary_entry.dart';
 import 'package:diary_mvp/features/diary/presentation/models/captured_media_result.dart';
+import 'package:diary_mvp/features/diary/presentation/models/image_preview_data.dart';
 import 'package:diary_mvp/features/diary/presentation/utils/camera_support.dart';
 import 'package:diary_mvp/features/diary/presentation/widgets/audio_attachment_tile.dart';
 import 'package:diary_mvp/features/diary/presentation/widgets/diary_shell.dart';
@@ -1452,11 +1453,14 @@ class _EditorPageState extends ConsumerState<EditorPage>
       final sourcePath = file.path;
       if (sourcePath == null) continue;
       final savedPath = await storage.copyImageToAppStorage(sourcePath);
+      final addedAt = DateTime.now();
       added.add(
         DiaryMedia(
           id: _uuid.v4(),
           type: MediaType.image,
           path: savedPath,
+          addedAt: addedAt,
+          origin: MediaOrigin.imported,
         ),
       );
     }
@@ -1493,6 +1497,7 @@ class _EditorPageState extends ConsumerState<EditorPage>
     if (!mounted || result == null) return;
 
     setState(() {
+      final addedAt = DateTime.now();
       _media.add(
         DiaryMedia(
           id: _uuid.v4(),
@@ -1500,6 +1505,11 @@ class _EditorPageState extends ConsumerState<EditorPage>
           path: result.path,
           durationLabel: result.durationLabel,
           capturedAt: result.capturedAt,
+          addedAt: addedAt,
+          location: result.location,
+          origin: result.type == MediaType.image
+              ? MediaOrigin.captured
+              : MediaOrigin.recorded,
         ),
       );
     });
@@ -1558,12 +1568,15 @@ class _EditorPageState extends ConsumerState<EditorPage>
         ? 0
         : max(0, DateTime.now().difference(startedAt).inSeconds);
     setState(() {
+      final addedAt = DateTime.now();
       _media.add(
         DiaryMedia(
           id: _uuid.v4(),
           type: MediaType.audio,
           path: outputPath,
           durationLabel: _formatDuration(seconds),
+          addedAt: addedAt,
+          origin: MediaOrigin.recorded,
         ),
       );
     });
@@ -1823,7 +1836,14 @@ class _EditorPageState extends ConsumerState<EditorPage>
   }
 
   void _openImagePreview(DiaryMedia media) {
-    context.push('/image-preview', extra: media);
+    context.push(
+      '/image-preview',
+      extra: ImagePreviewData(
+        media: media,
+        entryCreatedAt: _draftCreatedAt,
+        location: _locationController.text,
+      ),
+    );
   }
 
   IconData _iconForMedia(MediaType type) {
@@ -1864,6 +1884,9 @@ class _EditorPageState extends ConsumerState<EditorPage>
               'path': item.path,
               'duration_label': item.durationLabel,
               'captured_at': item.capturedAt?.millisecondsSinceEpoch,
+              'added_at': item.addedAt?.millisecondsSinceEpoch,
+              'location': item.location,
+              'origin': item.origin.name,
             },
           )
           .toList(growable: false),

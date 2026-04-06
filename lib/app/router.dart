@@ -8,6 +8,7 @@ import 'package:diary_mvp/features/diary/presentation/pages/trash_page.dart';
 import 'package:diary_mvp/features/diary/presentation/pages/trash_preview_page.dart';
 import 'package:diary_mvp/features/diary/presentation/pages/timeline_page.dart';
 import 'package:diary_mvp/features/diary/presentation/pages/video_preview_page.dart';
+import 'package:diary_mvp/features/diary/presentation/models/image_preview_data.dart';
 import 'package:diary_mvp/features/diary/domain/diary_entry.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -97,13 +98,23 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         pageBuilder: (context, state) => _buildDetailPage(
           state: state,
           child: ImagePreviewPage(
-            media: state.extra as DiaryMedia?,
+            preview: _imagePreviewDataFromExtra(state.extra),
           ),
         ),
       ),
     ],
   );
 });
+
+ImagePreviewData? _imagePreviewDataFromExtra(Object? extra) {
+  if (extra is ImagePreviewData) {
+    return extra;
+  }
+  if (extra is DiaryMedia) {
+    return ImagePreviewData(media: extra);
+  }
+  return null;
+}
 
 CustomTransitionPage<void> _buildSectionPage({
   required GoRouterState state,

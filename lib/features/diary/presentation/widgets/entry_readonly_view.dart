@@ -1,6 +1,7 @@
 import 'package:diary_mvp/app/cupertino_kit.dart';
 import 'package:diary_mvp/app/localization/app_strings.dart';
 import 'package:diary_mvp/features/diary/domain/diary_entry.dart';
+import 'package:diary_mvp/features/diary/presentation/models/image_preview_data.dart';
 import 'package:diary_mvp/features/diary/presentation/widgets/audio_attachment_tile.dart';
 import 'package:diary_mvp/features/diary/presentation/widgets/image_media_grid.dart';
 import 'package:flutter/material.dart';
@@ -77,7 +78,8 @@ class EntryReadonlyView extends StatelessWidget {
             maxColumns: 3,
             targetTileWidth: 190,
             constrainToTargetWidth: true,
-            onPreviewRequested: (media) => _openMediaPreview(context, media),
+            onPreviewRequested: (media) =>
+                _openMediaPreview(context, entry, media),
           ),
         ],
         if (entry.content.trim().isNotEmpty) ...[
@@ -104,10 +106,21 @@ class EntryReadonlyView extends StatelessWidget {
     );
   }
 
-  void _openMediaPreview(BuildContext context, DiaryMedia media) {
+  void _openMediaPreview(
+    BuildContext context,
+    DiaryEntry entry,
+    DiaryMedia media,
+  ) {
     switch (media.type) {
       case MediaType.image:
-        context.push('/image-preview', extra: media);
+        context.push(
+          '/image-preview',
+          extra: ImagePreviewData(
+            media: media,
+            entryCreatedAt: entry.createdAt,
+            location: entry.location,
+          ),
+        );
       case MediaType.video:
         context.push('/video-preview', extra: media);
       case MediaType.audio:

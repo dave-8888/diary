@@ -906,6 +906,23 @@ class AppStrings {
       isChinese ? '\u9884\u89c8\u7167\u7247' : 'Preview photo';
   String get previewVideo =>
       isChinese ? '\u9884\u89c8\u89c6\u9891' : 'Preview video';
+  String get photoCapturedAtLabel =>
+      isChinese ? '\u56fe\u7247\u62cd\u6444\u65f6\u95f4' : 'Photo captured at';
+  String get photoCapturedLocationLabel => isChinese
+      ? '\u56fe\u7247\u62cd\u6444\u5730\u70b9'
+      : 'Photo capture location';
+  String get photoUploadedAtLabel =>
+      isChinese ? '\u56fe\u7247\u4e0a\u4f20\u65f6\u95f4' : 'Photo uploaded at';
+  String get photoUploadedLocationLabel => isChinese
+      ? '\u56fe\u7247\u4e0a\u4f20\u5730\u70b9'
+      : 'Photo upload location';
+  String get videoCapturedAtLabel =>
+      isChinese ? '\u89c6\u9891\u62cd\u6444\u65f6\u95f4' : 'Video captured at';
+  String get videoDurationLabel =>
+      isChinese ? '\u89c6\u9891\u65f6\u957f' : 'Video duration';
+  String get videoCapturedLocationLabel => isChinese
+      ? '\u89c6\u9891\u62cd\u6444\u5730\u70b9'
+      : 'Video capture location';
   String get imagePreviewPageTitle =>
       isChinese ? '\u56fe\u7247\u9884\u89c8' : 'Image preview';
   String get noImageSelected => isChinese

@@ -10,6 +10,7 @@ import 'package:diary_mvp/features/diary/data/diary_repository.dart';
 import 'package:diary_mvp/features/diary/domain/diary_entry.dart';
 import 'package:diary_mvp/features/diary/presentation/pages/editor_page.dart';
 import 'package:diary_mvp/features/diary/presentation/pages/home_page.dart';
+import 'package:diary_mvp/features/diary/presentation/models/image_preview_data.dart';
 import 'package:diary_mvp/features/diary/presentation/pages/image_preview_page.dart';
 import 'package:diary_mvp/features/diary/presentation/pages/settings_page.dart';
 import 'package:diary_mvp/features/diary/presentation/pages/timeline_page.dart';
@@ -1620,10 +1621,11 @@ void main() {
     expect(find.text(strings.recentEntries), findsOneWidget);
   });
 
-  testWidgets('editor images open the dedicated preview page', (tester) async {
+  testWidgets('editor image preview shows upload metadata', (tester) async {
     final repository = FakeDiaryRepository(
       moods: DiaryMood.values,
     );
+    final uploadedAt = DateTime(2026, 3, 17, 10, 45);
     final imagePath =
         '${Directory.systemTemp.path}${Platform.pathSeparator}missing_preview_image.png';
 
@@ -1636,11 +1638,14 @@ void main() {
           content: 'Preview this photo.',
           mood: DiaryMood.calm,
           createdAt: DateTime(2026, 3, 17, 10),
+          location: 'Shanghai',
           media: [
             DiaryMedia(
               id: 'image-1',
               type: MediaType.image,
               path: imagePath,
+              addedAt: uploadedAt,
+              origin: MediaOrigin.imported,
             ),
           ],
         ),
@@ -1654,7 +1659,86 @@ void main() {
     await tester.pump(const Duration(milliseconds: 300));
 
     expect(find.text(strings.imagePreviewPageTitle), findsOneWidget);
-    expect(find.text(strings.previewPhoto), findsOneWidget);
+    expect(find.text(strings.previewPhoto), findsNothing);
+    expect(find.text('missing_preview_image.png'), findsNothing);
+    expect(find.text(strings.photoUploadedAtLabel), findsOneWidget);
+    expect(find.text(strings.formatDateTime(uploadedAt)), findsOneWidget);
+    expect(find.text(strings.photoUploadedLocationLabel), findsOneWidget);
+    expect(
+      find.descendant(
+        of: find.byType(Card).last,
+        matching: find.text('Shanghai'),
+      ),
+      findsOneWidget,
+    );
+  });
+
+  testWidgets('image preview shows capture metadata for captured photos',
+      (tester) async {
+    final uploadedAt = DateTime(2026, 3, 18, 6, 30);
+
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: buildDiaryTheme(DiaryThemePreset.daylight),
+        supportedLocales: AppStrings.supportedLocales,
+        localizationsDelegates: GlobalMaterialLocalizations.delegates,
+        home: ImagePreviewPage(
+          preview: ImagePreviewData(
+            media: DiaryMedia(
+              id: 'captured-image',
+              type: MediaType.image,
+              path:
+                  '${Directory.systemTemp.path}${Platform.pathSeparator}missing_captured_preview_image.png',
+              capturedAt: uploadedAt,
+              addedAt: uploadedAt,
+              location: 'The Bund',
+              origin: MediaOrigin.captured,
+            ),
+          ),
+        ),
+      ),
+    );
+    await tester.pump();
+
+    expect(find.text(strings.photoUploadedAtLabel), findsOneWidget);
+    expect(find.text(strings.formatDateTime(uploadedAt)), findsOneWidget);
+    expect(find.text(strings.photoUploadedLocationLabel), findsOneWidget);
+    expect(find.text('The Bund'), findsOneWidget);
+  });
+
+  testWidgets('video preview shows capture metadata without preview label',
+      (tester) async {
+    final capturedAt = DateTime(2026, 3, 18, 7, 20);
+
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: buildDiaryTheme(DiaryThemePreset.daylight),
+        supportedLocales: AppStrings.supportedLocales,
+        localizationsDelegates: GlobalMaterialLocalizations.delegates,
+        home: VideoPreviewPage(
+          media: DiaryMedia(
+            id: 'captured-video',
+            type: MediaType.video,
+            path:
+                '${Directory.systemTemp.path}${Platform.pathSeparator}missing_captured_preview_video.mp4',
+            capturedAt: capturedAt,
+            durationLabel: '00:18',
+            location: 'Xintiandi',
+            origin: MediaOrigin.recorded,
+          ),
+          playerBuilder: (_) => const ColoredBox(color: Colors.black),
+        ),
+      ),
+    );
+    await tester.pump();
+
+    expect(find.text(strings.previewVideo), findsNothing);
+    expect(find.text(strings.videoCapturedAtLabel), findsOneWidget);
+    expect(find.text(strings.formatDateTime(capturedAt)), findsOneWidget);
+    expect(find.text(strings.videoDurationLabel), findsOneWidget);
+    expect(find.text('00:18'), findsOneWidget);
+    expect(find.text(strings.videoCapturedLocationLabel), findsOneWidget);
+    expect(find.text('Xintiandi'), findsOneWidget);
   });
 
   testWidgets('mixed media grid forwards video taps to the preview callback',
@@ -1713,7 +1797,7 @@ Future<void> pumpPage(
       GoRoute(
         path: '/image-preview',
         builder: (context, state) => ImagePreviewPage(
-          media: state.extra as DiaryMedia?,
+          preview: _imagePreviewDataFromExtra(state.extra),
         ),
       ),
       GoRoute(
@@ -1746,6 +1830,16 @@ Future<void> pumpPage(
 
   await tester.pump();
   await tester.pump(const Duration(milliseconds: 200));
+}
+
+ImagePreviewData? _imagePreviewDataFromExtra(Object? extra) {
+  if (extra is ImagePreviewData) {
+    return extra;
+  }
+  if (extra is DiaryMedia) {
+    return ImagePreviewData(media: extra);
+  }
+  return null;
 }
 
 Future<void> pressControlShortcut(
@@ -1788,7 +1882,7 @@ Future<void> pumpEditorNavigationApp(
       GoRoute(
         path: '/image-preview',
         builder: (context, state) => ImagePreviewPage(
-          media: state.extra as DiaryMedia?,
+          preview: _imagePreviewDataFromExtra(state.extra),
         ),
       ),
       GoRoute(

@@ -20,7 +20,7 @@ class DiaryDatabase extends GeneratedDatabase {
   bool _initialized = false;
 
   @override
-  int get schemaVersion => 5;
+  int get schemaVersion => 7;
 
   @override
   Iterable<TableInfo<Table, Object?>> get allTables => const [];
@@ -68,6 +68,9 @@ class DiaryDatabase extends GeneratedDatabase {
         path TEXT NOT NULL,
         duration_label TEXT,
         captured_at INTEGER,
+        added_at INTEGER,
+        location TEXT,
+        origin TEXT NOT NULL DEFAULT 'unknown',
         FOREIGN KEY (diary_id) REFERENCES diary_entries (id) ON DELETE CASCADE
       );
     ''');
@@ -144,7 +147,7 @@ class DiaryDatabase extends GeneratedDatabase {
       final id = row.read<String>('id');
       final mediaRows = await customSelect(
         '''
-        SELECT id, type, path, duration_label, captured_at
+        SELECT id, type, path, duration_label, captured_at, added_at, location, origin
         FROM diary_media
         WHERE diary_id = ?
         ORDER BY rowid ASC;
@@ -199,8 +202,8 @@ class DiaryDatabase extends GeneratedDatabase {
       for (final media in entry.media) {
         await customStatement(
           '''
-          INSERT INTO diary_media (id, diary_id, type, path, duration_label, captured_at)
-          VALUES (?, ?, ?, ?, ?, ?);
+          INSERT INTO diary_media (id, diary_id, type, path, duration_label, captured_at, added_at, location, origin)
+          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?);
           ''',
           [
             media.id,
@@ -209,6 +212,9 @@ class DiaryDatabase extends GeneratedDatabase {
             media.path,
             media.durationLabel,
             media.capturedAt?.millisecondsSinceEpoch,
+            media.addedAt?.millisecondsSinceEpoch,
+            media.location,
+            media.origin.name,
           ],
         );
       }
@@ -250,8 +256,8 @@ class DiaryDatabase extends GeneratedDatabase {
       for (final media in entry.media) {
         await customStatement(
           '''
-          INSERT INTO diary_media (id, diary_id, type, path, duration_label, captured_at)
-          VALUES (?, ?, ?, ?, ?, ?);
+          INSERT INTO diary_media (id, diary_id, type, path, duration_label, captured_at, added_at, location, origin)
+          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?);
           ''',
           [
             media.id,
@@ -260,6 +266,9 @@ class DiaryDatabase extends GeneratedDatabase {
             media.path,
             media.durationLabel,
             media.capturedAt?.millisecondsSinceEpoch,
+            media.addedAt?.millisecondsSinceEpoch,
+            media.location,
+            media.origin.name,
           ],
         );
       }
@@ -468,6 +477,21 @@ class DiaryDatabase extends GeneratedDatabase {
         'ALTER TABLE diary_media ADD COLUMN captured_at INTEGER;',
       );
     }
+    if (!columns.contains('added_at')) {
+      await customStatement(
+        'ALTER TABLE diary_media ADD COLUMN added_at INTEGER;',
+      );
+    }
+    if (!columns.contains('location')) {
+      await customStatement(
+        'ALTER TABLE diary_media ADD COLUMN location TEXT;',
+      );
+    }
+    if (!columns.contains('origin')) {
+      await customStatement(
+        "ALTER TABLE diary_media ADD COLUMN origin TEXT NOT NULL DEFAULT 'unknown';",
+      );
+    }
   }
 
   Future<void> _ensureTagLibrarySeeded() async {
@@ -551,15 +575,26 @@ class DiaryDatabase extends GeneratedDatabase {
   DiaryMedia _mapMediaRow(QueryRow row) {
     final type = _mediaTypeFromDb(row.read<String>('type'));
     final path = row.read<String>('path');
+    final capturedAt = _mediaCapturedAtFromDb(
+      row.readNullable<int>('captured_at'),
+      type: type,
+      path: path,
+    );
+    final addedAt = _mediaAddedAtFromDb(
+      row.readNullable<int>('added_at'),
+    );
     return DiaryMedia(
       id: row.read<String>('id'),
       type: type,
       path: path,
       durationLabel: row.readNullable<String>('duration_label'),
-      capturedAt: _mediaCapturedAtFromDb(
-        row.readNullable<int>('captured_at'),
+      capturedAt: capturedAt,
+      addedAt: addedAt,
+      location: row.readNullable<String>('location'),
+      origin: _mediaOriginFromDb(
+        row.readNullable<String>('origin'),
         type: type,
-        path: path,
+        capturedAt: capturedAt,
       ),
     );
   }
@@ -625,6 +660,33 @@ class DiaryDatabase extends GeneratedDatabase {
     } on FileSystemException {
       return null;
     }
+  }
+
+  DateTime? _mediaAddedAtFromDb(int? rawMilliseconds) {
+    if (rawMilliseconds == null) return null;
+    return DateTime.fromMillisecondsSinceEpoch(rawMilliseconds);
+  }
+
+  MediaOrigin _mediaOriginFromDb(
+    String? raw, {
+    required MediaType type,
+    required DateTime? capturedAt,
+  }) {
+    if (raw != null) {
+      for (final origin in MediaOrigin.values) {
+        if (origin.name == raw) {
+          return origin;
+        }
+      }
+    }
+
+    if (type == MediaType.audio || type == MediaType.video) {
+      return MediaOrigin.recorded;
+    }
+    if (capturedAt != null) {
+      return MediaOrigin.captured;
+    }
+    return MediaOrigin.unknown;
   }
 
   DateTime? _trashedAtFromDb(int? raw) {

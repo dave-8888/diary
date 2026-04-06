@@ -101,6 +101,9 @@ class DiaryMigrationService {
           'relative_path': relativePath,
           'duration_label': media.durationLabel,
           'captured_at': media.capturedAt?.millisecondsSinceEpoch,
+          'added_at': media.addedAt?.millisecondsSinceEpoch,
+          'location': media.location,
+          'origin': media.origin.name,
         });
       }
 
@@ -468,6 +471,9 @@ class _MigrationEntry {
               path: item.absolutePath ?? '',
               durationLabel: item.durationLabel,
               capturedAt: item.capturedAt,
+              addedAt: item.addedAt,
+              location: item.location,
+              origin: item.origin,
             ),
           )
           .toList(growable: false),
@@ -518,6 +524,9 @@ class _MigrationMedia {
     required this.relativePath,
     required this.durationLabel,
     required this.capturedAt,
+    required this.addedAt,
+    required this.location,
+    required this.origin,
   });
 
   factory _MigrationMedia.fromJson(Map<String, dynamic> json) {
@@ -529,6 +538,11 @@ class _MigrationMedia {
       capturedAt: json['captured_at'] == null
           ? null
           : DateTime.fromMillisecondsSinceEpoch(json['captured_at'] as int),
+      addedAt: json['added_at'] == null
+          ? null
+          : DateTime.fromMillisecondsSinceEpoch(json['added_at'] as int),
+      location: json['location'] as String?,
+      origin: _parseMediaOrigin(json['origin'] as String?),
     );
   }
 
@@ -537,12 +551,22 @@ class _MigrationMedia {
   final String relativePath;
   final String? durationLabel;
   final DateTime? capturedAt;
+  final DateTime? addedAt;
+  final String? location;
+  final MediaOrigin origin;
   String? absolutePath;
 
   static MediaType _parseMediaType(String? raw) {
     return MediaType.values.firstWhere(
       (type) => type.name == raw,
       orElse: () => MediaType.image,
+    );
+  }
+
+  static MediaOrigin _parseMediaOrigin(String? raw) {
+    return MediaOrigin.values.firstWhere(
+      (origin) => origin.name == raw,
+      orElse: () => MediaOrigin.unknown,
     );
   }
 }

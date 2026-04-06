@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:camera/camera.dart';
 import 'package:crop_your_image/crop_your_image.dart';
 import 'package:diary_mvp/app/cupertino_kit.dart';
@@ -8,6 +10,7 @@ import 'package:diary_mvp/features/diary/domain/diary_entry.dart';
 import 'package:diary_mvp/features/diary/presentation/models/captured_media_result.dart';
 import 'package:diary_mvp/features/diary/presentation/utils/camera_support.dart';
 import 'package:diary_mvp/features/diary/presentation/widgets/local_video_player.dart';
+import 'package:diary_mvp/features/diary/services/location_service.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
@@ -54,10 +57,15 @@ class _CameraCapturePageState extends ConsumerState<CameraCapturePage>
   String? _capturedPhotoPath;
   String? _capturedVideoPath;
   String? _capturedVideoDurationLabel;
+  DateTime? _capturedPhotoCapturedAt;
+  String? _capturedPhotoLocation;
   DateTime? _capturedVideoCapturedAt;
+  String? _capturedVideoLocation;
   Uint8List? _croppedImageBytes;
   Uint8List? _previewImageBytes;
   DateTime? _videoRecordingStartedAt;
+  Future<void>? _capturedPhotoLocationLookup;
+  Future<void>? _capturedVideoLocationLookup;
 
   @override
   void initState() {
@@ -793,14 +801,20 @@ class _CameraCapturePageState extends ConsumerState<CameraCapturePage>
     setState(() => _isCapturing = true);
 
     try {
+      final capturedAt = DateTime.now();
       final file = await controller!.takePicture();
       final bytes = await file.readAsBytes();
       if (!mounted) return;
       setState(() {
         _capturedPhotoPath = file.path;
+        _capturedPhotoCapturedAt = capturedAt;
+        _capturedPhotoLocation = null;
         _previewImageBytes = bytes;
         _croppedImageBytes = null;
       });
+      final lookup = _resolveCapturedPhotoLocation(file.path);
+      _capturedPhotoLocationLookup = lookup;
+      unawaited(lookup);
     } on CameraException catch (error) {
       if (!mounted) return;
       context.showAppSnackBar(
@@ -891,10 +905,14 @@ class _CameraCapturePageState extends ConsumerState<CameraCapturePage>
         _capturedVideoPath = file.path;
         _capturedVideoDurationLabel = _formatDuration(seconds);
         _capturedVideoCapturedAt = DateTime.now();
+        _capturedVideoLocation = null;
         _isCapturing = false;
         _isVideoRecording = false;
         _videoRecordingStartedAt = null;
       });
+      final lookup = _resolveCapturedVideoLocation(file.path);
+      _capturedVideoLocationLookup = lookup;
+      unawaited(lookup);
       context.showAppSnackBar(
         strings.videoRecordingSaved,
         tone: AppSnackBarTone.success,
@@ -927,6 +945,9 @@ class _CameraCapturePageState extends ConsumerState<CameraCapturePage>
   void _retakePhoto() {
     setState(() {
       _capturedPhotoPath = null;
+      _capturedPhotoCapturedAt = null;
+      _capturedPhotoLocation = null;
+      _capturedPhotoLocationLookup = null;
       _croppedImageBytes = null;
       _previewImageBytes = null;
       _isCropping = false;
@@ -938,6 +959,8 @@ class _CameraCapturePageState extends ConsumerState<CameraCapturePage>
       _capturedVideoPath = null;
       _capturedVideoDurationLabel = null;
       _capturedVideoCapturedAt = null;
+      _capturedVideoLocation = null;
+      _capturedVideoLocationLookup = null;
       _isVideoRecording = false;
       _videoRecordingStartedAt = null;
     });
@@ -961,6 +984,10 @@ class _CameraCapturePageState extends ConsumerState<CameraCapturePage>
     setState(() => _isCapturing = true);
 
     try {
+      final locationLookup = _capturedPhotoLocationLookup;
+      if (locationLookup != null) {
+        await locationLookup;
+      }
       final storage = ref.read(localStorageServiceProvider);
       final savedPath = _croppedImageBytes != null
           ? await storage.saveImageBytesToAppStorage(_croppedImageBytes!)
@@ -970,6 +997,8 @@ class _CameraCapturePageState extends ConsumerState<CameraCapturePage>
         CapturedMediaResult(
           type: MediaType.image,
           path: savedPath,
+          capturedAt: _capturedPhotoCapturedAt,
+          location: _capturedPhotoLocation,
         ),
       );
     } catch (error) {
@@ -990,6 +1019,10 @@ class _CameraCapturePageState extends ConsumerState<CameraCapturePage>
     setState(() => _isCapturing = true);
 
     try {
+      final locationLookup = _capturedVideoLocationLookup;
+      if (locationLookup != null) {
+        await locationLookup;
+      }
       final storage = ref.read(localStorageServiceProvider);
       final savedPath = await storage.copyVideoToAppStorage(capturedVideoPath);
       if (!mounted) return;
@@ -999,6 +1032,7 @@ class _CameraCapturePageState extends ConsumerState<CameraCapturePage>
           path: savedPath,
           durationLabel: _capturedVideoDurationLabel,
           capturedAt: _capturedVideoCapturedAt,
+          location: _capturedVideoLocation,
         ),
       );
     } catch (error) {
@@ -1015,5 +1049,39 @@ class _CameraCapturePageState extends ConsumerState<CameraCapturePage>
     final minutes = (totalSeconds ~/ 60).toString().padLeft(2, '0');
     final seconds = (totalSeconds % 60).toString().padLeft(2, '0');
     return '$minutes:$seconds';
+  }
+
+  Future<void> _resolveCapturedPhotoLocation(String photoPath) async {
+    final locale = Localizations.localeOf(context);
+    final result =
+        await ref.read(locationServiceProvider).lookupCurrentLocation(
+              locale: locale,
+            );
+    if (!mounted || _capturedPhotoPath != photoPath) {
+      return;
+    }
+    if (!result.ok || result.locationText == null) {
+      return;
+    }
+    setState(() {
+      _capturedPhotoLocation = result.locationText;
+    });
+  }
+
+  Future<void> _resolveCapturedVideoLocation(String videoPath) async {
+    final locale = Localizations.localeOf(context);
+    final result =
+        await ref.read(locationServiceProvider).lookupCurrentLocation(
+              locale: locale,
+            );
+    if (!mounted || _capturedVideoPath != videoPath) {
+      return;
+    }
+    if (!result.ok || result.locationText == null) {
+      return;
+    }
+    setState(() {
+      _capturedVideoLocation = result.locationText;
+    });
   }
 }

@@ -98,6 +98,8 @@ class DiaryMood {
 
 enum MediaType { image, audio, video }
 
+enum MediaOrigin { unknown, imported, captured, recorded }
+
 class DiaryMedia {
   const DiaryMedia({
     required this.id,
@@ -105,6 +107,9 @@ class DiaryMedia {
     required this.path,
     this.durationLabel,
     this.capturedAt,
+    this.addedAt,
+    this.location,
+    this.origin = MediaOrigin.unknown,
   });
 
   final String id;
@@ -112,6 +117,9 @@ class DiaryMedia {
   final String path;
   final String? durationLabel;
   final DateTime? capturedAt;
+  final DateTime? addedAt;
+  final String? location;
+  final MediaOrigin origin;
 
   DiaryMedia copyWith({
     String? id,
@@ -119,6 +127,9 @@ class DiaryMedia {
     String? path,
     String? durationLabel,
     DateTime? capturedAt,
+    DateTime? addedAt,
+    String? location,
+    MediaOrigin? origin,
   }) {
     return DiaryMedia(
       id: id ?? this.id,
@@ -126,6 +137,9 @@ class DiaryMedia {
       path: path ?? this.path,
       durationLabel: durationLabel ?? this.durationLabel,
       capturedAt: capturedAt ?? this.capturedAt,
+      addedAt: addedAt ?? this.addedAt,
+      location: location ?? this.location,
+      origin: origin ?? this.origin,
     );
   }
 }
