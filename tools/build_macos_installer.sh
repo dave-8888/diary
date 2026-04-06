@@ -112,9 +112,7 @@ if [[ ! -f "${pubspec_path}" ]]; then
 fi
 
 if [[ -z "${release_tag}" ]]; then
-  if git -C "${repo_root}" describe --tags --abbrev=0 >/dev/null 2>&1; then
-    release_tag="$(git -C "${repo_root}" describe --tags --abbrev=0 | tr -d '\r')"
-  fi
+  release_tag="$(git -C "${repo_root}" tag --points-at HEAD | tr -d '\r' | head -n 1 || true)"
 fi
 
 pubspec_version="$(sed -nE 's/^version:[[:space:]]*([^+[:space:]]+).*/\1/p' "${pubspec_path}" | head -n 1)"
@@ -124,13 +122,14 @@ if [[ -z "${pubspec_version}" ]]; then
 fi
 
 installer_version="${release_tag#v}"
+installer_version="${installer_version#V}"
 if [[ -z "${installer_version}" ]]; then
   installer_version="${pubspec_version}"
 fi
 
 if [[ -z "${output_base_filename}" ]]; then
   if [[ -n "${release_tag}" ]]; then
-    output_base_filename="Diary-macOS-${release_tag}"
+    output_base_filename="Diary-macOS-v${installer_version}"
   else
     output_base_filename="Diary-macOS-v${pubspec_version}"
   fi

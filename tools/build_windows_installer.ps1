@@ -81,7 +81,7 @@ Set-Location $repoRoot
 
 if (-not $ReleaseTag) {
   try {
-    $ReleaseTag = (git describe --tags --abbrev=0).Trim()
+    $ReleaseTag = (git tag --points-at HEAD | Select-Object -First 1).Trim()
   } catch {
     $ReleaseTag = ""
   }
@@ -93,11 +93,11 @@ if (-not $pubspecVersionLine) {
 }
 
 $pubspecVersion = ($pubspecVersionLine.Matches[0].Groups[1].Value -split '\+')[0].Trim()
-$installerVersion = if ($ReleaseTag) { $ReleaseTag.TrimStart('v') } else { $pubspecVersion }
+$installerVersion = if ($ReleaseTag) { $ReleaseTag.TrimStart('v', 'V') } else { $pubspecVersion }
 $resolvedOutputBaseFilename = if ($OutputBaseFilename) {
   $OutputBaseFilename.Trim()
 } elseif ($ReleaseTag) {
-  "Diary-Setup-$ReleaseTag"
+  "Diary-Setup-v$installerVersion"
 } else {
   "Diary-Setup-v$pubspecVersion"
 }
