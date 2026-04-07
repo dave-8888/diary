@@ -23,7 +23,7 @@ function Resolve-ExecutablePath {
       return (Resolve-Path $PreferredPath).Path
     }
 
-    throw "$Description not found: $PreferredPath"
+    Write-Warning "$Description not found at preferred path: $PreferredPath. Falling back to PATH and known locations."
   }
 
   foreach ($commandName in $CommandNames) {
@@ -45,6 +45,10 @@ function Resolve-ExecutablePath {
     if ($candidate -and (Test-Path $candidate)) {
       return (Resolve-Path $candidate).Path
     }
+  }
+
+  if ($PreferredPath) {
+    throw "$Description not found. Preferred path was unavailable: $PreferredPath. Provide an explicit path or add it to PATH."
   }
 
   throw "$Description not found. Provide an explicit path or add it to PATH."

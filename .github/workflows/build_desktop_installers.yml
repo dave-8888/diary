@@ -33,14 +33,9 @@ jobs:
         shell: pwsh
         run: |
           $flutterExe = (Get-Command flutter).Source
-          $isccExe = "$env:ProgramFiles(x86)\Inno Setup 6\ISCC.exe"
-          if (-not (Test-Path $isccExe)) {
-            $isccExe = "$env:ProgramFiles\Inno Setup 6\ISCC.exe"
-          }
 
           powershell -ExecutionPolicy Bypass -File .\tools\build_windows_installer.ps1 `
-            -FlutterExe $flutterExe `
-            -IsccExe $isccExe
+            -FlutterExe $flutterExe
 
       - name: Upload Windows installer
         uses: actions/upload-artifact@v4
