@@ -269,6 +269,7 @@ class DiaryEntry {
     required this.content,
     required this.mood,
     required this.createdAt,
+    this.isHidden = false,
     this.location,
     this.trashedAt,
     this.tags = const [],
@@ -281,6 +282,7 @@ class DiaryEntry {
   final String content;
   final DiaryMood mood;
   final DateTime createdAt;
+  final bool isHidden;
   final String? location;
   final DateTime? trashedAt;
   final List<String> tags;
@@ -293,6 +295,7 @@ class DiaryEntry {
     String? content,
     DiaryMood? mood,
     DateTime? createdAt,
+    bool? isHidden,
     Object? location = _unset,
     Object? trashedAt = _unset,
     List<String>? tags,
@@ -305,6 +308,7 @@ class DiaryEntry {
       content: content ?? this.content,
       mood: mood ?? this.mood,
       createdAt: createdAt ?? this.createdAt,
+      isHidden: isHidden ?? this.isHidden,
       location:
           identical(location, _unset) ? this.location : location as String?,
       trashedAt: identical(trashedAt, _unset)

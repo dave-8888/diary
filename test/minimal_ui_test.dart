@@ -22,6 +22,7 @@ import 'package:diary_mvp/features/diary/presentation/widgets/image_media_grid.d
 import 'package:diary_mvp/features/diary/presentation/widgets/tag_multi_select_dropdown.dart';
 import 'package:diary_mvp/features/diary/services/diary_ai_settings.dart';
 import 'package:diary_mvp/features/diary/services/diary_list_settings.dart';
+import 'package:diary_mvp/features/diary/services/hidden_diary_settings.dart';
 import 'package:diary_mvp/features/diary/services/password_settings.dart';
 import 'package:diary_mvp/features/diary/services/transcription_settings.dart';
 import 'package:flutter/cupertino.dart';
@@ -1776,6 +1777,392 @@ void main() {
 
     expect(tappedMedia?.id, 'video-grid-1');
   });
+
+  testWidgets('settings page can set a new hidden diary password',
+      (tester) async {
+    final repository = FakeDiaryRepository(
+      moods: DiaryMood.values,
+    );
+    final hiddenPasswordStorage = FakeHiddenDiaryPasswordSettingsStorage();
+
+    await pumpPage(
+      tester,
+      const SettingsPage(),
+      path: '/settings',
+      overrides: buildOverrides(
+        repository: repository,
+        hiddenDiaryPasswordSettingsStorage: hiddenPasswordStorage,
+      ),
+    );
+
+    await tester.scrollUntilVisible(
+      find.text(strings.hiddenDiaryPasswordSettingsTitle),
+      300,
+      scrollable: find.byType(Scrollable).first,
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(find.text(strings.hiddenDiaryPasswordSettingsTitle));
+    await tester.pumpAndSettle();
+
+    await tester.tap(
+      find.byKey(
+        const ValueKey('settings-set-hidden-diary-passcode-button'),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.enterText(
+      find.byKey(const ValueKey('hidden-diary-passcode-new')),
+      'vault-123',
+    );
+    await tester.enterText(
+      find.byKey(const ValueKey('hidden-diary-passcode-confirm')),
+      'vault-123',
+    );
+    await tester.tap(
+      find.byKey(const ValueKey('hidden-diary-passcode-dialog-submit')),
+    );
+    await tester.pumpAndSettle();
+
+    final stored = await hiddenPasswordStorage.read();
+    expect(find.text(strings.hiddenDiaryPasscodeSaved), findsOneWidget);
+    expect(stored.hasPassword, isTrue);
+    expect(verifyPassword('vault-123', stored), isTrue);
+  });
+
+  testWidgets('home page hides hidden diaries by default', (tester) async {
+    final repository = FakeDiaryRepository(
+      entries: [
+        DiaryEntry(
+          id: 'visible-entry',
+          title: 'Visible entry',
+          content: 'Shown by default.',
+          mood: DiaryMood.happy,
+          createdAt: DateTime(2026, 3, 19, 9),
+        ),
+        DiaryEntry(
+          id: 'hidden-entry',
+          title: 'Hidden entry',
+          content: 'Protected content.',
+          mood: DiaryMood.calm,
+          createdAt: DateTime(2026, 3, 18, 9),
+          isHidden: true,
+        ),
+      ],
+      moods: DiaryMood.values,
+    );
+
+    await pumpPage(
+      tester,
+      const HomePage(),
+      path: '/',
+      overrides: buildOverrides(repository: repository),
+    );
+
+    expect(find.text('Visible entry'), findsOneWidget);
+    expect(find.text('Hidden entry'), findsNothing);
+  });
+
+  testWidgets('home page keeps hidden diaries hidden after wrong password',
+      (tester) async {
+    final repository = FakeDiaryRepository(
+      entries: [
+        DiaryEntry(
+          id: 'hidden-entry',
+          title: 'Hidden entry',
+          content: 'Protected content.',
+          mood: DiaryMood.calm,
+          createdAt: DateTime(2026, 3, 18, 9),
+          isHidden: true,
+        ),
+      ],
+      moods: DiaryMood.values,
+    );
+    final hashed = hashPassword('vault-123');
+    final hiddenPasswordStorage = FakeHiddenDiaryPasswordSettingsStorage(
+      PasswordSettingsState(
+        enabled: true,
+        salt: hashed.salt,
+        passwordHash: hashed.passwordHash,
+      ),
+    );
+
+    await pumpPage(
+      tester,
+      const HomePage(),
+      path: '/',
+      overrides: buildOverrides(
+        repository: repository,
+        hiddenDiaryPasswordSettingsStorage: hiddenPasswordStorage,
+      ),
+    );
+
+    await tester.tap(find.byKey(const ValueKey('home-show-hidden-switch')));
+    await tester.pumpAndSettle();
+
+    expect(
+      find.byKey(const ValueKey('hidden-diary-unlock-field')),
+      findsOneWidget,
+    );
+
+    await tester.enterText(
+      find.byKey(const ValueKey('hidden-diary-unlock-field')),
+      'wrong-password',
+    );
+    await tester.tap(find.byKey(const ValueKey('hidden-diary-unlock-submit')));
+    await tester.pumpAndSettle();
+
+    expect(find.text(strings.hiddenDiaryUnlockFailed), findsOneWidget);
+
+    await tester.tap(find.text(strings.cancelAction));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Hidden entry'), findsNothing);
+    expect(
+      tester
+          .widget<CupertinoSwitch>(
+            find.byKey(const ValueKey('home-show-hidden-switch')),
+          )
+          .value,
+      isFalse,
+    );
+  });
+
+  testWidgets(
+      'home page can set a hidden diary password before showing hidden diaries',
+      (tester) async {
+    final repository = FakeDiaryRepository(
+      entries: [
+        DiaryEntry(
+          id: 'hidden-entry',
+          title: 'Hidden entry',
+          content: 'Protected content.',
+          mood: DiaryMood.calm,
+          createdAt: DateTime(2026, 3, 18, 9),
+          isHidden: true,
+        ),
+      ],
+      moods: DiaryMood.values,
+    );
+    final hiddenPasswordStorage = FakeHiddenDiaryPasswordSettingsStorage();
+
+    await pumpPage(
+      tester,
+      const HomePage(),
+      path: '/',
+      overrides: buildOverrides(
+        repository: repository,
+        hiddenDiaryPasswordSettingsStorage: hiddenPasswordStorage,
+      ),
+    );
+
+    await tester.tap(find.byKey(const ValueKey('home-show-hidden-switch')));
+    await tester.pumpAndSettle();
+
+    await tester.enterText(
+      find.byKey(const ValueKey('hidden-diary-passcode-new')),
+      'vault-123',
+    );
+    await tester.enterText(
+      find.byKey(const ValueKey('hidden-diary-passcode-confirm')),
+      'vault-123',
+    );
+    await tester.tap(
+      find.byKey(const ValueKey('hidden-diary-passcode-dialog-submit')),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text('Hidden entry'), findsOneWidget);
+    expect(
+      tester
+          .widget<CupertinoSwitch>(
+            find.byKey(const ValueKey('home-show-hidden-switch')),
+          )
+          .value,
+      isTrue,
+    );
+    expect(
+      verifyPassword('vault-123', await hiddenPasswordStorage.read()),
+      isTrue,
+    );
+  });
+
+  testWidgets('home page prompts to set a hidden password before hiding entry',
+      (tester) async {
+    final repository = FakeDiaryRepository(
+      entries: [
+        DiaryEntry(
+          id: 'visible-entry',
+          title: 'Visible entry',
+          content: 'Shown by default.',
+          mood: DiaryMood.happy,
+          createdAt: DateTime(2026, 3, 19, 9),
+        ),
+      ],
+      moods: DiaryMood.values,
+    );
+    final hiddenPasswordStorage = FakeHiddenDiaryPasswordSettingsStorage();
+
+    await pumpPage(
+      tester,
+      const HomePage(),
+      path: '/',
+      overrides: buildOverrides(
+        repository: repository,
+        hiddenDiaryPasswordSettingsStorage: hiddenPasswordStorage,
+      ),
+    );
+
+    await tester.tap(
+      find.byKey(const ValueKey('entry-toggle-hidden-visible-entry')),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.enterText(
+      find.byKey(const ValueKey('hidden-diary-passcode-new')),
+      'vault-123',
+    );
+    await tester.enterText(
+      find.byKey(const ValueKey('hidden-diary-passcode-confirm')),
+      'vault-123',
+    );
+    await tester.tap(
+      find.byKey(const ValueKey('hidden-diary-passcode-dialog-submit')),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text('Visible entry'), findsNothing);
+    expect(
+      verifyPassword('vault-123', await hiddenPasswordStorage.read()),
+      isTrue,
+    );
+  });
+
+  testWidgets('editor page saves hidden diary state', (tester) async {
+    tester.view.physicalSize = const Size(1400, 1800);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
+    final repository = FakeDiaryRepository(
+      moods: DiaryMood.values,
+    );
+    final hiddenPasswordStorage = FakeHiddenDiaryPasswordSettingsStorage();
+
+    await pumpPage(
+      tester,
+      const EditorPage(),
+      path: '/editor',
+      overrides: buildOverrides(
+        repository: repository,
+        hiddenDiaryPasswordSettingsStorage: hiddenPasswordStorage,
+      ),
+    );
+
+    await tester.enterText(
+      find.byKey(const ValueKey('editor-title-field')),
+      'Secret draft',
+    );
+
+    await tester.tap(find.byKey(const ValueKey('editor-hidden-diary-switch')));
+    await tester.pumpAndSettle();
+
+    await tester.enterText(
+      find.byKey(const ValueKey('hidden-diary-passcode-new')),
+      'vault-123',
+    );
+    await tester.enterText(
+      find.byKey(const ValueKey('hidden-diary-passcode-confirm')),
+      'vault-123',
+    );
+    await tester.tap(
+      find.byKey(const ValueKey('hidden-diary-passcode-dialog-submit')),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text(strings.saveEntry));
+    await tester.pumpAndSettle();
+
+    final entries = await repository.listEntries();
+    expect(entries.single.title, 'Secret draft');
+    expect(entries.single.isHidden, isTrue);
+  });
+
+  testWidgets('editor page requires hidden diary password for direct access',
+      (tester) async {
+    tester.view.physicalSize = const Size(1400, 1800);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
+    final hiddenEntry = DiaryEntry(
+      id: 'hidden-entry',
+      title: 'Protected draft',
+      content: 'Only visible after unlock.',
+      mood: DiaryMood.calm,
+      createdAt: DateTime(2026, 3, 18, 9),
+      isHidden: true,
+    );
+    final repository = FakeDiaryRepository(
+      entries: [hiddenEntry],
+      moods: DiaryMood.values,
+    );
+    final hashed = hashPassword('vault-123');
+    final hiddenPasswordStorage = FakeHiddenDiaryPasswordSettingsStorage(
+      PasswordSettingsState(
+        enabled: true,
+        salt: hashed.salt,
+        passwordHash: hashed.passwordHash,
+      ),
+    );
+    final router = GoRouter(
+      initialLocation: '/editor',
+      routes: [
+        GoRoute(
+          path: '/',
+          builder: (context, state) => const Scaffold(
+            body: Text('Home'),
+          ),
+        ),
+        GoRoute(
+          path: '/editor',
+          builder: (context, state) => EditorPage(entry: hiddenEntry),
+        ),
+      ],
+    );
+
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: buildOverrides(
+          repository: repository,
+          hiddenDiaryPasswordSettingsStorage: hiddenPasswordStorage,
+        ),
+        child: MaterialApp.router(
+          routerConfig: router,
+          theme: buildDiaryTheme(DiaryThemePreset.daylight),
+          supportedLocales: AppStrings.supportedLocales,
+          localizationsDelegates: GlobalMaterialLocalizations.delegates,
+        ),
+      ),
+    );
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 200));
+
+    expect(
+      find.byKey(const ValueKey('hidden-diary-unlock-field')),
+      findsOneWidget,
+    );
+
+    await tester.enterText(
+      find.byKey(const ValueKey('hidden-diary-unlock-field')),
+      'vault-123',
+    );
+    await tester.tap(find.byKey(const ValueKey('hidden-diary-unlock-submit')));
+    await tester.pumpAndSettle();
+
+    expect(find.byKey(const ValueKey('editor-title-field')), findsOneWidget);
+    expect(find.text('Protected draft'), findsOneWidget);
+  });
 }
 
 Future<void> pumpPage(
@@ -1937,12 +2324,16 @@ List<Override> buildOverrides({
   required FakeDiaryRepository repository,
   FakeDiaryListSettingsStorage? diaryListSettingsStorage,
   FakePasswordSettingsStorage? passwordSettingsStorage,
+  FakeHiddenDiaryPasswordSettingsStorage? hiddenDiaryPasswordSettingsStorage,
   FakeDiaryAiSettingsStorage? diaryAiSettingsStorage,
 }) {
   final effectiveDiaryListSettingsStorage =
       diaryListSettingsStorage ?? FakeDiaryListSettingsStorage();
   final effectivePasswordSettingsStorage =
       passwordSettingsStorage ?? FakePasswordSettingsStorage();
+  final effectiveHiddenDiaryPasswordSettingsStorage =
+      hiddenDiaryPasswordSettingsStorage ??
+          FakeHiddenDiaryPasswordSettingsStorage();
   final effectiveDiaryAiSettingsStorage =
       diaryAiSettingsStorage ?? FakeDiaryAiSettingsStorage();
 
@@ -1976,6 +2367,9 @@ List<Override> buildOverrides({
     passwordSettingsStorageProvider.overrideWith(
       (ref) => effectivePasswordSettingsStorage,
     ),
+    hiddenDiaryPasswordSettingsStorageProvider.overrideWith(
+      (ref) => effectiveHiddenDiaryPasswordSettingsStorage,
+    ),
     transcriptionApiKeyStorageProvider.overrideWith(
       (ref) => FakeTranscriptionApiKeyStorage(),
     ),
@@ -2004,6 +2398,7 @@ class FakeDiaryRepository implements DiaryRepository {
     required String content,
     required DiaryMood mood,
     required String location,
+    required bool isHidden,
     required List<String> tags,
     required List<DiaryMedia> media,
     DiaryEntryAiAnalysis? aiAnalysis,
@@ -2014,6 +2409,7 @@ class FakeDiaryRepository implements DiaryRepository {
       content: content.trim(),
       mood: mood,
       createdAt: DateTime(2026, 3, 19, 12),
+      isHidden: isHidden,
       location: location.trim().isEmpty ? null : location.trim(),
       tags: List<String>.from(tags),
       media: List<DiaryMedia>.from(media),
@@ -2077,6 +2473,7 @@ class FakeDiaryRepository implements DiaryRepository {
     required String content,
     required DiaryMood mood,
     required String location,
+    required bool isHidden,
     required List<String> tags,
     required List<DiaryMedia> media,
     DiaryEntryAiAnalysis? aiAnalysis,
@@ -2085,6 +2482,7 @@ class FakeDiaryRepository implements DiaryRepository {
       title: title.trim().isEmpty ? 'Untitled entry' : title.trim(),
       content: content.trim(),
       mood: mood,
+      isHidden: isHidden,
       location: location.trim().isEmpty ? null : location.trim(),
       tags: List<String>.from(tags),
       media: List<DiaryMedia>.from(media),
@@ -2231,6 +2629,23 @@ class FakeDiaryListSettingsStorage extends DiaryListSettingsStorage {
 
 class FakePasswordSettingsStorage extends PasswordSettingsStorage {
   FakePasswordSettingsStorage([
+    PasswordSettingsState? value,
+  ]) : _value = value ?? const PasswordSettingsState.disabled();
+
+  PasswordSettingsState _value;
+
+  @override
+  Future<PasswordSettingsState> read() async => _value;
+
+  @override
+  Future<void> write(PasswordSettingsState settings) async {
+    _value = settings;
+  }
+}
+
+class FakeHiddenDiaryPasswordSettingsStorage
+    extends HiddenDiaryPasswordSettingsStorage {
+  FakeHiddenDiaryPasswordSettingsStorage([
     PasswordSettingsState? value,
   ]) : _value = value ?? const PasswordSettingsState.disabled();
 

@@ -7,6 +7,7 @@ import 'package:diary_mvp/features/diary/domain/diary_entry.dart';
 import 'package:diary_mvp/features/diary/presentation/widgets/diary_shell.dart';
 import 'package:diary_mvp/features/diary/presentation/widgets/entry_list_preview.dart';
 import 'package:diary_mvp/features/diary/services/diary_list_settings.dart';
+import 'package:diary_mvp/features/diary/services/hidden_diary_settings.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -31,6 +32,7 @@ class _TrashPageState extends ConsumerState<TrashPage> {
             .watch(diaryListVisualMediaVisibilityControllerProvider)
             .valueOrNull ??
         true;
+    final showHiddenDiaries = ref.watch(showHiddenDiariesProvider);
     final trashAsync = ref.watch(trashDiaryControllerProvider);
 
     return DiaryShell(
@@ -41,19 +43,24 @@ class _TrashPageState extends ConsumerState<TrashPage> {
         error: (error, stack) =>
             Center(child: Text(strings.failedToLoadTrash(error))),
         data: (entries) {
+          final visibleEntries = showHiddenDiaries
+              ? entries
+              : entries
+                  .where((entry) => !entry.isHidden)
+                  .toList(growable: false);
           _selectedIds.removeWhere(
-            (id) => !entries.any((entry) => entry.id == id),
+            (id) => !visibleEntries.any((entry) => entry.id == id),
           );
 
-          if (entries.isEmpty) {
+          if (visibleEntries.isEmpty) {
             return Center(child: Text(strings.trashEmpty));
           }
 
-          final selectedEntries = entries
+          final selectedEntries = visibleEntries
               .where((entry) => _selectedIds.contains(entry.id))
               .toList(growable: false);
           final selectedCount = _selectedIds.length;
-          final allSelected = selectedCount == entries.length;
+          final allSelected = selectedCount == visibleEntries.length;
 
           return ListView(
             children: [
@@ -89,7 +96,7 @@ class _TrashPageState extends ConsumerState<TrashPage> {
                           } else {
                             _selectedIds
                               ..clear()
-                              ..addAll(entries.map((entry) => entry.id));
+                              ..addAll(visibleEntries.map((entry) => entry.id));
                           }
                         }),
                         variant: CupertinoActionButtonVariant.outline,
@@ -113,7 +120,7 @@ class _TrashPageState extends ConsumerState<TrashPage> {
                 ),
               ),
               const SizedBox(height: 16),
-              ...entries.map(
+              ...visibleEntries.map(
                 (entry) => Padding(
                   padding: const EdgeInsets.only(bottom: 12),
                   child: _TrashEntryCard(
@@ -232,6 +239,11 @@ class _TrashEntryCard extends StatelessWidget {
     final strings = context.strings;
     final theme = Theme.of(context);
     final detailChips = <Widget>[
+      if (entry.isHidden)
+        CupertinoPill(
+          icon: Icons.visibility_off_outlined,
+          label: Text(strings.hiddenDiaryBadge),
+        ),
       CupertinoPill(
         leading: Text(entry.mood.emoji),
         label: Text(strings.moodLabel(entry.mood)),

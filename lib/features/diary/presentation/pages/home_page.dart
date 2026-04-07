@@ -1,9 +1,12 @@
 import 'package:diary_mvp/app/app_display_name.dart';
 import 'package:diary_mvp/app/localization/app_strings.dart';
+import 'package:diary_mvp/app/themed_snackbar.dart';
 import 'package:diary_mvp/features/diary/application/diary_controller.dart';
 import 'package:diary_mvp/features/diary/domain/diary_entry.dart';
 import 'package:diary_mvp/features/diary/presentation/widgets/diary_card.dart';
 import 'package:diary_mvp/features/diary/presentation/widgets/diary_shell.dart';
+import 'package:diary_mvp/features/diary/presentation/widgets/hidden_diary_password_dialogs.dart';
+import 'package:diary_mvp/features/diary/services/hidden_diary_settings.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -17,6 +20,7 @@ class HomePage extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final strings = context.strings;
     final entriesAsync = ref.watch(diaryControllerProvider);
+    final showHiddenDiaries = ref.watch(showHiddenDiariesProvider);
     final customAppNameAsync = ref.watch(appDisplayNameControllerProvider);
     final appTitle = resolveAppDisplayName(
       strings: strings,
@@ -80,7 +84,14 @@ class HomePage extends ConsumerWidget {
         error: (error, stack) => Center(
           child: Text(strings.failedToLoadEntries(error)),
         ),
-        data: (entries) => _HomeList(entries: entries),
+        data: (entries) => _HomeList(
+          entries: showHiddenDiaries
+              ? entries
+              : entries
+                  .where((entry) => !entry.isHidden)
+                  .toList(growable: false),
+          showHiddenDiaries: showHiddenDiaries,
+        ),
       ),
     );
   }
@@ -90,18 +101,20 @@ enum _CalendarFilterMode { all, day, range }
 
 enum _CalendarQuickPreset { none, today, last7Days, thisMonth }
 
-class _HomeList extends StatefulWidget {
+class _HomeList extends ConsumerStatefulWidget {
   const _HomeList({
     required this.entries,
+    required this.showHiddenDiaries,
   });
 
   final List<DiaryEntry> entries;
+  final bool showHiddenDiaries;
 
   @override
-  State<_HomeList> createState() => _HomeListState();
+  ConsumerState<_HomeList> createState() => _HomeListState();
 }
 
-class _HomeListState extends State<_HomeList> {
+class _HomeListState extends ConsumerState<_HomeList> {
   _CalendarFilterMode _filterMode = _CalendarFilterMode.all;
   DateTime? _selectedDay;
   DateTimeRange? _selectedRange;
@@ -138,6 +151,7 @@ class _HomeListState extends State<_HomeList> {
               entry: filteredEntries[index],
               onEdit: () => _openEditor(context, filteredEntries[index]),
               onTap: () => _openEditor(context, filteredEntries[index]),
+              onToggleHidden: () => _toggleEntryHidden(filteredEntries[index]),
             ),
             if (index != filteredEntries.length - 1)
               SizedBox(height: listSpacing),
@@ -154,9 +168,11 @@ class _HomeListState extends State<_HomeList> {
         mode: _filterMode,
         selectionLabel: _selectionLabel(strings),
         matchCount: filteredEntries.length,
+        showHiddenDiaries: widget.showHiddenDiaries,
         onSelectAll: _clearFilter,
         onPickDay: () => _pickDay(context),
         onPickRange: () => _pickRange(context),
+        onShowHiddenChanged: _handleShowHiddenChanged,
       ),
     );
     final entryListPanel = Column(
@@ -184,6 +200,8 @@ class _HomeListState extends State<_HomeList> {
       onSelectThisMonth: _selectThisMonth,
       onPickDay: () => _pickDay(context),
       onPickRange: () => _pickRange(context),
+      showHiddenDiaries: widget.showHiddenDiaries,
+      onShowHiddenChanged: _handleShowHiddenChanged,
     );
 
     return LayoutBuilder(
@@ -268,6 +286,52 @@ class _HomeListState extends State<_HomeList> {
 
   void _openEditor(BuildContext context, DiaryEntry entry) {
     context.push('/editor', extra: entry);
+  }
+
+  Future<void> _handleShowHiddenChanged(bool enabled) async {
+    if (!enabled) {
+      ref.read(showHiddenDiariesProvider.notifier).state = false;
+      return;
+    }
+
+    await requestHiddenDiaryAccess(context, ref);
+  }
+
+  Future<void> _toggleEntryHidden(DiaryEntry entry) async {
+    final strings = context.strings;
+    final nextIsHidden = !entry.isHidden;
+
+    if (nextIsHidden) {
+      final configured =
+          await ensureHiddenDiaryPasswordConfigured(context, ref);
+      if (!configured || !mounted) {
+        return;
+      }
+    }
+
+    try {
+      await ref.read(diaryControllerProvider.notifier).setEntryHidden(
+            entry: entry,
+            isHidden: nextIsHidden,
+          );
+      if (!mounted) {
+        return;
+      }
+      context.showAppSnackBar(
+        nextIsHidden
+            ? strings.diaryHiddenUpdated
+            : strings.diaryUnhiddenUpdated,
+        tone: AppSnackBarTone.success,
+      );
+    } catch (error) {
+      if (!mounted) {
+        return;
+      }
+      context.showAppSnackBar(
+        strings.hiddenDiaryUpdateFailed(error),
+        tone: AppSnackBarTone.error,
+      );
+    }
   }
 
   Future<void> _pickDay(BuildContext context) async {
@@ -644,17 +708,21 @@ class _CalendarFilterCard extends StatelessWidget {
     required this.mode,
     required this.selectionLabel,
     required this.matchCount,
+    required this.showHiddenDiaries,
     required this.onSelectAll,
     required this.onPickDay,
     required this.onPickRange,
+    required this.onShowHiddenChanged,
   });
 
   final _CalendarFilterMode mode;
   final String selectionLabel;
   final int matchCount;
+  final bool showHiddenDiaries;
   final VoidCallback onSelectAll;
   final VoidCallback onPickDay;
   final VoidCallback onPickRange;
+  final ValueChanged<bool> onShowHiddenChanged;
 
   @override
   Widget build(BuildContext context) {
@@ -705,6 +773,38 @@ class _CalendarFilterCard extends StatelessWidget {
                 ),
               ],
             ),
+            const SizedBox(height: 18),
+            Row(
+              children: [
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        strings.showHiddenDiariesLabel,
+                        style: theme.textTheme.titleSmall?.copyWith(
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        strings.showHiddenDiariesHint,
+                        style: theme.textTheme.bodySmall?.copyWith(
+                          color: theme.colorScheme.onSurfaceVariant,
+                          height: 1.4,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(width: 12),
+                CupertinoSwitch(
+                  key: const ValueKey<String>('home-show-hidden-switch'),
+                  value: showHiddenDiaries,
+                  onChanged: onShowHiddenChanged,
+                ),
+              ],
+            ),
           ],
         ),
       ),
@@ -726,6 +826,8 @@ class _HomeSidebar extends StatelessWidget {
     required this.onSelectThisMonth,
     required this.onPickDay,
     required this.onPickRange,
+    required this.showHiddenDiaries,
+    required this.onShowHiddenChanged,
   });
 
   final int totalEntriesCount;
@@ -739,6 +841,8 @@ class _HomeSidebar extends StatelessWidget {
   final VoidCallback onSelectThisMonth;
   final VoidCallback onPickDay;
   final VoidCallback onPickRange;
+  final bool showHiddenDiaries;
+  final ValueChanged<bool> onShowHiddenChanged;
 
   @override
   Widget build(BuildContext context) {
@@ -899,6 +1003,51 @@ class _HomeSidebar extends StatelessWidget {
                   icon: CupertinoIcons.calendar,
                   selected: mode == _CalendarFilterMode.range,
                   onTap: onPickRange,
+                ),
+                const SizedBox(height: 16),
+                DecoratedBox(
+                  decoration: BoxDecoration(
+                    color: colorScheme.surface.withValues(alpha: 0.3),
+                    borderRadius: BorderRadius.circular(22),
+                    border: Border.all(
+                      color: colorScheme.outlineVariant.withValues(alpha: 0.24),
+                    ),
+                  ),
+                  child: Padding(
+                    padding: const EdgeInsets.fromLTRB(14, 14, 14, 14),
+                    child: Row(
+                      children: [
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                strings.showHiddenDiariesLabel,
+                                style: theme.textTheme.titleSmall?.copyWith(
+                                  fontWeight: FontWeight.w700,
+                                ),
+                              ),
+                              const SizedBox(height: 4),
+                              Text(
+                                strings.showHiddenDiariesHint,
+                                style: theme.textTheme.bodySmall?.copyWith(
+                                  color: colorScheme.onSurfaceVariant,
+                                  height: 1.4,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        CupertinoSwitch(
+                          key:
+                              const ValueKey<String>('home-show-hidden-switch'),
+                          value: showHiddenDiaries,
+                          onChanged: onShowHiddenChanged,
+                        ),
+                      ],
+                    ),
+                  ),
                 ),
               ],
             ),
@@ -1081,7 +1230,7 @@ class _SidebarMetricTile extends StatelessWidget {
     final colorScheme = theme.colorScheme;
 
     return DecoratedBox(
-      decoration: BoxDecoration(
+      decoration: const BoxDecoration(
         color: Colors.transparent,
       ),
       child: Padding(

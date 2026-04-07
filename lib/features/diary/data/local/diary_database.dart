@@ -15,12 +15,15 @@ final diaryDatabaseProvider = Provider<DiaryDatabase>((ref) {
 });
 
 class DiaryDatabase extends GeneratedDatabase {
-  DiaryDatabase() : super(_openExecutor());
+  DiaryDatabase() : this._(_openExecutor());
+  DiaryDatabase.forTesting(QueryExecutor executor) : this._(executor);
+
+  DiaryDatabase._(super.executor);
 
   bool _initialized = false;
 
   @override
-  int get schemaVersion => 7;
+  int get schemaVersion => 8;
 
   @override
   Iterable<TableInfo<Table, Object?>> get allTables => const [];
@@ -54,6 +57,7 @@ class DiaryDatabase extends GeneratedDatabase {
         content TEXT NOT NULL,
         mood TEXT NOT NULL,
         created_at INTEGER NOT NULL,
+        is_hidden INTEGER NOT NULL DEFAULT 0,
         location TEXT,
         trashed_at INTEGER,
         tags_json TEXT NOT NULL,
@@ -132,6 +136,7 @@ class DiaryDatabase extends GeneratedDatabase {
         content,
         mood,
         created_at,
+        COALESCE(is_hidden, 0) AS is_hidden,
         location,
         trashed_at,
         COALESCE(tags_json, '[]') AS tags_json,
@@ -163,6 +168,7 @@ class DiaryDatabase extends GeneratedDatabase {
           mood: _moodFromDb(row.read<String>('mood'), moodLibrary),
           createdAt:
               DateTime.fromMillisecondsSinceEpoch(row.read<int>('created_at')),
+          isHidden: row.read<int>('is_hidden') == 1,
           location: row.readNullable<String>('location'),
           trashedAt: _trashedAtFromDb(row.readNullable<int>('trashed_at')),
           tags: _decodeTags(row.read<String>('tags_json')),
@@ -181,8 +187,8 @@ class DiaryDatabase extends GeneratedDatabase {
     await transaction(() async {
       await customStatement(
         '''
-        INSERT INTO diary_entries (id, title, content, mood, created_at, location, trashed_at, tags_json, ai_analysis_json)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?);
+        INSERT INTO diary_entries (id, title, content, mood, created_at, is_hidden, location, trashed_at, tags_json, ai_analysis_json)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
         ''',
         [
           entry.id,
@@ -190,6 +196,7 @@ class DiaryDatabase extends GeneratedDatabase {
           entry.content,
           entry.mood.id,
           entry.createdAt.millisecondsSinceEpoch,
+          entry.isHidden ? 1 : 0,
           entry.location,
           entry.trashedAt?.millisecondsSinceEpoch,
           jsonEncode(entry.tags),
@@ -227,7 +234,7 @@ class DiaryDatabase extends GeneratedDatabase {
       await customStatement(
         '''
         UPDATE diary_entries
-        SET title = ?, content = ?, mood = ?, created_at = ?, location = ?, trashed_at = ?, tags_json = ?, ai_analysis_json = ?
+        SET title = ?, content = ?, mood = ?, created_at = ?, is_hidden = ?, location = ?, trashed_at = ?, tags_json = ?, ai_analysis_json = ?
         WHERE id = ?;
         ''',
         [
@@ -235,6 +242,7 @@ class DiaryDatabase extends GeneratedDatabase {
           entry.content,
           entry.mood.id,
           entry.createdAt.millisecondsSinceEpoch,
+          entry.isHidden ? 1 : 0,
           entry.location,
           entry.trashedAt?.millisecondsSinceEpoch,
           jsonEncode(entry.tags),
@@ -459,8 +467,16 @@ class DiaryDatabase extends GeneratedDatabase {
         'ALTER TABLE diary_entries ADD COLUMN ai_analysis_json TEXT;',
       );
     }
+    if (!columns.contains('is_hidden')) {
+      await customStatement(
+        'ALTER TABLE diary_entries ADD COLUMN is_hidden INTEGER NOT NULL DEFAULT 0;',
+      );
+    }
     await customStatement(
       "UPDATE diary_entries SET tags_json = '[]' WHERE tags_json IS NULL OR TRIM(tags_json) = '';",
+    );
+    await customStatement(
+      'UPDATE diary_entries SET is_hidden = 0 WHERE is_hidden IS NULL;',
     );
   }
 

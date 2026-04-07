@@ -427,6 +427,86 @@ class AppStrings {
   String passwordInitializationFailed(Object error) => isChinese
       ? '\u521d\u59cb\u5316\u5bc6\u7801\u72b6\u6001\u5931\u8d25\uff1a$error'
       : 'Failed to initialize the password state: $error';
+  String get hiddenDiaryPasswordSettingsTitle => isChinese
+      ? '\u9690\u85cf\u65e5\u8bb0\u5bc6\u7801'
+      : 'Hidden diary password';
+  String get hiddenDiaryPasswordSettingsHint => isChinese
+      ? '\u4e3a\u9690\u85cf\u65e5\u8bb0\u5355\u72ec\u8bbe\u7f6e\u5bc6\u7801\uff0c\u7528\u4e8e\u663e\u793a\u9690\u85cf\u65e5\u8bb0\u548c\u8bbf\u95ee\u9690\u85cf\u5185\u5bb9\u3002'
+      : 'Set a separate password for hidden diaries so showing hidden entries and opening protected content requires verification.';
+  String hiddenDiaryPasswordStatus(bool enabled) =>
+      '$hiddenDiaryPasswordSettingsTitle\uff1a${enabled ? enabledLabel : disabledLabel}';
+  String get currentHiddenDiaryPasscodeLabel => isChinese
+      ? '\u5f53\u524d\u9690\u85cf\u65e5\u8bb0\u5bc6\u7801'
+      : 'Current hidden diary password';
+  String get newHiddenDiaryPasscodeLabel => isChinese
+      ? '\u65b0\u9690\u85cf\u65e5\u8bb0\u5bc6\u7801'
+      : 'New hidden diary password';
+  String get confirmHiddenDiaryPasscodeLabel => isChinese
+      ? '\u786e\u8ba4\u9690\u85cf\u65e5\u8bb0\u5bc6\u7801'
+      : 'Confirm hidden diary password';
+  String get hiddenDiaryPasscodeLabel => isChinese
+      ? '\u9690\u85cf\u65e5\u8bb0\u5bc6\u7801'
+      : 'Hidden diary password';
+  String get hiddenDiaryPasscodeHint => isChinese
+      ? '\u8f93\u5165\u9690\u85cf\u65e5\u8bb0\u5bc6\u7801'
+      : 'Enter the hidden diary password';
+  String get setHiddenDiaryPasscodeAction => isChinese
+      ? '\u8bbe\u7f6e\u9690\u85cf\u65e5\u8bb0\u5bc6\u7801'
+      : 'Set hidden diary password';
+  String get changeHiddenDiaryPasscodeAction => isChinese
+      ? '\u4fee\u6539\u9690\u85cf\u65e5\u8bb0\u5bc6\u7801'
+      : 'Change hidden diary password';
+  String get hiddenDiaryPasscodeSaved => isChinese
+      ? '\u9690\u85cf\u65e5\u8bb0\u5bc6\u7801\u5df2\u4fdd\u5b58\u3002'
+      : 'Hidden diary password saved.';
+  String get hiddenDiaryPasscodeUpdated => isChinese
+      ? '\u9690\u85cf\u65e5\u8bb0\u5bc6\u7801\u5df2\u66f4\u65b0\u3002'
+      : 'Hidden diary password updated.';
+  String hiddenDiaryPasscodeSaveFailed(Object error) => isChinese
+      ? '\u4fdd\u5b58\u9690\u85cf\u65e5\u8bb0\u5bc6\u7801\u5931\u8d25\uff1a$error'
+      : 'Failed to save the hidden diary password: $error';
+  String get hiddenDiaryPasscodeCannotBeEmpty => isChinese
+      ? '\u9690\u85cf\u65e5\u8bb0\u5bc6\u7801\u4e0d\u80fd\u4e3a\u7a7a\u3002'
+      : 'Hidden diary password cannot be empty.';
+  String get hiddenDiaryPasscodeMismatch => isChinese
+      ? '\u4e24\u6b21\u8f93\u5165\u7684\u9690\u85cf\u65e5\u8bb0\u5bc6\u7801\u4e0d\u4e00\u81f4\u3002'
+      : 'The two hidden diary passwords do not match.';
+  String get currentHiddenDiaryPasscodeIncorrect => isChinese
+      ? '\u5f53\u524d\u9690\u85cf\u65e5\u8bb0\u5bc6\u7801\u4e0d\u6b63\u786e\u3002'
+      : 'Current hidden diary password is incorrect.';
+  String hiddenDiaryPasswordInitializationFailed(Object error) => isChinese
+      ? '\u521d\u59cb\u5316\u9690\u85cf\u65e5\u8bb0\u5bc6\u7801\u72b6\u6001\u5931\u8d25\uff1a$error'
+      : 'Failed to initialize the hidden diary password state: $error';
+  String get hiddenDiaryUnlockTitle => isChinese
+      ? '\u663e\u793a\u9690\u85cf\u65e5\u8bb0'
+      : 'Show hidden diaries';
+  String get hiddenDiaryUnlockHint => isChinese
+      ? '\u8bf7\u8f93\u5165\u9690\u85cf\u65e5\u8bb0\u5bc6\u7801\u4ee5\u7ee7\u7eed\u3002'
+      : 'Enter the hidden diary password to continue.';
+  String get hiddenDiaryUnlockAction => isChinese ? '\u663e\u793a' : 'Show';
+  String get hiddenDiaryUnlockFailed => isChinese
+      ? '\u9690\u85cf\u65e5\u8bb0\u5bc6\u7801\u9519\u8bef\uff0c\u8bf7\u91cd\u8bd5\u3002'
+      : 'Incorrect hidden diary password. Please try again.';
+  String get showHiddenDiariesLabel => isChinese
+      ? '\u663e\u793a\u9690\u85cf\u65e5\u8bb0'
+      : 'Show hidden diaries';
+  String get showHiddenDiariesHint => isChinese
+      ? '\u6253\u5f00\u524d\u9700\u5148\u9a8c\u8bc1\u9690\u85cf\u65e5\u8bb0\u5bc6\u7801\u3002'
+      : 'Turning this on requires the hidden diary password first.';
+  String get hiddenDiaryVisibilityLabel =>
+      isChinese ? '\u9690\u85cf\u6b64\u65e5\u8bb0' : 'Hide this diary';
+  String get hiddenDiaryVisibilityHint => isChinese
+      ? '\u5f00\u542f\u540e\uff0c\u8fd9\u7bc7\u65e5\u8bb0\u53ea\u6709\u5728\u901a\u8fc7\u9a8c\u8bc1\u540e\u624d\u4f1a\u663e\u793a\u3002'
+      : 'When enabled, this diary only appears after hidden diary access is verified.';
+  String get hiddenDiaryBadge => isChinese ? '\u5df2\u9690\u85cf' : 'Hidden';
+  String get diaryHiddenUpdated =>
+      isChinese ? '\u65e5\u8bb0\u5df2\u9690\u85cf\u3002' : 'Diary hidden.';
+  String get diaryUnhiddenUpdated => isChinese
+      ? '\u65e5\u8bb0\u5df2\u53d6\u6d88\u9690\u85cf\u3002'
+      : 'Diary unhidden.';
+  String hiddenDiaryUpdateFailed(Object error) => isChinese
+      ? '\u66f4\u65b0\u9690\u85cf\u65e5\u8bb0\u72b6\u6001\u5931\u8d25\uff1a$error'
+      : 'Failed to update hidden diary status: $error';
   String get moodLibraryTitle =>
       isChinese ? '\u60c5\u7eea\u5e93' : 'Mood library';
   String get moodLibraryHint => isChinese

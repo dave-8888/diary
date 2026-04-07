@@ -28,6 +28,7 @@ class DiaryController extends AsyncNotifier<List<DiaryEntry>> {
     required String content,
     required DiaryMood mood,
     required String location,
+    required bool isHidden,
     required List<String> tags,
     required List<DiaryMedia> media,
     DiaryEntryAiAnalysis? aiAnalysis,
@@ -42,6 +43,7 @@ class DiaryController extends AsyncNotifier<List<DiaryEntry>> {
         content: content,
         mood: mood,
         location: location,
+        isHidden: isHidden,
         tags: tags,
         media: media,
         aiAnalysis: aiAnalysis,
@@ -64,6 +66,7 @@ class DiaryController extends AsyncNotifier<List<DiaryEntry>> {
     required String content,
     required DiaryMood mood,
     required String location,
+    required bool isHidden,
     required List<String> tags,
     required List<DiaryMedia> media,
     DiaryEntryAiAnalysis? aiAnalysis,
@@ -79,6 +82,7 @@ class DiaryController extends AsyncNotifier<List<DiaryEntry>> {
         content: content,
         mood: mood,
         location: location,
+        isHidden: isHidden,
         tags: tags,
         media: media,
         aiAnalysis: aiAnalysis,
@@ -117,6 +121,16 @@ class DiaryController extends AsyncNotifier<List<DiaryEntry>> {
   Future<void> deleteEntry(String id) async {
     await _runMutation(() async {
       await _repository.deleteEntry(id);
+    });
+  }
+
+  Future<void> setEntryHidden({
+    required DiaryEntry entry,
+    required bool isHidden,
+  }) async {
+    final updated = entry.copyWith(isHidden: isHidden);
+    await _runMutation(() async {
+      await _repository.saveEntry(updated);
     });
   }
 

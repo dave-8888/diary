@@ -11,8 +11,10 @@ import 'package:diary_mvp/app/windows_build_identity_service.dart';
 import 'package:diary_mvp/features/diary/application/diary_controller.dart';
 import 'package:diary_mvp/features/diary/domain/diary_entry.dart';
 import 'package:diary_mvp/features/diary/presentation/widgets/diary_shell.dart';
+import 'package:diary_mvp/features/diary/presentation/widgets/hidden_diary_password_dialogs.dart';
 import 'package:diary_mvp/features/diary/services/diary_ai_settings.dart';
 import 'package:diary_mvp/features/diary/services/diary_list_settings.dart';
+import 'package:diary_mvp/features/diary/services/hidden_diary_settings.dart';
 import 'package:diary_mvp/features/diary/services/password_settings.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/cupertino.dart';
@@ -50,6 +52,7 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
   bool _isChangingEmotionalCompanionVisibility = false;
   bool _isChangingProblemSuggestionVisibility = false;
   bool _isPasswordSectionExpanded = false;
+  bool _isHiddenDiaryPasswordSectionExpanded = false;
   bool _isAppIdentitySectionExpanded = false;
   bool _isDiaryAiSectionExpanded = false;
   bool _isMoodLibrarySectionExpanded = false;
@@ -108,6 +111,11 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
     final passwordSettingsAsync = ref.watch(passwordSettingsControllerProvider);
     final passwordEnabled =
         passwordSettingsAsync.valueOrNull?.hasPassword ?? false;
+    final hiddenDiaryPasswordSettingsAsync = ref.watch(
+      hiddenDiaryPasswordSettingsControllerProvider,
+    );
+    final hiddenDiaryPasswordEnabled =
+        hiddenDiaryPasswordSettingsAsync.valueOrNull?.hasPassword ?? false;
     final iconSelection =
         resolveAppIconSelection(ref.watch(appIconControllerProvider));
     final iconPreset = iconSelection.preset;
@@ -160,8 +168,7 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
                             onPressed: _isChangingTheme
                                 ? null
                                 : () => _changeTheme(themePreset),
-                            icon:
-                              _themeIcon(themePreset),
+                            icon: _themeIcon(themePreset),
                             label: Text(strings.titleForTheme(themePreset)),
                           ),
                         )
@@ -223,6 +230,33 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
                         Text(strings.passwordInitializationFailed(error)),
                     data: (settings) =>
                         _buildPasscodeSection(context, strings, settings),
+                  ),
+                ),
+                const SizedBox(height: 18),
+                _buildExpandableSectionCard(
+                  context: context,
+                  icon: Icons.visibility_off_outlined,
+                  title: strings.hiddenDiaryPasswordSettingsTitle,
+                  subtitle: strings.hiddenDiaryPasswordSettingsHint,
+                  summary: strings.hiddenDiaryPasswordStatus(
+                    hiddenDiaryPasswordEnabled,
+                  ),
+                  expanded: _isHiddenDiaryPasswordSectionExpanded,
+                  onExpandedChanged: (expanded) {
+                    setState(
+                      () => _isHiddenDiaryPasswordSectionExpanded = expanded,
+                    );
+                  },
+                  child: hiddenDiaryPasswordSettingsAsync.when(
+                    loading: () =>
+                        const Center(child: CupertinoActivityIndicator()),
+                    error: (error, stack) => Text(
+                        strings.hiddenDiaryPasswordInitializationFailed(error)),
+                    data: (settings) => _buildHiddenDiaryPasscodeSection(
+                      context,
+                      strings,
+                      settings,
+                    ),
                   ),
                 ),
                 const SizedBox(height: 18),
@@ -990,8 +1024,9 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
               onPressed: _isDisablingPasscode
                   ? null
                   : () => _showPasscodeDialog(hasPassword: hasPassword),
-              icon:
-                  hasPassword ? Icons.edit_outlined : Icons.lock_outline_rounded,
+              icon: hasPassword
+                  ? Icons.edit_outlined
+                  : Icons.lock_outline_rounded,
               label: hasPassword
                   ? strings.changePasscodeAction
                   : strings.setPasscodeAction,
@@ -1003,6 +1038,50 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
                 variant: CupertinoActionButtonVariant.outline,
                 label: strings.disablePasscode,
               ),
+          ],
+        ),
+      ],
+    );
+  }
+
+  Widget _buildHiddenDiaryPasscodeSection(
+    BuildContext context,
+    AppStrings strings,
+    PasswordSettingsState settings,
+  ) {
+    final hasPassword = settings.hasPassword;
+    final theme = Theme.of(context);
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          strings.hiddenDiaryPasswordSettingsHint,
+          style: theme.textTheme.bodySmall?.copyWith(
+            color: theme.colorScheme.onSurfaceVariant,
+            height: 1.4,
+          ),
+        ),
+        const SizedBox(height: 16),
+        Wrap(
+          spacing: 12,
+          runSpacing: 12,
+          children: [
+            CupertinoActionButton(
+              key: ValueKey(
+                hasPassword
+                    ? 'settings-change-hidden-diary-passcode-button'
+                    : 'settings-set-hidden-diary-passcode-button',
+              ),
+              onPressed: () =>
+                  _showHiddenDiaryPasscodeDialog(hasPassword: hasPassword),
+              icon: hasPassword
+                  ? Icons.edit_outlined
+                  : Icons.lock_outline_rounded,
+              label: hasPassword
+                  ? strings.changeHiddenDiaryPasscodeAction
+                  : strings.setHiddenDiaryPasscodeAction,
+            ),
           ],
         ),
       ],
@@ -1042,6 +1121,27 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
 
     context.showAppSnackBar(
       hasPassword ? strings.passcodeUpdated : strings.passcodeSaved,
+      tone: AppSnackBarTone.success,
+    );
+  }
+
+  Future<void> _showHiddenDiaryPasscodeDialog({
+    required bool hasPassword,
+  }) async {
+    final strings = context.strings;
+    final didSave = await showHiddenDiaryPasscodeDialog(
+      context: context,
+      hasPassword: hasPassword,
+    );
+
+    if (!mounted || !didSave) {
+      return;
+    }
+
+    context.showAppSnackBar(
+      hasPassword
+          ? strings.hiddenDiaryPasscodeUpdated
+          : strings.hiddenDiaryPasscodeSaved,
       tone: AppSnackBarTone.success,
     );
   }
@@ -1491,24 +1591,24 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
           children: [
             const SizedBox(height: 12),
             CupertinoTextField(
-                controller: nameController,
-                placeholder: '${strings.moodNameLabel} · ${strings.moodNameHint}',
-                autofocus: true,
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 12,
-                  vertical: 12,
-                ),
+              controller: nameController,
+              placeholder: '${strings.moodNameLabel} · ${strings.moodNameHint}',
+              autofocus: true,
+              padding: const EdgeInsets.symmetric(
+                horizontal: 12,
+                vertical: 12,
               ),
+            ),
             const SizedBox(height: 12),
             CupertinoTextField(
-                controller: emojiController,
-                placeholder:
-                    '${strings.moodEmojiLabel} · ${strings.moodEmojiHint}',
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 12,
-                  vertical: 12,
-                ),
+              controller: emojiController,
+              placeholder:
+                  '${strings.moodEmojiLabel} · ${strings.moodEmojiHint}',
+              padding: const EdgeInsets.symmetric(
+                horizontal: 12,
+                vertical: 12,
               ),
+            ),
           ],
         ),
         actions: [

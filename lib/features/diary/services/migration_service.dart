@@ -113,6 +113,7 @@ class DiaryMigrationService {
         'content': entry.content,
         'mood': entry.mood.id,
         'created_at': entry.createdAt.millisecondsSinceEpoch,
+        'is_hidden': entry.isHidden,
         'location': entry.location,
         'trashed_at': entry.trashedAt?.millisecondsSinceEpoch,
         'tags': entry.tags,
@@ -408,6 +409,7 @@ class _MigrationEntry {
     required this.content,
     required this.moodId,
     required this.createdAt,
+    required this.isHidden,
     required this.location,
     required this.trashedAt,
     required this.tags,
@@ -423,6 +425,7 @@ class _MigrationEntry {
       content: json['content'] as String? ?? '',
       moodId: json['mood'] as String? ?? DiaryMood.neutralId,
       createdAt: DateTime.fromMillisecondsSinceEpoch(json['created_at'] as int),
+      isHidden: json['is_hidden'] as bool? ?? false,
       location: json['location'] as String?,
       trashedAt: json['trashed_at'] == null
           ? null
@@ -446,6 +449,7 @@ class _MigrationEntry {
   final String content;
   final String moodId;
   final DateTime createdAt;
+  final bool isHidden;
   final String? location;
   final DateTime? trashedAt;
   final List<String> tags;
@@ -459,6 +463,7 @@ class _MigrationEntry {
       content: content,
       mood: moodLibrary[moodId] ?? DiaryMood.byId(moodId) ?? DiaryMood.neutral,
       createdAt: createdAt,
+      isHidden: isHidden,
       location: location,
       trashedAt: trashedAt,
       tags: tags,

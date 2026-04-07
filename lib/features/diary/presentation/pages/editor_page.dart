@@ -14,11 +14,13 @@ import 'package:diary_mvp/features/diary/presentation/models/image_preview_data.
 import 'package:diary_mvp/features/diary/presentation/utils/camera_support.dart';
 import 'package:diary_mvp/features/diary/presentation/widgets/audio_attachment_tile.dart';
 import 'package:diary_mvp/features/diary/presentation/widgets/diary_shell.dart';
+import 'package:diary_mvp/features/diary/presentation/widgets/hidden_diary_password_dialogs.dart';
 import 'package:diary_mvp/features/diary/presentation/widgets/image_media_grid.dart';
 import 'package:diary_mvp/features/diary/presentation/widgets/mood_selector.dart';
 import 'package:diary_mvp/features/diary/services/diary_ai_service.dart';
 import 'package:diary_mvp/features/diary/services/diary_ai_settings.dart';
 import 'package:diary_mvp/features/diary/services/export_service.dart';
+import 'package:diary_mvp/features/diary/services/hidden_diary_settings.dart';
 import 'package:diary_mvp/features/diary/services/location_service.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/cupertino.dart';
@@ -64,6 +66,7 @@ class _EditorPageState extends ConsumerState<EditorPage>
       <TextEditingController, int>{};
 
   String _moodId = DiaryMood.defaultSelectionId;
+  bool _isHidden = false;
   final List<DiaryMedia> _media = [];
   final List<String> _tags = [];
   DiaryEntry? _activeEntry;
@@ -77,6 +80,8 @@ class _EditorPageState extends ConsumerState<EditorPage>
   bool _isAiExpanded = false;
   bool _allowNextPop = false;
   bool _isApplyingTextUndo = false;
+  bool _isCheckingHiddenAccess = false;
+  bool _isChangingHiddenState = false;
   DateTime? _recordingStartedAt;
   DiaryEntryAiAnalysis? _aiSuggestion;
   late DateTime _draftCreatedAt;
@@ -98,6 +103,7 @@ class _EditorPageState extends ConsumerState<EditorPage>
       _contentController.text = entry.content;
       _locationController.text = entry.location ?? '';
       _moodId = entry.mood.id;
+      _isHidden = entry.isHidden;
       _media.addAll(entry.media);
       _tags.addAll(entry.tags);
       _aiSuggestion = entry.aiAnalysis;
@@ -105,6 +111,13 @@ class _EditorPageState extends ConsumerState<EditorPage>
     }
     _initializeTextHistory();
     _lastSavedSignature = _currentDraftSignature();
+    _isCheckingHiddenAccess =
+        (entry?.isHidden ?? false) && !ref.read(showHiddenDiariesProvider);
+    if (_isCheckingHiddenAccess) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        _ensureHiddenDiaryAccess();
+      });
+    }
   }
 
   @override
@@ -129,6 +142,16 @@ class _EditorPageState extends ConsumerState<EditorPage>
   @override
   Widget build(BuildContext context) {
     final strings = context.strings;
+    if (_isCheckingHiddenAccess) {
+      return DiaryShell(
+        title: _isEditing ? strings.editEntry : strings.newEntry,
+        showAppBarTitle: false,
+        child: const Center(
+          child: CupertinoActivityIndicator(),
+        ),
+      );
+    }
+
     final moodLibraryAsync = ref.watch(moodLibraryControllerProvider);
     final showDiaryAiSection =
         ref.watch(diaryAiVisibilityControllerProvider).valueOrNull ?? true;
@@ -435,6 +458,7 @@ class _EditorPageState extends ConsumerState<EditorPage>
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           CupertinoTextField(
+            key: const ValueKey<String>('editor-title-field'),
             controller: _titleController,
             focusNode: _titleFocusNode,
             undoController: _titleUndoController,
@@ -443,6 +467,7 @@ class _EditorPageState extends ConsumerState<EditorPage>
           ),
           const SizedBox(height: 14),
           CupertinoTextField(
+            key: const ValueKey<String>('editor-content-field'),
             controller: _contentController,
             focusNode: _contentFocusNode,
             undoController: _contentUndoController,
@@ -460,6 +485,7 @@ class _EditorPageState extends ConsumerState<EditorPage>
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           CupertinoTextField(
+            key: const ValueKey<String>('editor-location-field'),
             controller: _locationController,
             focusNode: _locationFocusNode,
             undoController: _locationUndoController,
@@ -502,6 +528,42 @@ class _EditorPageState extends ConsumerState<EditorPage>
                 onChanged: (mood) => setState(() => _moodId = mood.id),
               );
             },
+          ),
+          const SizedBox(height: 18),
+          Row(
+            children: [
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      strings.hiddenDiaryVisibilityLabel,
+                      style: Theme.of(context).textTheme.titleMedium,
+                    ),
+                    const SizedBox(height: 6),
+                    Text(
+                      strings.hiddenDiaryVisibilityHint,
+                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                            color:
+                                Theme.of(context).colorScheme.onSurfaceVariant,
+                            height: 1.4,
+                          ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(width: 12),
+              CupertinoSwitch(
+                key: const ValueKey<String>('editor-hidden-diary-switch'),
+                value: _isHidden,
+                onChanged: _isSaving ||
+                        _isDeleting ||
+                        _isExporting ||
+                        _isChangingHiddenState
+                    ? null
+                    : _handleHiddenVisibilityChanged,
+              ),
+            ],
           ),
         ],
       ),
@@ -702,6 +764,12 @@ class _EditorPageState extends ConsumerState<EditorPage>
                           context,
                           icon: Icons.bolt_outlined,
                           label: strings.unsavedChangesTitle,
+                        ),
+                      if (_isHidden)
+                        _buildHeaderInfoChip(
+                          context,
+                          icon: Icons.visibility_off_outlined,
+                          label: strings.hiddenDiaryBadge,
                         ),
                       if (_media.isNotEmpty)
                         _buildHeaderInfoChip(
@@ -1690,6 +1758,7 @@ class _EditorPageState extends ConsumerState<EditorPage>
               content: _contentController.text,
               mood: mood,
               location: _locationController.text,
+              isHidden: _isHidden,
               tags: tags,
               media: media,
               aiAnalysis: _aiSuggestion,
@@ -1699,6 +1768,7 @@ class _EditorPageState extends ConsumerState<EditorPage>
               content: _contentController.text,
               mood: mood,
               location: _locationController.text,
+              isHidden: _isHidden,
               tags: tags,
               media: media,
               aiAnalysis: _aiSuggestion,
@@ -1755,6 +1825,7 @@ class _EditorPageState extends ConsumerState<EditorPage>
       title: draftEntry.title.trim().isEmpty ? entry.title : draftEntry.title,
       content: draftEntry.content,
       mood: draftEntry.mood,
+      isHidden: draftEntry.isHidden,
       location: draftEntry.location,
       tags: draftEntry.tags,
       media: draftEntry.media,
@@ -1875,6 +1946,7 @@ class _EditorPageState extends ConsumerState<EditorPage>
       'content': _contentController.text.trim(),
       'location': _locationController.text.trim(),
       'mood_id': _moodId,
+      'is_hidden': _isHidden,
       'tags': List<String>.from(_tags),
       'media': _media
           .map(
@@ -1990,6 +2062,7 @@ class _EditorPageState extends ConsumerState<EditorPage>
         ref.read(moodLibraryControllerProvider).valueOrNull ?? DiaryMood.values,
       ),
       createdAt: _draftCreatedAt,
+      isHidden: _isHidden,
       location: location.isEmpty ? null : location,
       trashedAt: entry?.trashedAt,
       tags: List<String>.unmodifiable(_tags),
@@ -2020,5 +2093,66 @@ class _EditorPageState extends ConsumerState<EditorPage>
     if (width >= 1450) return 24;
     if (width >= 1280) return 20;
     return 16;
+  }
+
+  Future<void> _handleHiddenVisibilityChanged(bool nextValue) async {
+    if (nextValue == _isHidden) {
+      return;
+    }
+
+    if (!nextValue) {
+      setState(() => _isHidden = false);
+      return;
+    }
+
+    setState(() => _isChangingHiddenState = true);
+    final configured = await ensureHiddenDiaryPasswordConfigured(context, ref);
+    if (!mounted) {
+      return;
+    }
+
+    setState(() {
+      _isChangingHiddenState = false;
+      if (configured) {
+        _isHidden = true;
+      }
+    });
+  }
+
+  Future<void> _ensureHiddenDiaryAccess() async {
+    final entry = _activeEntry;
+    if (entry == null || !entry.isHidden) {
+      if (mounted) {
+        setState(() => _isCheckingHiddenAccess = false);
+      }
+      return;
+    }
+    if (ref.read(showHiddenDiariesProvider)) {
+      if (mounted) {
+        setState(() => _isCheckingHiddenAccess = false);
+      }
+      return;
+    }
+
+    final granted = await requestHiddenDiaryAccess(context, ref);
+    if (!mounted) {
+      return;
+    }
+
+    if (!granted) {
+      setState(() => _isCheckingHiddenAccess = false);
+      _closeProtectedEditor();
+      return;
+    }
+
+    setState(() => _isCheckingHiddenAccess = false);
+  }
+
+  void _closeProtectedEditor() {
+    if (Navigator.of(context).canPop()) {
+      Navigator.of(context).pop();
+      return;
+    }
+    context.go('/');
   }
 }
