@@ -2452,8 +2452,8 @@ class _DiaryAiModelPickerSheetState extends State<_DiaryAiModelPickerSheet> {
                         CupertinoButton(
                           padding: EdgeInsets.zero,
                           minimumSize: Size.zero,
-                          onPressed: onCancel,
-                          child: Text(cancelLabel),
+                          onPressed: widget.onCancel,
+                          child: Text(widget.cancelLabel),
                         ),
                         Expanded(
                           child: Text(
@@ -2511,69 +2511,68 @@ class _DiaryAiModelPickerTag extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
+    final maxTagWidth = MediaQuery.sizeOf(context).width * 0.68;
+    final maxLabelWidth = maxTagWidth - (selected ? 60 : 32);
 
     return CupertinoButton(
       key: valueKey,
       padding: EdgeInsets.zero,
-      minimumSize: const Size.fromHeight(0),
+      minimumSize: Size.zero,
       alignment: Alignment.centerLeft,
       onPressed: onPressed,
-      child: DecoratedBox(
-        decoration: BoxDecoration(
-          color: selected
-              ? colorScheme.primary.withValues(alpha: 0.12)
-              : colorScheme.surfaceContainerHighest.withValues(alpha: 0.55),
-          borderRadius: BorderRadius.circular(999),
-          border: Border.all(
+      child: ConstrainedBox(
+        constraints: BoxConstraints(maxWidth: maxTagWidth),
+        child: DecoratedBox(
+          decoration: BoxDecoration(
             color: selected
-                ? colorScheme.primary
-                : colorScheme.outlineVariant.withValues(alpha: 0.28),
-            width: selected ? 1.4 : 1,
+                ? colorScheme.primary.withValues(alpha: 0.12)
+                : colorScheme.surfaceContainerHighest.withValues(alpha: 0.55),
+            borderRadius: BorderRadius.circular(999),
+            border: Border.all(
+              color: selected
+                  ? colorScheme.primary
+                  : colorScheme.outlineVariant.withValues(alpha: 0.28),
+              width: selected ? 1.4 : 1,
+            ),
+            boxShadow: selected
+                ? [
+                    BoxShadow(
+                      color: colorScheme.primary.withValues(alpha: 0.08),
+                      blurRadius: 14,
+                      offset: const Offset(0, 8),
+                    ),
+                  ]
+                : null,
           ),
-          boxShadow: selected
-              ? [
-                  BoxShadow(
-                    color: colorScheme.primary.withValues(alpha: 0.08),
-                    blurRadius: 14,
-                    offset: const Offset(0, 8),
-                  ),
-                ]
-              : null,
-        ),
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Flexible(
-                    child: Text(
-                      label,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: theme.textTheme.bodyMedium?.copyWith(
-                        fontWeight:
-                            selected ? FontWeight.w700 : FontWeight.w600,
-                        color: selected
-                            ? colorScheme.primary
-                            : colorScheme.onSurface,
-                      ),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                ConstrainedBox(
+                  constraints: BoxConstraints(maxWidth: maxLabelWidth),
+                  child: Text(
+                    label,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: theme.textTheme.bodyMedium?.copyWith(
+                      fontWeight: selected ? FontWeight.w700 : FontWeight.w600,
+                      color: selected
+                          ? colorScheme.primary
+                          : colorScheme.onSurface,
                     ),
                   ),
-                  if (selected) ...[
-                    const SizedBox(width: 8),
-                    Icon(
-                      CupertinoIcons.check_mark_circled_solid,
-                      size: 16,
-                      color: colorScheme.primary,
-                    ),
-                  ],
+                ),
+                if (selected) ...[
+                  const SizedBox(width: 8),
+                  Icon(
+                    CupertinoIcons.check_mark_circled_solid,
+                    size: 16,
+                    color: colorScheme.primary,
+                  ),
                 ],
-              ),
-            ],
+              ],
+            ),
           ),
         ),
       ),

@@ -1424,40 +1424,75 @@ void main() {
       findsOneWidget,
     );
     expect(
-      find.textContaining('Balanced multimodal Gemini model.'),
-      findsWidgets,
+      find.byKey(const ValueKey('settings-diary-ai-model-toggle-multimodal')),
+      findsOneWidget,
     );
     expect(
-      find.textContaining('Multimodal · Text · Image input'),
-      findsWidgets,
+      find.byKey(const ValueKey('settings-diary-ai-model-toggle-image')),
+      findsOneWidget,
+    );
+    expect(
+      find.byKey(
+        const ValueKey('settings-diary-ai-model-group-content-multimodal'),
+      ),
+      findsNothing,
+    );
+    expect(
+      find.byKey(const ValueKey('settings-diary-ai-model-group-content-image')),
+      findsNothing,
     );
 
-    expect(
-      find.descendant(
-        of: find
-            .byKey(const ValueKey('settings-diary-ai-model-group-multimodal')),
-        matching: find.text('gemini-1.5-pro'),
-      ),
-      findsOneWidget,
+    await tester.tap(
+      find.byKey(const ValueKey('settings-diary-ai-model-toggle-multimodal')),
     );
+    await tester.pumpAndSettle();
     expect(
       find.descendant(
-        of: find.byKey(const ValueKey('settings-diary-ai-model-group-text')),
+        of: find.byKey(
+          const ValueKey('settings-diary-ai-model-group-content-multimodal'),
+        ),
         matching: find.text('gemini-1.5-pro'),
       ),
       findsOneWidget,
     );
 
+    await tester.tap(
+      find.byKey(const ValueKey('settings-diary-ai-model-toggle-image')),
+    );
+    await tester.pumpAndSettle();
     expect(
-      find.byKey(const ValueKey('settings-diary-ai-model-group-image')),
+      find.byKey(const ValueKey('settings-diary-ai-model-group-content-image')),
       findsOneWidget,
     );
     expect(
       find.descendant(
-        of: find.byKey(const ValueKey('settings-diary-ai-model-group-image')),
+        of: find.byKey(
+          const ValueKey('settings-diary-ai-model-group-content-image'),
+        ),
         matching: find.text('gemini-1.5-pro'),
       ),
       findsOneWidget,
+    );
+    expect(
+      tester
+          .getSize(
+            find.byKey(
+              const ValueKey(
+                  'settings-diary-ai-model-option-image-gemini-1.5-pro'),
+            ),
+          )
+          .width,
+      lessThan(
+        tester
+                .getSize(
+                  find.byKey(
+                    const ValueKey(
+                        'settings-diary-ai-model-group-content-image'),
+                  ),
+                )
+                .width *
+            0.9,
+      ),
     );
 
     await tester.ensureVisible(
@@ -1700,6 +1735,10 @@ void main() {
 
     await tester
         .tap(find.byKey(const ValueKey('settings-diary-ai-select-model')));
+    await tester.pumpAndSettle();
+    await tester.tap(
+      find.byKey(const ValueKey('settings-diary-ai-model-toggle-text')),
+    );
     await tester.pumpAndSettle();
     await tester.tap(
       find.byKey(
