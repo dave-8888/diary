@@ -63,6 +63,7 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
   bool _diaryAiModelCatalogStale = false;
   String? _lastFetchedDiaryAiModelSignature;
   String? _selectedDiaryAiModelTypeId;
+  DiaryAiModelSelectionSource? _selectedDiaryAiModelSource;
   DiaryAiProviderPreset _selectedDiaryAiPreset =
       DiaryAiProviderPreset.dashScope;
 
@@ -852,6 +853,8 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
     final selectedDiaryAiModelInfoText = selectedDiaryAiModelEntry == null
         ? null
         : _buildDiaryAiModelInfoText(selectedDiaryAiModelEntry);
+    final selectedDiaryAiModelUnavailableText =
+        _buildDiaryAiModelUnavailableText(strings);
 
     return LayoutBuilder(
       builder: (context, constraints) {
@@ -934,7 +937,7 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
               const SizedBox(height: 10),
               _buildDiaryAiModelNoteCard(
                 context,
-                strings.diaryAiModelNotInFetchedList,
+                selectedDiaryAiModelUnavailableText,
                 const ValueKey('settings-diary-ai-model-unavailable'),
               ),
             ],
@@ -1795,6 +1798,7 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
       _diaryAiModelController.text = selectedModel;
       _selectedDiaryAiModelTypeId =
           _buildDiaryAiPrimaryModelTypeId(selectedEntry);
+      _selectedDiaryAiModelSource = DiaryAiModelSelectionSource.catalog;
       _diaryAiModelController.selection = TextSelection.collapsed(
         offset: _diaryAiModelController.text.length,
       );
@@ -1880,6 +1884,7 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
     setState(() {
       _diaryAiModelController.text = result;
       _selectedDiaryAiModelTypeId = null;
+      _selectedDiaryAiModelSource = DiaryAiModelSelectionSource.manual;
       _diaryAiModelController.selection = TextSelection.collapsed(
         offset: _diaryAiModelController.text.length,
       );
@@ -1892,6 +1897,7 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
       baseUrl: _diaryAiBaseUrlController.text,
       model: _diaryAiModelController.text,
       modelType: _selectedDiaryAiModelTypeId,
+      modelSource: _selectedDiaryAiModelSource,
       apiKey: _diaryAiApiKeyController.text,
     );
   }
@@ -2230,6 +2236,17 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
     return null;
   }
 
+  String _buildDiaryAiModelUnavailableText(AppStrings strings) {
+    switch (_selectedDiaryAiModelSource) {
+      case DiaryAiModelSelectionSource.manual:
+        return strings.diaryAiManualModelNotInFetchedList;
+      case DiaryAiModelSelectionSource.catalog:
+        return strings.diaryAiSavedModelNotInFetchedList;
+      case null:
+        return strings.diaryAiModelNotInFetchedList;
+    }
+  }
+
   Widget _buildDiaryAiModelNoteCard(
     BuildContext context,
     String text,
@@ -2354,6 +2371,7 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
     _diaryAiBaseUrlController.text = config.normalizedBaseUrl;
     _diaryAiModelController.text = config.normalizedModel;
     _selectedDiaryAiModelTypeId = config.normalizedModelType;
+    _selectedDiaryAiModelSource = config.normalizedModelSource;
     _diaryAiApiKeyController.text = config.normalizedApiKey ?? '';
     _diaryAiBaseUrlController.selection = TextSelection.collapsed(
       offset: _diaryAiBaseUrlController.text.length,
@@ -2375,6 +2393,7 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
         _diaryAiBaseUrlController.text = preset.defaultBaseUrl;
         _diaryAiModelController.text = preset.defaultModel;
         _selectedDiaryAiModelTypeId = null;
+        _selectedDiaryAiModelSource = null;
         _diaryAiBaseUrlController.selection = TextSelection.collapsed(
           offset: _diaryAiBaseUrlController.text.length,
         );

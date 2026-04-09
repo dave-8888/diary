@@ -327,6 +327,12 @@ class AppStrings {
   String get diaryAiManualModelMissing => isChinese
       ? '\u8bf7\u5148\u8f93\u5165\u6a21\u578b\u540d\u79f0\u3002'
       : 'Enter a model name first.';
+  String get diaryAiManualModelNotInFetchedList => isChinese
+      ? '\u5f53\u524d\u6a21\u578b\u662f\u624b\u52a8\u8f93\u5165\u7684\uff0c\u4e0d\u5728\u5df2\u83b7\u53d6\u7684\u5217\u8868\u4e2d\u3002\u53ef\u4ee5\u7ee7\u7eed\u4f7f\u7528\uff0c\u6216\u91cd\u65b0\u83b7\u53d6\u786e\u8ba4\u3002'
+      : 'The current model was entered manually and is not in the fetched list. You can keep using it or refetch to confirm.';
+  String get diaryAiSavedModelNotInFetchedList => isChinese
+      ? '\u5f53\u524d\u6a21\u578b\u4e0d\u5728\u8fd9\u6b21\u83b7\u53d6\u7684\u5217\u8868\u4e2d\uff0c\u53ef\u80fd\u5df2\u4e0b\u7ebf\u3001\u65e0\u6743\u9650\uff0c\u6216\u9700\u8981\u91cd\u65b0\u83b7\u53d6\u3002'
+      : 'The current model is not in the latest fetched list. It may be unavailable, restricted, or require refetching.';
   String get diaryAiModelNotInFetchedList => isChinese
       ? '\u5f53\u524d\u6a21\u578b\u4e0d\u5728\u5df2\u83b7\u53d6\u7684\u5217\u8868\u4e2d\uff0c\u53ef\u80fd\u662f\u624b\u52a8\u8f93\u5165\u6216\u9700\u8981\u91cd\u65b0\u83b7\u53d6\u3002'
       : 'The current model is not in the fetched list. It may have been entered manually or require refetching.';

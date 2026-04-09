@@ -122,12 +122,39 @@ extension DiaryAiProviderPresetX on DiaryAiProviderPreset {
   }
 }
 
+enum DiaryAiModelSelectionSource {
+  catalog,
+  manual,
+}
+
+extension DiaryAiModelSelectionSourceX on DiaryAiModelSelectionSource {
+  String get id {
+    switch (this) {
+      case DiaryAiModelSelectionSource.catalog:
+        return 'catalog';
+      case DiaryAiModelSelectionSource.manual:
+        return 'manual';
+    }
+  }
+
+  static DiaryAiModelSelectionSource? fromId(String? rawId) {
+    final normalized = rawId?.trim().toLowerCase();
+    for (final source in DiaryAiModelSelectionSource.values) {
+      if (source.id == normalized) {
+        return source;
+      }
+    }
+    return null;
+  }
+}
+
 class DiaryAiProviderConfig {
   const DiaryAiProviderConfig({
     required this.presetId,
     required this.baseUrl,
     required this.model,
     this.modelType,
+    this.modelSource,
     this.apiKey,
   });
 
@@ -135,6 +162,7 @@ class DiaryAiProviderConfig {
   final String baseUrl;
   final String model;
   final String? modelType;
+  final DiaryAiModelSelectionSource? modelSource;
   final String? apiKey;
 
   DiaryAiProviderPreset get preset => DiaryAiProviderPresetX.fromId(presetId);
@@ -162,6 +190,8 @@ class DiaryAiProviderConfig {
     }
     return value;
   }
+
+  DiaryAiModelSelectionSource? get normalizedModelSource => modelSource;
 
   String? get normalizedApiKey {
     final value = apiKey?.trim();
@@ -191,6 +221,7 @@ class DiaryAiProviderConfig {
     String? baseUrl,
     String? model,
     Object? modelType = _copyWithSentinel,
+    Object? modelSource = _copyWithSentinel,
     Object? apiKey = _copyWithSentinel,
   }) {
     return DiaryAiProviderConfig(
@@ -200,6 +231,9 @@ class DiaryAiProviderConfig {
       modelType: identical(modelType, _copyWithSentinel)
           ? this.modelType
           : modelType as String?,
+      modelSource: identical(modelSource, _copyWithSentinel)
+          ? this.modelSource
+          : modelSource as DiaryAiModelSelectionSource?,
       apiKey: identical(apiKey, _copyWithSentinel)
           ? this.apiKey
           : apiKey as String?,
@@ -212,6 +246,8 @@ class DiaryAiProviderConfig {
       'ai_base_url': normalizedBaseUrl,
       'ai_model': normalizedModel,
       if (normalizedModelType != null) 'ai_model_type': normalizedModelType,
+      if (normalizedModelSource != null)
+        'ai_model_source': normalizedModelSource!.id,
       if (normalizedApiKey != null) 'ai_api_key': normalizedApiKey,
     };
   }
@@ -240,6 +276,9 @@ class DiaryAiProviderConfig {
     final baseUrl = _readString(raw['ai_base_url']);
     final model = _readString(raw['ai_model']);
     final modelType = _readString(raw['ai_model_type']);
+    final modelSource = DiaryAiModelSelectionSourceX.fromId(
+      _readString(raw['ai_model_source']),
+    );
     final apiKey =
         _readString(raw['ai_api_key']) ?? _readString(raw['dashscope_api_key']);
 
@@ -248,6 +287,7 @@ class DiaryAiProviderConfig {
       baseUrl: baseUrl ?? preset.defaultBaseUrl,
       model: model ?? preset.defaultModel,
       modelType: modelType,
+      modelSource: modelSource,
       apiKey: apiKey,
     );
   }
@@ -275,6 +315,7 @@ class DiaryAiSettingsStorage {
       ..remove('ai_base_url')
       ..remove('ai_model')
       ..remove('ai_model_type')
+      ..remove('ai_model_source')
       ..remove('ai_api_key')
       ..addAll(config.toJson());
     await _writeRaw(raw);
@@ -385,6 +426,7 @@ class DiaryAiConfigController extends AsyncNotifier<DiaryAiProviderConfig> {
       baseUrl: config.normalizedBaseUrl,
       model: config.normalizedModel,
       modelType: config.normalizedModelType,
+      modelSource: config.normalizedModelSource,
       apiKey: config.normalizedApiKey,
     );
     state = AsyncData(normalized);
