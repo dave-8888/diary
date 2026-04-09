@@ -1320,6 +1320,116 @@ void main() {
     );
   });
 
+  testWidgets('settings page stacks diary AI connection fields on wide screens',
+      (tester) async {
+    await tester.binding.setSurfaceSize(const Size(1280, 1400));
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+
+    final repository = FakeDiaryRepository(
+      moods: DiaryMood.values,
+    );
+
+    await pumpPage(
+      tester,
+      const SettingsPage(),
+      path: '/settings',
+      overrides: buildOverrides(repository: repository),
+    );
+
+    await tester.scrollUntilVisible(
+      find.text(strings.diaryAiSettingsTitle),
+      300,
+      scrollable: find.byType(Scrollable).first,
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(find.text(strings.diaryAiSettingsTitle));
+    await tester.pumpAndSettle();
+
+    final connectionPanel =
+        find.byKey(const ValueKey('settings-diary-ai-connection-panel'));
+    final modelPanel =
+        find.byKey(const ValueKey('settings-diary-ai-model-panel'));
+    final baseUrlField =
+        find.byKey(const ValueKey('settings-diary-ai-base-url'));
+    final apiKeyField = find.byKey(const ValueKey('settings-diary-ai-api-key'));
+
+    expect(connectionPanel, findsOneWidget);
+    expect(modelPanel, findsOneWidget);
+
+    final connectionRect = tester.getRect(connectionPanel);
+    final modelRect = tester.getRect(modelPanel);
+    final baseUrlRect = tester.getRect(baseUrlField);
+    final apiKeyRect = tester.getRect(apiKeyField);
+
+    expect(connectionRect.bottom, lessThan(modelRect.top));
+    expect(baseUrlRect.bottom, lessThan(apiKeyRect.top));
+    expect((baseUrlRect.left - apiKeyRect.left).abs(), lessThan(1));
+    expect(
+      find.descendant(
+        of: modelPanel,
+        matching: find.byKey(const ValueKey('settings-diary-ai-select-model')),
+      ),
+      findsOneWidget,
+    );
+    expect(
+      find.descendant(
+        of: modelPanel,
+        matching: find.byKey(const ValueKey('settings-diary-ai-manual-model')),
+      ),
+      findsOneWidget,
+    );
+  });
+
+  testWidgets('settings page stacks diary AI layout sections on narrow screens',
+      (tester) async {
+    await tester.binding.setSurfaceSize(const Size(430, 1400));
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+
+    final repository = FakeDiaryRepository(
+      moods: DiaryMood.values,
+    );
+
+    await pumpPage(
+      tester,
+      const SettingsPage(),
+      path: '/settings',
+      overrides: buildOverrides(repository: repository),
+    );
+
+    await tester.scrollUntilVisible(
+      find.text(strings.diaryAiSettingsTitle),
+      300,
+      scrollable: find.byType(Scrollable).first,
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(find.text(strings.diaryAiSettingsTitle));
+    await tester.pumpAndSettle();
+
+    final connectionPanel =
+        find.byKey(const ValueKey('settings-diary-ai-connection-panel'));
+    final modelPanel =
+        find.byKey(const ValueKey('settings-diary-ai-model-panel'));
+    final footerActions =
+        find.byKey(const ValueKey('settings-diary-ai-footer-actions'));
+    final baseUrlField =
+        find.byKey(const ValueKey('settings-diary-ai-base-url'));
+    final apiKeyField = find.byKey(const ValueKey('settings-diary-ai-api-key'));
+
+    expect(connectionPanel, findsOneWidget);
+    expect(modelPanel, findsOneWidget);
+    expect(footerActions, findsOneWidget);
+
+    final connectionRect = tester.getRect(connectionPanel);
+    final modelRect = tester.getRect(modelPanel);
+    final footerRect = tester.getRect(footerActions);
+    final baseUrlRect = tester.getRect(baseUrlField);
+    final apiKeyRect = tester.getRect(apiKeyField);
+
+    expect(connectionRect.bottom, lessThan(modelRect.top));
+    expect(modelRect.bottom, lessThan(footerRect.top));
+    expect(baseUrlRect.bottom, lessThan(apiKeyRect.top));
+  });
+
   testWidgets('settings page fetches diary AI models and lets user pick one',
       (tester) async {
     final repository = FakeDiaryRepository(
@@ -1408,6 +1518,10 @@ void main() {
       isNotNull,
     );
 
+    await tester.ensureVisible(
+      find.byKey(const ValueKey('settings-diary-ai-select-model')),
+    );
+    await tester.pumpAndSettle();
     await tester
         .tap(find.byKey(const ValueKey('settings-diary-ai-select-model')));
     await tester.pumpAndSettle();
@@ -1627,6 +1741,10 @@ void main() {
 
     expect(find.text(strings.diaryAiModelCatalogApiKeyInvalid), findsOneWidget);
 
+    await tester.ensureVisible(
+      find.byKey(const ValueKey('settings-diary-ai-manual-model')),
+    );
+    await tester.pumpAndSettle();
     await tester
         .tap(find.byKey(const ValueKey('settings-diary-ai-manual-model')));
     await tester.pumpAndSettle();
@@ -1733,6 +1851,10 @@ void main() {
       isNotNull,
     );
 
+    await tester.ensureVisible(
+      find.byKey(const ValueKey('settings-diary-ai-select-model')),
+    );
+    await tester.pumpAndSettle();
     await tester
         .tap(find.byKey(const ValueKey('settings-diary-ai-select-model')));
     await tester.pumpAndSettle();

@@ -406,9 +406,6 @@ class AppStrings {
   String diaryAiApiKeyUpdateFailed(Object error) => isChinese
       ? '保存阿里云 AI Key 失败：$error'
       : 'Failed to save the Alibaba Cloud AI key: $error';
-  String get diaryAiApiKeyEnvironmentHint => isChinese
-      ? '\u5f53\u524d\u6ca1\u6709\u672c\u5730 Key\uff1b\u5982\u679c\u542f\u52a8\u65f6\u63d0\u4f9b\u4e86 DIARY_AI_API_KEY\uff08\u517c\u5bb9\u65e7\u7684 DASHSCOPE_API_KEY\uff09\uff0c\u4e5f\u4f1a\u81ea\u52a8\u4f7f\u7528\u3002'
-      : 'If no local key is saved, the app will still use DIARY_AI_API_KEY (and the legacy DASHSCOPE_API_KEY) when provided at launch.';
   String get usingDiaryAiEnvironmentApiKey => isChinese
       ? '\u5f53\u524d\u6b63\u5728\u4f7f\u7528\u542f\u52a8\u53c2\u6570\u4e2d\u7684 Diary AI Key\u3002'
       : 'Currently using the diary AI key provided at launch.';

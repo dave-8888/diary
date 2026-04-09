@@ -194,7 +194,10 @@ class CupertinoPill extends StatelessWidget {
                   Icon(icon),
                   const SizedBox(width: 8),
                 ],
-                label,
+                Flexible(
+                  fit: FlexFit.loose,
+                  child: label,
+                ),
               ],
             ),
           ),

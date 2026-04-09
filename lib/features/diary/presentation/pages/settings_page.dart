@@ -488,211 +488,14 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
                         onChanged: _changeProblemSuggestionVisibility,
                       ),
                       const SizedBox(height: 16),
-                      Text(
-                        strings.diaryAiCompatibilityHint,
-                        style: Theme.of(context).textTheme.bodySmall,
-                      ),
-                      const SizedBox(height: 16),
-                      Text(
-                        strings.diaryAiProviderLabel,
-                        style: Theme.of(context).textTheme.labelLarge,
-                      ),
-                      const SizedBox(height: 10),
-                      Wrap(
-                        spacing: 10,
-                        runSpacing: 10,
-                        children: DiaryAiProviderPreset.values
-                            .map(
-                              (preset) => CupertinoPill(
-                                selected: preset == _selectedDiaryAiPreset,
-                                onPressed: _isSavingDiaryAiConfig ||
-                                        _isResettingDiaryAiConfig
-                                    ? null
-                                    : () => _selectDiaryAiPreset(preset),
-                                label: Text(preset.label),
-                              ),
-                            )
-                            .toList(growable: false),
-                      ),
-                      const SizedBox(height: 16),
-                      Text(
-                        strings.diaryAiBaseUrlLabel,
-                        style: Theme.of(context).textTheme.labelLarge,
-                      ),
-                      const SizedBox(height: 10),
-                      CupertinoTextField(
-                        key: const ValueKey('settings-diary-ai-base-url'),
-                        controller: _diaryAiBaseUrlController,
-                        placeholder: strings.diaryAiBaseUrlHint,
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 14,
-                          vertical: 14,
-                        ),
-                        textInputAction: TextInputAction.next,
-                      ),
-                      const SizedBox(height: 16),
-                      Text(
-                        strings.diaryAiApiKeyLabel,
-                        style: Theme.of(context).textTheme.labelLarge,
-                      ),
-                      const SizedBox(height: 10),
-                      CupertinoTextField(
-                        key: const ValueKey('settings-diary-ai-api-key'),
-                        controller: _diaryAiApiKeyController,
-                        obscureText: !_showDiaryAiApiKey,
-                        placeholder: strings.diaryAiApiKeyHint,
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 14,
-                          vertical: 14,
-                        ),
-                        suffix: CupertinoButton(
-                          padding: EdgeInsets.zero,
-                          minimumSize: Size.zero,
-                          onPressed: () {
-                            setState(
-                              () => _showDiaryAiApiKey = !_showDiaryAiApiKey,
-                            );
-                          },
-                          child: Padding(
-                            padding: const EdgeInsets.only(right: 12),
-                            child: Icon(
-                              _showDiaryAiApiKey
-                                  ? CupertinoIcons.eye_slash
-                                  : CupertinoIcons.eye,
-                              size: 18,
-                            ),
-                          ),
-                        ),
-                        textInputAction: TextInputAction.next,
-                      ),
-                      const SizedBox(height: 12),
-                      Text(
-                        resolvedDiaryAiEnvironmentApiKey.isNotEmpty
-                            ? strings.usingDiaryAiEnvironmentApiKey
-                            : strings.diaryAiApiKeyEnvironmentHint,
-                        style: Theme.of(context).textTheme.bodySmall,
-                      ),
-                      const SizedBox(height: 16),
-                      Wrap(
-                        spacing: 12,
-                        runSpacing: 12,
-                        children: [
-                          CupertinoActionButton(
-                            key: const ValueKey(
-                              'settings-diary-ai-fetch-models',
-                            ),
-                            onPressed: diaryAiModelCatalog.isLoading
-                                ? null
-                                : _fetchDiaryAiModels,
-                            isBusy: diaryAiModelCatalog.isLoading,
-                            variant: CupertinoActionButtonVariant.outline,
-                            label: diaryAiModelCatalog.hasModels
-                                ? strings.refetchDiaryAiModelsAction
-                                : strings.fetchDiaryAiModelsAction,
-                          ),
-                        ],
-                      ),
-                      if (_buildDiaryAiModelCatalogStatusText(
-                        strings,
-                        diaryAiModelCatalog,
-                      )
-                          case final statusText?) ...[
-                        const SizedBox(height: 12),
-                        Text(
-                          statusText,
-                          key: const ValueKey(
-                            'settings-diary-ai-model-catalog-status',
-                          ),
-                          style:
-                              Theme.of(context).textTheme.bodySmall?.copyWith(
-                                    color: _buildDiaryAiModelCatalogStatusColor(
-                                      context,
-                                      diaryAiModelCatalog,
-                                    ),
-                                  ),
-                        ),
-                      ],
-                      const SizedBox(height: 16),
-                      Text(
-                        strings.diaryAiModelLabel,
-                        style: Theme.of(context).textTheme.labelLarge,
-                      ),
-                      const SizedBox(height: 10),
-                      _buildDiaryAiSelectedModelCard(
+                      _buildDiaryAiConfigurationPanels(
                         context,
-                        strings,
-                        selectedDiaryAiModelId,
-                      ),
-                      const SizedBox(height: 12),
-                      Text(
-                        strings.diaryAiModelSelectionHint,
-                        style: Theme.of(context).textTheme.bodySmall,
-                      ),
-                      const SizedBox(height: 16),
-                      Wrap(
-                        spacing: 12,
-                        runSpacing: 12,
-                        children: [
-                          CupertinoActionButton(
-                            key: const ValueKey(
-                                'settings-diary-ai-select-model'),
-                            onPressed: diaryAiModelCatalog.hasModels
-                                ? _openDiaryAiModelPicker
-                                : null,
-                            variant: CupertinoActionButtonVariant.outline,
-                            label: strings.selectDiaryAiModelAction,
-                          ),
-                          CupertinoActionButton(
-                            key: const ValueKey(
-                                'settings-diary-ai-manual-model'),
-                            onPressed: _openDiaryAiManualModelDialog,
-                            variant: CupertinoActionButtonVariant.plain,
-                            label: strings.manualDiaryAiModelAction,
-                          ),
-                        ],
-                      ),
-                      if (selectedDiaryAiModelEntry != null) ...[
-                        const SizedBox(height: 10),
-                        _buildDiaryAiModelInfoCard(
-                          context,
-                          strings,
-                          selectedDiaryAiModelEntry,
-                        ),
-                      ] else if (selectedDiaryAiModelId.isNotEmpty &&
-                          diaryAiModelCatalog.hasModels &&
-                          !_diaryAiModelCatalogStale) ...[
-                        const SizedBox(height: 10),
-                        _buildDiaryAiModelNoteCard(
-                          context,
-                          strings.diaryAiModelNotInFetchedList,
-                          const ValueKey('settings-diary-ai-model-unavailable'),
-                        ),
-                      ],
-                      const SizedBox(height: 16),
-                      Wrap(
-                        spacing: 12,
-                        runSpacing: 12,
-                        children: [
-                          CupertinoActionButton(
-                            key: const ValueKey('settings-diary-ai-reset'),
-                            onPressed: _isSavingDiaryAiConfig ||
-                                    _isResettingDiaryAiConfig
-                                ? null
-                                : _resetDiaryAiConfig,
-                            isBusy: _isResettingDiaryAiConfig,
-                            variant: CupertinoActionButtonVariant.outline,
-                            label: strings.resetDiaryAiConfig,
-                          ),
-                          CupertinoActionButton(
-                            key: const ValueKey('settings-diary-ai-save'),
-                            onPressed: _isSavingDiaryAiConfig ||
-                                    _isResettingDiaryAiConfig
-                                ? null
-                                : _saveDiaryAiConfig,
-                            isBusy: _isSavingDiaryAiConfig,
-                            label: strings.saveAction,
-                          ),
-                        ],
+                        strings: strings,
+                        resolvedDiaryAiEnvironmentApiKey:
+                            resolvedDiaryAiEnvironmentApiKey,
+                        diaryAiModelCatalog: diaryAiModelCatalog,
+                        selectedDiaryAiModelId: selectedDiaryAiModelId,
+                        selectedDiaryAiModelEntry: selectedDiaryAiModelEntry,
                       ),
                     ],
                   ),
@@ -1024,6 +827,539 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
                 child,
               ],
             ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildDiaryAiConfigurationPanels(
+    BuildContext context, {
+    required AppStrings strings,
+    required String resolvedDiaryAiEnvironmentApiKey,
+    required DiaryAiModelCatalogResult diaryAiModelCatalog,
+    required String selectedDiaryAiModelId,
+    required DiaryAiModelCatalogEntry? selectedDiaryAiModelEntry,
+  }) {
+    final statusText = _buildDiaryAiModelCatalogStatusText(
+      strings,
+      diaryAiModelCatalog,
+    );
+    final String? environmentHint = resolvedDiaryAiEnvironmentApiKey.isNotEmpty
+        ? strings.usingDiaryAiEnvironmentApiKey
+        : null;
+
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final isWide = constraints.maxWidth >= 768;
+        final spacing = isWide ? 18.0 : 16.0;
+
+        final baseUrlField = _buildDiaryAiFieldGroup(
+          context,
+          label: strings.diaryAiBaseUrlLabel,
+          child: _buildDiaryAiTextField(
+            context,
+            key: const ValueKey('settings-diary-ai-base-url'),
+            controller: _diaryAiBaseUrlController,
+            placeholder: strings.diaryAiBaseUrlHint,
+            textInputAction: TextInputAction.next,
+          ),
+        );
+
+        final apiKeyField = _buildDiaryAiFieldGroup(
+          context,
+          label: strings.diaryAiApiKeyLabel,
+          child: _buildDiaryAiTextField(
+            context,
+            key: const ValueKey('settings-diary-ai-api-key'),
+            controller: _diaryAiApiKeyController,
+            placeholder: strings.diaryAiApiKeyHint,
+            obscureText: !_showDiaryAiApiKey,
+            textInputAction: TextInputAction.next,
+            suffix: CupertinoButton(
+              padding: EdgeInsets.zero,
+              minimumSize: Size.zero,
+              onPressed: () {
+                setState(() => _showDiaryAiApiKey = !_showDiaryAiApiKey);
+              },
+              child: Padding(
+                padding: const EdgeInsets.only(right: 12),
+                child: Icon(
+                  _showDiaryAiApiKey
+                      ? CupertinoIcons.eye_slash
+                      : CupertinoIcons.eye,
+                  size: 18,
+                ),
+              ),
+            ),
+          ),
+          caption: environmentHint,
+        );
+
+        final connectionFields = Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            baseUrlField,
+            SizedBox(height: spacing),
+            apiKeyField,
+          ],
+        );
+
+        final selectedModelColumn = Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            _buildDiaryAiSelectedModelCard(
+              context,
+              strings,
+              selectedDiaryAiModelId,
+            ),
+            if (selectedDiaryAiModelEntry != null) ...[
+              const SizedBox(height: 10),
+              _buildDiaryAiModelInfoCard(
+                context,
+                strings,
+                selectedDiaryAiModelEntry,
+              ),
+            ] else if (selectedDiaryAiModelId.isNotEmpty &&
+                diaryAiModelCatalog.hasModels &&
+                !_diaryAiModelCatalogStale) ...[
+              const SizedBox(height: 10),
+              _buildDiaryAiModelNoteCard(
+                context,
+                strings.diaryAiModelNotInFetchedList,
+                const ValueKey('settings-diary-ai-model-unavailable'),
+              ),
+            ],
+          ],
+        );
+
+        final modelActions = isWide
+            ? Row(
+                children: [
+                  Expanded(
+                    child: _buildDiaryAiPanelActionButton(
+                      key: const ValueKey('settings-diary-ai-select-model'),
+                      onPressed: diaryAiModelCatalog.hasModels
+                          ? _openDiaryAiModelPicker
+                          : null,
+                      label: strings.selectDiaryAiModelAction,
+                    ),
+                  ),
+                  SizedBox(width: spacing),
+                  Expanded(
+                    child: _buildDiaryAiPanelActionButton(
+                      key: const ValueKey('settings-diary-ai-manual-model'),
+                      onPressed: _openDiaryAiManualModelDialog,
+                      label: strings.manualDiaryAiModelAction,
+                      variant: CupertinoActionButtonVariant.outline,
+                    ),
+                  ),
+                ],
+              )
+            : Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  _buildDiaryAiPanelActionButton(
+                    key: const ValueKey('settings-diary-ai-select-model'),
+                    onPressed: diaryAiModelCatalog.hasModels
+                        ? _openDiaryAiModelPicker
+                        : null,
+                    label: strings.selectDiaryAiModelAction,
+                    expand: true,
+                  ),
+                  SizedBox(height: spacing * 0.67),
+                  _buildDiaryAiPanelActionButton(
+                    key: const ValueKey('settings-diary-ai-manual-model'),
+                    onPressed: _openDiaryAiManualModelDialog,
+                    label: strings.manualDiaryAiModelAction,
+                    variant: CupertinoActionButtonVariant.outline,
+                    expand: true,
+                  ),
+                ],
+              );
+
+        final modelBody = isWide
+            ? Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Expanded(child: selectedModelColumn),
+                  SizedBox(width: spacing),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          strings.diaryAiModelSelectionHint,
+                          style: Theme.of(context).textTheme.bodySmall,
+                        ),
+                        SizedBox(height: spacing),
+                        modelActions,
+                      ],
+                    ),
+                  ),
+                ],
+              )
+            : Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  selectedModelColumn,
+                  SizedBox(height: spacing),
+                  Text(
+                    strings.diaryAiModelSelectionHint,
+                    style: Theme.of(context).textTheme.bodySmall,
+                  ),
+                  SizedBox(height: spacing),
+                  modelActions,
+                ],
+              );
+
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            _buildDiaryAiSurface(
+              context,
+              key: const ValueKey('settings-diary-ai-connection-panel'),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    strings.diaryAiCompatibilityHint,
+                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                          color: Theme.of(context).colorScheme.onSurfaceVariant,
+                          height: 1.45,
+                        ),
+                  ),
+                  SizedBox(height: spacing),
+                  _buildDiaryAiFieldGroup(
+                    context,
+                    label: strings.diaryAiProviderLabel,
+                    child: Wrap(
+                      spacing: 10,
+                      runSpacing: 10,
+                      children: DiaryAiProviderPreset.values
+                          .map(
+                            (preset) => CupertinoPill(
+                              selected: preset == _selectedDiaryAiPreset,
+                              onPressed: _isSavingDiaryAiConfig ||
+                                      _isResettingDiaryAiConfig
+                                  ? null
+                                  : () => _selectDiaryAiPreset(preset),
+                              label: ConstrainedBox(
+                                constraints: BoxConstraints(
+                                  maxWidth:
+                                      isWide ? 220 : constraints.maxWidth - 72,
+                                ),
+                                child: Text(
+                                  preset.label,
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                  softWrap: false,
+                                ),
+                              ),
+                            ),
+                          )
+                          .toList(growable: false),
+                    ),
+                  ),
+                  SizedBox(height: spacing),
+                  connectionFields,
+                ],
+              ),
+            ),
+            const SizedBox(height: 16),
+            _buildDiaryAiSurface(
+              context,
+              key: const ValueKey('settings-diary-ai-model-panel'),
+              header: isWide
+                  ? Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Expanded(
+                          child: Text(
+                            strings.diaryAiModelLabel,
+                            style: Theme.of(context)
+                                .textTheme
+                                .titleSmall
+                                ?.copyWith(fontWeight: FontWeight.w700),
+                          ),
+                        ),
+                        SizedBox(width: spacing),
+                        _buildDiaryAiPanelActionButton(
+                          key: const ValueKey('settings-diary-ai-fetch-models'),
+                          onPressed: diaryAiModelCatalog.isLoading
+                              ? null
+                              : _fetchDiaryAiModels,
+                          isBusy: diaryAiModelCatalog.isLoading,
+                          variant: CupertinoActionButtonVariant.outline,
+                          label: diaryAiModelCatalog.hasModels
+                              ? strings.refetchDiaryAiModelsAction
+                              : strings.fetchDiaryAiModelsAction,
+                        ),
+                      ],
+                    )
+                  : Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          strings.diaryAiModelLabel,
+                          style: Theme.of(context)
+                              .textTheme
+                              .titleSmall
+                              ?.copyWith(fontWeight: FontWeight.w700),
+                        ),
+                        SizedBox(height: spacing * 0.75),
+                        _buildDiaryAiPanelActionButton(
+                          key: const ValueKey('settings-diary-ai-fetch-models'),
+                          onPressed: diaryAiModelCatalog.isLoading
+                              ? null
+                              : _fetchDiaryAiModels,
+                          isBusy: diaryAiModelCatalog.isLoading,
+                          variant: CupertinoActionButtonVariant.outline,
+                          expand: true,
+                          label: diaryAiModelCatalog.hasModels
+                              ? strings.refetchDiaryAiModelsAction
+                              : strings.fetchDiaryAiModelsAction,
+                        ),
+                      ],
+                    ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  if (statusText != null) ...[
+                    _buildDiaryAiStatusBanner(
+                      context,
+                      diaryAiModelCatalog,
+                      statusText,
+                    ),
+                    SizedBox(height: spacing),
+                  ],
+                  modelBody,
+                ],
+              ),
+            ),
+            const SizedBox(height: 16),
+            SizedBox(
+              key: const ValueKey('settings-diary-ai-footer-actions'),
+              child: isWide
+                  ? Row(
+                      mainAxisAlignment: MainAxisAlignment.end,
+                      children: [
+                        _buildDiaryAiPanelActionButton(
+                          key: const ValueKey('settings-diary-ai-reset'),
+                          onPressed: _isSavingDiaryAiConfig ||
+                                  _isResettingDiaryAiConfig
+                              ? null
+                              : _resetDiaryAiConfig,
+                          isBusy: _isResettingDiaryAiConfig,
+                          variant: CupertinoActionButtonVariant.outline,
+                          label: strings.resetDiaryAiConfig,
+                        ),
+                        SizedBox(width: spacing * 0.8),
+                        _buildDiaryAiPanelActionButton(
+                          key: const ValueKey('settings-diary-ai-save'),
+                          onPressed: _isSavingDiaryAiConfig ||
+                                  _isResettingDiaryAiConfig
+                              ? null
+                              : _saveDiaryAiConfig,
+                          isBusy: _isSavingDiaryAiConfig,
+                          label: strings.saveAction,
+                        ),
+                      ],
+                    )
+                  : Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        _buildDiaryAiPanelActionButton(
+                          key: const ValueKey('settings-diary-ai-save'),
+                          onPressed: _isSavingDiaryAiConfig ||
+                                  _isResettingDiaryAiConfig
+                              ? null
+                              : _saveDiaryAiConfig,
+                          isBusy: _isSavingDiaryAiConfig,
+                          expand: true,
+                          label: strings.saveAction,
+                        ),
+                        SizedBox(height: spacing * 0.67),
+                        _buildDiaryAiPanelActionButton(
+                          key: const ValueKey('settings-diary-ai-reset'),
+                          onPressed: _isSavingDiaryAiConfig ||
+                                  _isResettingDiaryAiConfig
+                              ? null
+                              : _resetDiaryAiConfig,
+                          isBusy: _isResettingDiaryAiConfig,
+                          expand: true,
+                          variant: CupertinoActionButtonVariant.outline,
+                          label: strings.resetDiaryAiConfig,
+                        ),
+                      ],
+                    ),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  Widget _buildDiaryAiSurface(
+    BuildContext context, {
+    required Key key,
+    Widget? header,
+    required Widget child,
+  }) {
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+    final isDark = colorScheme.brightness == Brightness.dark;
+
+    return DecoratedBox(
+      key: key,
+      decoration: BoxDecoration(
+        color: theme.cardTheme.color?.withValues(alpha: isDark ? 0.72 : 0.82) ??
+            colorScheme.surface.withValues(alpha: isDark ? 0.72 : 0.82),
+        borderRadius: BorderRadius.circular(24),
+        border: Border.all(
+          color: colorScheme.outlineVariant
+              .withValues(alpha: isDark ? 0.36 : 0.24),
+        ),
+        boxShadow: isDark
+            ? null
+            : [
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: 0.04),
+                  blurRadius: 24,
+                  offset: const Offset(0, 12),
+                ),
+              ],
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(18),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            if (header != null) ...[
+              header,
+              const SizedBox(height: 16),
+            ],
+            child,
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildDiaryAiFieldGroup(
+    BuildContext context, {
+    required String label,
+    required Widget child,
+    String? caption,
+  }) {
+    final theme = Theme.of(context);
+    final normalizedCaption = caption?.trim();
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          label,
+          style: theme.textTheme.labelLarge?.copyWith(
+            fontWeight: FontWeight.w700,
+          ),
+        ),
+        const SizedBox(height: 10),
+        child,
+        if (normalizedCaption != null && normalizedCaption.isNotEmpty) ...[
+          const SizedBox(height: 10),
+          Text(
+            normalizedCaption,
+            style: theme.textTheme.bodySmall?.copyWith(
+              color: theme.colorScheme.onSurfaceVariant,
+              height: 1.4,
+            ),
+          ),
+        ],
+      ],
+    );
+  }
+
+  Widget _buildDiaryAiTextField(
+    BuildContext context, {
+    required Key key,
+    required TextEditingController controller,
+    required String placeholder,
+    required TextInputAction textInputAction,
+    bool obscureText = false,
+    Widget? suffix,
+  }) {
+    return CupertinoTextField(
+      key: key,
+      controller: controller,
+      obscureText: obscureText,
+      placeholder: placeholder,
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
+      textInputAction: textInputAction,
+      decoration: _buildDiaryAiInputDecoration(context),
+      suffix: suffix,
+    );
+  }
+
+  BoxDecoration _buildDiaryAiInputDecoration(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+    final isDark = colorScheme.brightness == Brightness.dark;
+
+    return BoxDecoration(
+      color: isDark
+          ? colorScheme.surfaceContainerHighest.withValues(alpha: 0.32)
+          : colorScheme.surface.withValues(alpha: 0.98),
+      borderRadius: BorderRadius.circular(18),
+      border: Border.all(
+        color:
+            colorScheme.outlineVariant.withValues(alpha: isDark ? 0.44 : 0.26),
+      ),
+    );
+  }
+
+  Widget _buildDiaryAiPanelActionButton({
+    Key? key,
+    required String label,
+    VoidCallback? onPressed,
+    bool isBusy = false,
+    CupertinoActionButtonVariant variant = CupertinoActionButtonVariant.filled,
+    bool expand = false,
+  }) {
+    return CupertinoActionButton(
+      key: key,
+      onPressed: onPressed,
+      isBusy: isBusy,
+      variant: variant,
+      expand: expand,
+      minHeight: 42,
+      padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 10),
+      label: label,
+    );
+  }
+
+  Widget _buildDiaryAiStatusBanner(
+    BuildContext context,
+    DiaryAiModelCatalogResult result,
+    String text,
+  ) {
+    final theme = Theme.of(context);
+    final statusColor = _buildDiaryAiModelCatalogStatusColor(context, result);
+
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        color: statusColor.withValues(alpha: 0.09),
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: statusColor.withValues(alpha: 0.16)),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+        child: Text(
+          text,
+          key: const ValueKey('settings-diary-ai-model-catalog-status'),
+          style: theme.textTheme.bodySmall?.copyWith(
+            color: statusColor,
+            fontWeight: FontWeight.w600,
+            height: 1.35,
           ),
         ),
       ),
@@ -1717,18 +2053,22 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
     final hasSelection = selectedModelId.isNotEmpty;
+    final isDark = colorScheme.brightness == Brightness.dark;
 
     return DecoratedBox(
       key: const ValueKey('settings-diary-ai-selected-model'),
       decoration: BoxDecoration(
-        color: colorScheme.surface,
-        borderRadius: BorderRadius.circular(16),
+        color: colorScheme.surfaceContainerHighest.withValues(
+          alpha: isDark ? 0.28 : 0.44,
+        ),
+        borderRadius: BorderRadius.circular(20),
         border: Border.all(
-          color: colorScheme.outlineVariant.withValues(alpha: 0.42),
+          color: colorScheme.outlineVariant
+              .withValues(alpha: isDark ? 0.32 : 0.24),
         ),
       ),
       child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -1736,9 +2076,10 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
               strings.currentDiaryAiModelLabel,
               style: theme.textTheme.labelMedium?.copyWith(
                 color: colorScheme.onSurfaceVariant,
+                fontWeight: FontWeight.w600,
               ),
             ),
-            const SizedBox(height: 6),
+            const SizedBox(height: 8),
             Text(
               hasSelection ? selectedModelId : strings.diaryAiModelNotSelected,
               key: const ValueKey('settings-diary-ai-selected-model-value'),
@@ -1762,13 +2103,14 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
   ) {
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
+    final isDark = colorScheme.brightness == Brightness.dark;
 
     return DecoratedBox(
       decoration: BoxDecoration(
-        color: colorScheme.primary.withValues(alpha: 0.06),
-        borderRadius: BorderRadius.circular(16),
+        color: colorScheme.primary.withValues(alpha: isDark ? 0.12 : 0.08),
+        borderRadius: BorderRadius.circular(18),
         border: Border.all(
-          color: colorScheme.primary.withValues(alpha: 0.12),
+          color: colorScheme.primary.withValues(alpha: isDark ? 0.22 : 0.14),
         ),
       ),
       child: Padding(
@@ -1776,7 +2118,9 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
         child: Text(
           text,
           key: key,
-          style: theme.textTheme.bodySmall,
+          style: theme.textTheme.bodySmall?.copyWith(
+            height: 1.4,
+          ),
         ),
       ),
     );
