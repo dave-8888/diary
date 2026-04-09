@@ -310,6 +310,8 @@ class AppStrings {
       : 'For example: gpt-4.1-mini / qwen-plus / gemini-2.5-flash';
   String get currentDiaryAiModelLabel =>
       isChinese ? '\u5f53\u524d\u5df2\u9009\u6a21\u578b' : 'Current model';
+  String get currentDiaryAiModelIdLabel =>
+      isChinese ? '\u6a21\u578b ID' : 'Model ID';
   String get diaryAiModelNotSelected => isChinese
       ? '\u8fd8\u672a\u9009\u62e9\u6a21\u578b'
       : 'No model selected yet';

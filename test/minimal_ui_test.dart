@@ -1701,6 +1701,18 @@ void main() {
       'gemini-1.5-pro',
     );
     expect(
+      find.byKey(const ValueKey('settings-diary-ai-selected-model-id')),
+      findsOneWidget,
+    );
+    expect(
+      tester
+          .widget<Text>(
+            find.byKey(const ValueKey('settings-diary-ai-selected-model-id')),
+          )
+          .data,
+      '${strings.currentDiaryAiModelIdLabel}${strings.isChinese ? '：' : ':'} gemini-1.5-pro',
+    );
+    expect(
       find.byKey(const ValueKey('settings-diary-ai-selected-model-type-tag')),
       findsOneWidget,
     );
@@ -1982,6 +1994,14 @@ void main() {
           )
           .data,
       'gemini-1.5-pro',
+    );
+    expect(
+      tester
+          .widget<Text>(
+            find.byKey(const ValueKey('settings-diary-ai-selected-model-id')),
+          )
+          .data,
+      '${strings.currentDiaryAiModelIdLabel}${strings.isChinese ? '：' : ':'} gemini-1.5-pro',
     );
     expect(
       find.descendant(

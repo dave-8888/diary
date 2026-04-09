@@ -2080,30 +2080,53 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
       color:
           hasSelection ? colorScheme.onSurface : colorScheme.onSurfaceVariant,
     );
-    final modelText = Wrap(
-      spacing: 6,
-      runSpacing: 4,
-      crossAxisAlignment: WrapCrossAlignment.center,
+    final modelIdLabelText = strings.isChinese
+        ? '${strings.currentDiaryAiModelIdLabel}：'
+        : '${strings.currentDiaryAiModelIdLabel}:';
+    final modelIdStyle = theme.textTheme.bodySmall?.copyWith(
+      color: colorScheme.onSurfaceVariant,
+      fontFamily: 'monospace',
+      height: 1.3,
+    );
+    final modelText = Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(labelText, style: labelStyle),
-        Text(
-          hasSelection
-              ? selectedModelDisplayText
-              : strings.diaryAiModelNotSelected,
-          key: const ValueKey('settings-diary-ai-selected-model-value'),
-          style: valueStyle,
-        ),
-        if (hasSelection && selectedModelTypeLabel != null)
-          CupertinoPill(
-            key: const ValueKey('settings-diary-ai-selected-model-type-tag'),
-            label: Text(
-              selectedModelTypeLabel,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              softWrap: false,
+        Wrap(
+          spacing: 6,
+          runSpacing: 4,
+          crossAxisAlignment: WrapCrossAlignment.center,
+          children: [
+            Text(labelText, style: labelStyle),
+            Text(
+              hasSelection
+                  ? selectedModelDisplayText
+                  : strings.diaryAiModelNotSelected,
+              key: const ValueKey('settings-diary-ai-selected-model-value'),
+              style: valueStyle,
             ),
-            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+            if (hasSelection && selectedModelTypeLabel != null)
+              CupertinoPill(
+                key:
+                    const ValueKey('settings-diary-ai-selected-model-type-tag'),
+                label: Text(
+                  selectedModelTypeLabel,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  softWrap: false,
+                ),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+              ),
+          ],
+        ),
+        if (hasSelection) ...[
+          const SizedBox(height: 8),
+          Text(
+            '$modelIdLabelText $selectedModelId',
+            key: const ValueKey('settings-diary-ai-selected-model-id'),
+            style: modelIdStyle,
           ),
+        ],
       ],
     );
     final selectModelButton = _buildDiaryAiPanelActionButton(
