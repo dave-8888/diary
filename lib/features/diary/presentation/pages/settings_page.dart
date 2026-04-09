@@ -931,7 +931,8 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
                 context,
                 selectedDiaryAiModelInfoText,
               ),
-            ] else if (selectedDiaryAiModelId.isNotEmpty &&
+            ] else if (selectedDiaryAiModelEntry == null &&
+                selectedDiaryAiModelId.isNotEmpty &&
                 diaryAiModelCatalog.hasModels &&
                 !_diaryAiModelCatalogStale) ...[
               const SizedBox(height: 10),
@@ -1774,13 +1775,14 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
     }
 
     final selectedModelId = _diaryAiModelController.text.trim();
+    final matchedSelectedEntry = result.findById(selectedModelId);
     final selectedModel = await showCupertinoModalPopup<String>(
       context: context,
       builder: (sheetContext) => _DiaryAiModelPickerSheet(
         title: context.strings.diaryAiModelPickerTitle,
         cancelLabel: context.strings.cancelAction,
         models: result.models,
-        selectedModelId: selectedModelId,
+        selectedModelId: matchedSelectedEntry?.id ?? selectedModelId,
         groupTitleBuilder: (group) => _diaryAiModelDisplayGroupTitle(
           context.strings,
           group,

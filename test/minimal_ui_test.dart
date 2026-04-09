@@ -2081,6 +2081,145 @@ void main() {
     );
   });
 
+  testWidgets('settings page treats matching catalog display name as available',
+      (tester) async {
+    final repository = FakeDiaryRepository(
+      moods: DiaryMood.values,
+    );
+    final diaryAiSettingsStorage = FakeDiaryAiSettingsStorage(
+      const DiaryAiProviderConfig(
+        presetId: 'openrouter',
+        baseUrl: 'https://openrouter.ai/api/v1/',
+        model: 'MiniMax/MiniMax-M2.5',
+        modelType: 'text',
+        modelSource: DiaryAiModelSelectionSource.catalog,
+        apiKey: 'router-key',
+      ),
+    );
+    final mockClient = MockClient((request) async {
+      return http.Response(
+        '''
+        {
+          "data": [
+            {
+              "id": "minimax/minimax-m2.5",
+              "name": "MiniMax/MiniMax-M2.5",
+              "description": "A matching catalog entry."
+            }
+          ]
+        }
+        ''',
+        200,
+      );
+    });
+
+    await pumpPage(
+      tester,
+      const SettingsPage(),
+      path: '/settings',
+      overrides: buildOverrides(
+        repository: repository,
+        diaryAiSettingsStorage: diaryAiSettingsStorage,
+        diaryAiModelCatalogHttpClient: mockClient,
+      ),
+    );
+
+    await tester.scrollUntilVisible(
+      find.text(strings.diaryAiSettingsTitle),
+      300,
+      scrollable: find.byType(Scrollable).first,
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(find.text(strings.diaryAiSettingsTitle));
+    await tester.pumpAndSettle();
+
+    await tester.scrollUntilVisible(
+      find.byKey(const ValueKey('settings-diary-ai-fetch-models')),
+      200,
+      scrollable: find.byType(Scrollable).first,
+    );
+    await tester.pumpAndSettle();
+    await tester
+        .tap(find.byKey(const ValueKey('settings-diary-ai-fetch-models')));
+    await tester.pumpAndSettle();
+
+    expect(find.text('A matching catalog entry.'), findsOneWidget);
+    expect(find.text(strings.diaryAiSavedModelNotInFetchedList), findsNothing);
+    expect(
+      find.byKey(const ValueKey('settings-diary-ai-model-unavailable')),
+      findsNothing,
+    );
+  });
+
+  testWidgets(
+      'settings page hides unavailable note when saved catalog model exists without description',
+      (tester) async {
+    final repository = FakeDiaryRepository(
+      moods: DiaryMood.values,
+    );
+    final diaryAiSettingsStorage = FakeDiaryAiSettingsStorage(
+      const DiaryAiProviderConfig(
+        presetId: 'openrouter',
+        baseUrl: 'https://openrouter.ai/api/v1/',
+        model: 'MiniMax/MiniMax-M2.5',
+        modelType: 'text',
+        modelSource: DiaryAiModelSelectionSource.catalog,
+        apiKey: 'router-key',
+      ),
+    );
+    final mockClient = MockClient((request) async {
+      return http.Response(
+        '''
+        {
+          "data": [
+            {
+              "id": "MiniMax/MiniMax-M2.5",
+              "name": "MiniMax/MiniMax-M2.5"
+            }
+          ]
+        }
+        ''',
+        200,
+      );
+    });
+
+    await pumpPage(
+      tester,
+      const SettingsPage(),
+      path: '/settings',
+      overrides: buildOverrides(
+        repository: repository,
+        diaryAiSettingsStorage: diaryAiSettingsStorage,
+        diaryAiModelCatalogHttpClient: mockClient,
+      ),
+    );
+
+    await tester.scrollUntilVisible(
+      find.text(strings.diaryAiSettingsTitle),
+      300,
+      scrollable: find.byType(Scrollable).first,
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(find.text(strings.diaryAiSettingsTitle));
+    await tester.pumpAndSettle();
+
+    await tester.scrollUntilVisible(
+      find.byKey(const ValueKey('settings-diary-ai-fetch-models')),
+      200,
+      scrollable: find.byType(Scrollable).first,
+    );
+    await tester.pumpAndSettle();
+    await tester
+        .tap(find.byKey(const ValueKey('settings-diary-ai-fetch-models')));
+    await tester.pumpAndSettle();
+
+    expect(find.text(strings.diaryAiSavedModelNotInFetchedList), findsNothing);
+    expect(
+      find.byKey(const ValueKey('settings-diary-ai-model-unavailable')),
+      findsNothing,
+    );
+  });
+
   testWidgets('settings page clears fetched models when connection changes',
       (tester) async {
     final repository = FakeDiaryRepository(

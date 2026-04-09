@@ -214,6 +214,24 @@ void main() {
       );
     });
 
+    test('findById matches normalized ids and unique display names', () {
+      const result = DiaryAiModelCatalogResult.success([
+        DiaryAiModelCatalogEntry(
+          id: 'minimax/minimax-m2.5',
+          name: 'MiniMax/MiniMax-M2.5',
+        ),
+      ]);
+
+      expect(
+        result.findById('  MiniMax / MiniMax-M2.5  ')?.id,
+        'minimax/minimax-m2.5',
+      );
+      expect(
+        result.findById('MiniMax／MiniMax-M2.5')?.id,
+        'minimax/minimax-m2.5',
+      );
+    });
+
     test('groups embedding and reranking together', () {
       expect(
         resolveDiaryAiModelDisplayGroups(

@@ -162,17 +162,45 @@ class DiaryAiModelCatalogResult {
   }
 
   DiaryAiModelCatalogEntry? findById(String id) {
-    final normalized = id.trim();
-    if (normalized.isEmpty) {
+    final rawLookup = id.trim();
+    final normalizedLookup = normalizeDiaryAiModelLookupValue(id);
+    if (rawLookup.isEmpty || normalizedLookup == null) {
       return null;
     }
+
+    DiaryAiModelCatalogEntry? normalizedNameMatch;
     for (final model in models) {
-      if (model.id == normalized) {
+      if (model.id == rawLookup) {
         return model;
       }
+      if (normalizeDiaryAiModelLookupValue(model.id) == normalizedLookup) {
+        return model;
+      }
+      final modelName = model.name;
+      if (modelName == null ||
+          normalizeDiaryAiModelLookupValue(modelName) != normalizedLookup) {
+        continue;
+      }
+      if (normalizedNameMatch != null) {
+        return null;
+      }
+      normalizedNameMatch = model;
     }
+    return normalizedNameMatch;
+  }
+}
+
+String? normalizeDiaryAiModelLookupValue(String? raw) {
+  final trimmed = raw?.trim();
+  if (trimmed == null || trimmed.isEmpty) {
     return null;
   }
+
+  return trimmed
+      .replaceAll('／', '/')
+      .replaceAll(RegExp(r'\s*/\s*'), '/')
+      .replaceAll(RegExp(r'\s+'), ' ')
+      .toLowerCase();
 }
 
 List<DiaryAiModelDisplayGroup> resolveDiaryAiModelDisplayGroups(
