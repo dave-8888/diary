@@ -988,11 +988,6 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text(
-                          strings.diaryAiModelSelectionHint,
-                          style: Theme.of(context).textTheme.bodySmall,
-                        ),
-                        SizedBox(height: spacing),
                         modelActions,
                       ],
                     ),
@@ -1003,11 +998,6 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   selectedModelColumn,
-                  SizedBox(height: spacing),
-                  Text(
-                    strings.diaryAiModelSelectionHint,
-                    style: Theme.of(context).textTheme.bodySmall,
-                  ),
                   SizedBox(height: spacing),
                   modelActions,
                 ],

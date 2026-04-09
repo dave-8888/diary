@@ -303,13 +303,11 @@ class AppStrings {
   String get diaryAiBaseUrlHint => isChinese
       ? '\u4f8b\u5982\uff1ahttps://api.openai.com/v1/'
       : 'For example: https://api.openai.com/v1/';
-  String get diaryAiModelLabel => isChinese ? '\u6a21\u578b ID' : 'Model ID';
+  String get diaryAiModelLabel =>
+      isChinese ? '\u9009\u62e9\u6a21\u578b' : 'Select model';
   String get diaryAiModelHint => isChinese
       ? '\u4f8b\u5982\uff1agpt-4.1-mini / qwen-plus / gemini-2.5-flash'
       : 'For example: gpt-4.1-mini / qwen-plus / gemini-2.5-flash';
-  String get diaryAiModelSelectionHint => isChinese
-      ? '\u53ef\u4ee5\u5148\u83b7\u53d6\u6a21\u578b\u5217\u8868\uff0c\u518d\u6309\u7c7b\u578b\u9009\u62e9\uff1b\u5982\u679c\u9700\u8981\uff0c\u4e5f\u53ef\u4ee5\u624b\u52a8\u8f93\u5165\u6a21\u578b ID\u3002'
-      : 'Fetch the available models first to choose by category, or enter a model ID manually when needed.';
   String get currentDiaryAiModelLabel =>
       isChinese ? '\u5f53\u524d\u5df2\u9009\u6a21\u578b' : 'Current model';
   String get diaryAiModelNotSelected => isChinese
@@ -318,17 +316,17 @@ class AppStrings {
   String get selectDiaryAiModelAction =>
       isChinese ? '\u9009\u62e9\u6a21\u578b' : 'Choose model';
   String get manualDiaryAiModelAction => isChinese
-      ? '\u624b\u52a8\u8f93\u5165\u6a21\u578b ID'
-      : 'Enter model ID manually';
+      ? '\u624b\u52a8\u8f93\u5165\u6a21\u578b\u540d\u79f0'
+      : 'Enter model name manually';
   String get diaryAiManualModelDialogTitle => isChinese
-      ? '\u624b\u52a8\u8f93\u5165\u6a21\u578b ID'
-      : 'Enter model ID manually';
+      ? '\u624b\u52a8\u8f93\u5165\u6a21\u578b\u540d\u79f0'
+      : 'Enter model name manually';
   String get diaryAiManualModelDialogHint => isChinese
-      ? '\u8f93\u5165\u4e00\u4e2a\u5b8c\u6574\u7684\u6a21\u578b ID\uff0c\u4f8b\u5982\uff1agpt-4.1-mini'
-      : 'Enter a full model ID, for example: gpt-4.1-mini';
+      ? '\u8f93\u5165\u4e00\u4e2a\u5b8c\u6574\u7684\u6a21\u578b\u540d\u79f0\uff0c\u4f8b\u5982\uff1agpt-4.1-mini'
+      : 'Enter a full model name, for example: gpt-4.1-mini';
   String get diaryAiManualModelMissing => isChinese
-      ? '\u8bf7\u5148\u8f93\u5165\u6a21\u578b ID\u3002'
-      : 'Enter a model ID first.';
+      ? '\u8bf7\u5148\u8f93\u5165\u6a21\u578b\u540d\u79f0\u3002'
+      : 'Enter a model name first.';
   String get diaryAiModelNotInFetchedList => isChinese
       ? '\u5f53\u524d\u6a21\u578b\u4e0d\u5728\u5df2\u83b7\u53d6\u7684\u5217\u8868\u4e2d\uff0c\u53ef\u80fd\u662f\u624b\u52a8\u8f93\u5165\u6216\u9700\u8981\u91cd\u65b0\u83b7\u53d6\u3002'
       : 'The current model is not in the fetched list. It may have been entered manually or require refetching.';
