@@ -2298,15 +2298,60 @@ class _DiaryAiModelPickerSheet extends StatefulWidget {
 }
 
 class _DiaryAiModelPickerSheetState extends State<_DiaryAiModelPickerSheet> {
-  final Set<DiaryAiModelDisplayGroup> _expandedGroups =
-      <DiaryAiModelDisplayGroup>{};
+  DiaryAiModelDisplayGroup? _activeGroup;
 
-  void _toggleGroup(DiaryAiModelDisplayGroup group) {
-    setState(() {
-      if (!_expandedGroups.add(group)) {
-        _expandedGroups.remove(group);
+  @override
+  void initState() {
+    super.initState();
+    _activeGroup = _resolveInitialGroup();
+  }
+
+  List<DiaryAiModelDisplayGroup> _visibleGroups() {
+    return DiaryAiModelDisplayGroup.values
+        .where(
+          (group) => widget.models.any(
+            (model) => model.displayGroups.contains(group),
+          ),
+        )
+        .toList(growable: false);
+  }
+
+  List<DiaryAiModelCatalogEntry> _modelsForGroup(
+    DiaryAiModelDisplayGroup group,
+  ) {
+    return widget.models
+        .where((model) => model.displayGroups.contains(group))
+        .toList(growable: false);
+  }
+
+  DiaryAiModelDisplayGroup? _resolveInitialGroup() {
+    final visibleGroups = _visibleGroups();
+    if (visibleGroups.isEmpty) {
+      return null;
+    }
+
+    final selectedModelId = widget.selectedModelId.trim();
+    if (selectedModelId.isNotEmpty) {
+      for (final model in widget.models) {
+        if (model.id != selectedModelId) {
+          continue;
+        }
+        for (final group in model.displayGroups) {
+          if (visibleGroups.contains(group)) {
+            return group;
+          }
+        }
       }
-    });
+    }
+
+    return visibleGroups.first;
+  }
+
+  void _activateGroup(DiaryAiModelDisplayGroup group) {
+    if (_activeGroup == group) {
+      return;
+    }
+    setState(() => _activeGroup = group);
   }
 
   @override
@@ -2314,116 +2359,12 @@ class _DiaryAiModelPickerSheetState extends State<_DiaryAiModelPickerSheet> {
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
     final maxContentHeight = MediaQuery.sizeOf(context).height * 0.58;
-    final sections = DiaryAiModelDisplayGroup.values
-        .map((group) {
-          final groupModels = widget.models
-              .where((model) => model.displayGroups.contains(group))
-              .toList(growable: false);
-          if (groupModels.isEmpty) {
-            return null;
-          }
-
-          final expanded = _expandedGroups.contains(group);
-          return Container(
-            key: ValueKey('settings-diary-ai-model-group-${group.name}'),
-            margin: const EdgeInsets.only(bottom: 14),
-            decoration: BoxDecoration(
-              color: colorScheme.surface.withValues(alpha: 0.78),
-              borderRadius: BorderRadius.circular(20),
-              border: Border.all(
-                color: colorScheme.outlineVariant.withValues(alpha: 0.24),
-              ),
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                CupertinoButton(
-                  key: ValueKey('settings-diary-ai-model-toggle-${group.name}'),
-                  padding: EdgeInsets.zero,
-                  minimumSize: Size.zero,
-                  onPressed: () => _toggleGroup(group),
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 14,
-                      vertical: 12,
-                    ),
-                    child: Row(
-                      children: [
-                        Expanded(
-                          child: Text(
-                            widget.groupTitleBuilder(group),
-                            style: theme.textTheme.labelLarge?.copyWith(
-                              color: colorScheme.onSurfaceVariant,
-                              fontWeight: FontWeight.w600,
-                            ),
-                          ),
-                        ),
-                        Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 8,
-                            vertical: 3,
-                          ),
-                          decoration: BoxDecoration(
-                            color: colorScheme.surfaceContainerHighest
-                                .withValues(alpha: 0.7),
-                            borderRadius: BorderRadius.circular(999),
-                          ),
-                          child: Text(
-                            '${groupModels.length}',
-                            style: theme.textTheme.labelSmall?.copyWith(
-                              color: colorScheme.onSurfaceVariant,
-                              fontWeight: FontWeight.w600,
-                            ),
-                          ),
-                        ),
-                        const SizedBox(width: 10),
-                        Icon(
-                          expanded
-                              ? CupertinoIcons.chevron_down
-                              : CupertinoIcons.chevron_right,
-                          size: 16,
-                          color: colorScheme.onSurfaceVariant,
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-                if (expanded) ...[
-                  Divider(
-                    height: 1,
-                    thickness: 1,
-                    color: colorScheme.outlineVariant.withValues(alpha: 0.18),
-                  ),
-                  Padding(
-                    padding: const EdgeInsets.all(12),
-                    child: Wrap(
-                      key: ValueKey(
-                        'settings-diary-ai-model-group-content-${group.name}',
-                      ),
-                      spacing: 8,
-                      runSpacing: 8,
-                      children: groupModels
-                          .map(
-                            (model) => _DiaryAiModelPickerTag(
-                              label: model.name ?? model.id,
-                              selected: model.id == widget.selectedModelId,
-                              valueKey: ValueKey(
-                                'settings-diary-ai-model-option-${group.name}-${model.id}',
-                              ),
-                              onPressed: () =>
-                                  Navigator.of(context).pop(model.id),
-                            ),
-                          )
-                          .toList(growable: false),
-                    ),
-                  ),
-                ],
-              ],
-            ),
-          );
-        })
-        .whereType<Widget>()
-        .toList(growable: false);
+    final visibleGroups = _visibleGroups();
+    final activeGroup = visibleGroups.contains(_activeGroup)
+        ? _activeGroup!
+        : visibleGroups.first;
+    final activeModels = _modelsForGroup(activeGroup);
+    final contentHeight = maxContentHeight > 360 ? 360.0 : maxContentHeight;
 
     return SafeArea(
       top: false,
@@ -2466,21 +2407,234 @@ class _DiaryAiModelPickerSheetState extends State<_DiaryAiModelPickerSheet> {
                       ],
                     ),
                     const SizedBox(height: 8),
-                    ConstrainedBox(
-                      constraints: BoxConstraints(maxHeight: maxContentHeight),
-                      child: SingleChildScrollView(
-                        key: const ValueKey('settings-diary-ai-model-tags'),
-                        child: Column(
-                          mainAxisSize: MainAxisSize.min,
-                          children: sections
-                              .map(
-                                (section) => Padding(
-                                  padding: const EdgeInsets.only(bottom: 2),
-                                  child: section,
+                    SizedBox(
+                      key: const ValueKey('settings-diary-ai-model-tags'),
+                      height: contentHeight,
+                      child: Row(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
+                          SizedBox(
+                            width: 132,
+                            child: DecoratedBox(
+                              decoration: BoxDecoration(
+                                color: colorScheme.surface.withValues(
+                                  alpha: 0.82,
                                 ),
-                              )
-                              .toList(growable: false),
-                        ),
+                                borderRadius: BorderRadius.circular(20),
+                                border: Border.all(
+                                  color: colorScheme.outlineVariant.withValues(
+                                    alpha: 0.24,
+                                  ),
+                                ),
+                              ),
+                              child: SingleChildScrollView(
+                                padding: const EdgeInsets.all(8),
+                                child: Column(
+                                  crossAxisAlignment:
+                                      CrossAxisAlignment.stretch,
+                                  children: visibleGroups.map((group) {
+                                    final groupModels = _modelsForGroup(group);
+                                    final isActive = group == activeGroup;
+                                    return Padding(
+                                      key: ValueKey(
+                                        'settings-diary-ai-model-group-${group.name}',
+                                      ),
+                                      padding: const EdgeInsets.only(
+                                        bottom: 8,
+                                      ),
+                                      child: CupertinoButton(
+                                        key: ValueKey(
+                                          'settings-diary-ai-model-toggle-${group.name}',
+                                        ),
+                                        padding: EdgeInsets.zero,
+                                        minimumSize: Size.zero,
+                                        onPressed: () => _activateGroup(group),
+                                        child: DecoratedBox(
+                                          decoration: BoxDecoration(
+                                            color: isActive
+                                                ? colorScheme.primary
+                                                    .withValues(alpha: 0.12)
+                                                : colorScheme
+                                                    .surfaceContainerHighest
+                                                    .withValues(
+                                                    alpha: 0.45,
+                                                  ),
+                                            borderRadius:
+                                                BorderRadius.circular(16),
+                                            border: Border.all(
+                                              color: isActive
+                                                  ? colorScheme.primary
+                                                  : colorScheme.outlineVariant
+                                                      .withValues(
+                                                      alpha: 0.2,
+                                                    ),
+                                              width: isActive ? 1.2 : 1,
+                                            ),
+                                          ),
+                                          child: Padding(
+                                            padding: const EdgeInsets.symmetric(
+                                              horizontal: 10,
+                                              vertical: 10,
+                                            ),
+                                            child: Row(
+                                              children: [
+                                                Expanded(
+                                                  child: Text(
+                                                    widget.groupTitleBuilder(
+                                                      group,
+                                                    ),
+                                                    style: theme
+                                                        .textTheme.labelMedium
+                                                        ?.copyWith(
+                                                      color: isActive
+                                                          ? colorScheme.primary
+                                                          : colorScheme
+                                                              .onSurfaceVariant,
+                                                      fontWeight: isActive
+                                                          ? FontWeight.w700
+                                                          : FontWeight.w600,
+                                                    ),
+                                                  ),
+                                                ),
+                                                const SizedBox(width: 8),
+                                                Container(
+                                                  padding: const EdgeInsets
+                                                      .symmetric(
+                                                    horizontal: 6,
+                                                    vertical: 2,
+                                                  ),
+                                                  decoration: BoxDecoration(
+                                                    color: isActive
+                                                        ? colorScheme.primary
+                                                            .withValues(
+                                                            alpha: 0.14,
+                                                          )
+                                                        : colorScheme.surface,
+                                                    borderRadius:
+                                                        BorderRadius.circular(
+                                                            999),
+                                                  ),
+                                                  child: Text(
+                                                    '${groupModels.length}',
+                                                    style: theme
+                                                        .textTheme.labelSmall
+                                                        ?.copyWith(
+                                                      color: isActive
+                                                          ? colorScheme.primary
+                                                          : colorScheme
+                                                              .onSurfaceVariant,
+                                                      fontWeight:
+                                                          FontWeight.w700,
+                                                    ),
+                                                  ),
+                                                ),
+                                              ],
+                                            ),
+                                          ),
+                                        ),
+                                      ),
+                                    );
+                                  }).toList(growable: false),
+                                ),
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: DecoratedBox(
+                              decoration: BoxDecoration(
+                                color: colorScheme.surface.withValues(
+                                  alpha: 0.82,
+                                ),
+                                borderRadius: BorderRadius.circular(20),
+                                border: Border.all(
+                                  color: colorScheme.outlineVariant.withValues(
+                                    alpha: 0.24,
+                                  ),
+                                ),
+                              ),
+                              child: SingleChildScrollView(
+                                padding: const EdgeInsets.all(12),
+                                child: LayoutBuilder(
+                                  builder: (context, constraints) {
+                                    return Column(
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
+                                      children: [
+                                        Row(
+                                          children: [
+                                            Expanded(
+                                              child: Text(
+                                                widget.groupTitleBuilder(
+                                                  activeGroup,
+                                                ),
+                                                style: theme
+                                                    .textTheme.titleSmall
+                                                    ?.copyWith(
+                                                  fontWeight: FontWeight.w700,
+                                                ),
+                                              ),
+                                            ),
+                                            Container(
+                                              padding:
+                                                  const EdgeInsets.symmetric(
+                                                horizontal: 8,
+                                                vertical: 3,
+                                              ),
+                                              decoration: BoxDecoration(
+                                                color: colorScheme
+                                                    .surfaceContainerHighest
+                                                    .withValues(alpha: 0.7),
+                                                borderRadius:
+                                                    BorderRadius.circular(999),
+                                              ),
+                                              child: Text(
+                                                '${activeModels.length}',
+                                                style: theme
+                                                    .textTheme.labelSmall
+                                                    ?.copyWith(
+                                                  color: colorScheme
+                                                      .onSurfaceVariant,
+                                                  fontWeight: FontWeight.w700,
+                                                ),
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                        const SizedBox(height: 12),
+                                        Wrap(
+                                          key: ValueKey(
+                                            'settings-diary-ai-model-group-content-${activeGroup.name}',
+                                          ),
+                                          spacing: 8,
+                                          runSpacing: 8,
+                                          children: activeModels
+                                              .map(
+                                                (model) =>
+                                                    _DiaryAiModelPickerTag(
+                                                  label: model.name ?? model.id,
+                                                  selected: model.id ==
+                                                      widget.selectedModelId,
+                                                  maxWidth:
+                                                      constraints.maxWidth,
+                                                  valueKey: ValueKey(
+                                                    'settings-diary-ai-model-option-${activeGroup.name}-${model.id}',
+                                                  ),
+                                                  onPressed: () =>
+                                                      Navigator.of(context)
+                                                          .pop(model.id),
+                                                ),
+                                              )
+                                              .toList(growable: false),
+                                        ),
+                                      ],
+                                    );
+                                  },
+                                ),
+                              ),
+                            ),
+                          ),
+                        ],
                       ),
                     ),
                   ],
@@ -2498,12 +2652,14 @@ class _DiaryAiModelPickerTag extends StatelessWidget {
   const _DiaryAiModelPickerTag({
     required this.label,
     required this.selected,
+    required this.maxWidth,
     required this.valueKey,
     required this.onPressed,
   });
 
   final String label;
   final bool selected;
+  final double maxWidth;
   final Key valueKey;
   final VoidCallback onPressed;
 
@@ -2511,7 +2667,7 @@ class _DiaryAiModelPickerTag extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
-    final maxTagWidth = MediaQuery.sizeOf(context).width * 0.68;
+    final maxTagWidth = maxWidth;
     final maxLabelWidth = maxTagWidth - (selected ? 60 : 32);
 
     return CupertinoButton(
