@@ -162,9 +162,7 @@ class DiaryAiService {
   DiaryAiProviderConfig _withEnvironmentFallbacks(
     DiaryAiProviderConfig config,
   ) {
-    final environmentApiKey = diaryAiEnvironmentApiKey.trim().isNotEmpty
-        ? diaryAiEnvironmentApiKey.trim()
-        : legacyDiaryAiEnvironmentApiKey.trim();
+    final environmentApiKey = _ref.read(diaryAiEnvironmentApiKeyProvider);
     if (config.normalizedApiKey != null || environmentApiKey.isEmpty) {
       return config;
     }

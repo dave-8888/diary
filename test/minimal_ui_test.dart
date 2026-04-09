@@ -2,6 +2,7 @@ import 'dart:io';
 
 import 'package:diary_mvp/app/app_display_name.dart';
 import 'package:diary_mvp/app/app_icon.dart';
+import 'package:diary_mvp/app/cupertino_kit.dart';
 import 'package:diary_mvp/app/localization/app_locale.dart';
 import 'package:diary_mvp/app/localization/app_strings.dart';
 import 'package:diary_mvp/app/startup_lock_gate.dart';
@@ -20,6 +21,7 @@ import 'package:diary_mvp/features/diary/presentation/widgets/entry_list_preview
 import 'package:diary_mvp/features/diary/presentation/widgets/entry_readonly_view.dart';
 import 'package:diary_mvp/features/diary/presentation/widgets/image_media_grid.dart';
 import 'package:diary_mvp/features/diary/presentation/widgets/tag_multi_select_dropdown.dart';
+import 'package:diary_mvp/features/diary/services/diary_ai_model_catalog_service.dart';
 import 'package:diary_mvp/features/diary/services/diary_ai_settings.dart';
 import 'package:diary_mvp/features/diary/services/diary_list_settings.dart';
 import 'package:diary_mvp/features/diary/services/hidden_diary_settings.dart';
@@ -32,6 +34,8 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:go_router/go_router.dart';
+import 'package:http/http.dart' as http;
+import 'package:http/testing.dart';
 
 void main() {
   const strings = AppStrings(Locale('en'));
@@ -1276,11 +1280,239 @@ void main() {
     expect(find.text(strings.diaryAiModelLabel), findsOneWidget);
   });
 
-  testWidgets('settings page saves diary AI provider config', (tester) async {
+  testWidgets('settings page places diary AI API key above model selector',
+      (tester) async {
+    final repository = FakeDiaryRepository(
+      moods: DiaryMood.values,
+    );
+
+    await pumpPage(
+      tester,
+      const SettingsPage(),
+      path: '/settings',
+      overrides: buildOverrides(repository: repository),
+    );
+
+    await tester.scrollUntilVisible(
+      find.text(strings.diaryAiSettingsTitle),
+      300,
+      scrollable: find.byType(Scrollable).first,
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(find.text(strings.diaryAiSettingsTitle));
+    await tester.pumpAndSettle();
+
+    final apiKeyRect = tester.getRect(
+      find.byKey(const ValueKey('settings-diary-ai-api-key')),
+    );
+    final modelRect = tester.getRect(
+      find.byKey(const ValueKey('settings-diary-ai-selected-model')),
+    );
+
+    expect(apiKeyRect.top, lessThan(modelRect.top));
+    expect(
+      find.byKey(const ValueKey('settings-diary-ai-select-model')),
+      findsOneWidget,
+    );
+    expect(
+      find.byKey(const ValueKey('settings-diary-ai-manual-model')),
+      findsOneWidget,
+    );
+  });
+
+  testWidgets('settings page fetches diary AI models and lets user pick one',
+      (tester) async {
+    final repository = FakeDiaryRepository(
+      moods: DiaryMood.values,
+    );
+    final mockClient = MockClient((request) async {
+      expect(
+        request.url.toString(),
+        'https://generativelanguage.googleapis.com/v1beta/openai/models',
+      );
+      expect(request.headers['authorization'], 'Bearer gem-key');
+      await Future<void>.delayed(const Duration(milliseconds: 50));
+      return http.Response(
+        '''
+        {
+          "data": [
+            {
+              "id": "gemini-1.5-pro",
+              "description": "Balanced multimodal Gemini model.",
+              "architecture": {
+                "input_modalities": ["text", "image"],
+                "output_modalities": ["text"]
+              }
+            },
+            {"id": "gemini-2.0-flash"}
+          ]
+        }
+        ''',
+        200,
+      );
+    });
+
+    await pumpPage(
+      tester,
+      const SettingsPage(),
+      path: '/settings',
+      overrides: buildOverrides(
+        repository: repository,
+        diaryAiModelCatalogHttpClient: mockClient,
+      ),
+    );
+
+    await tester.scrollUntilVisible(
+      find.text(strings.diaryAiSettingsTitle),
+      300,
+      scrollable: find.byType(Scrollable).first,
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(find.text(strings.diaryAiSettingsTitle));
+    await tester.pumpAndSettle();
+
+    await tester.scrollUntilVisible(
+      find.text(DiaryAiProviderPreset.gemini.label),
+      200,
+      scrollable: find.byType(Scrollable).first,
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(find.text(DiaryAiProviderPreset.gemini.label));
+    await tester.pumpAndSettle();
+
+    await tester.enterText(
+      find.byKey(const ValueKey('settings-diary-ai-api-key')),
+      'gem-key',
+    );
+    await tester.scrollUntilVisible(
+      find.byKey(const ValueKey('settings-diary-ai-fetch-models')),
+      200,
+      scrollable: find.byType(Scrollable).first,
+    );
+    await tester.pumpAndSettle();
+    await tester
+        .tap(find.byKey(const ValueKey('settings-diary-ai-fetch-models')));
+    await tester.pump();
+
+    expect(find.text(strings.diaryAiModelCatalogLoading), findsOneWidget);
+
+    await tester.pumpAndSettle();
+
+    expect(find.text(strings.diaryAiModelCatalogLoaded(2)), findsOneWidget);
+    expect(
+      tester
+          .widget<CupertinoActionButton>(
+            find.byKey(const ValueKey('settings-diary-ai-select-model')),
+          )
+          .onPressed,
+      isNotNull,
+    );
+
+    await tester
+        .tap(find.byKey(const ValueKey('settings-diary-ai-select-model')));
+    await tester.pumpAndSettle();
+    expect(
+      find.byKey(const ValueKey('settings-diary-ai-model-tags')),
+      findsOneWidget,
+    );
+    expect(
+      find.byKey(const ValueKey('settings-diary-ai-model-group-multimodal')),
+      findsOneWidget,
+    );
+    expect(
+      find.byKey(const ValueKey('settings-diary-ai-model-group-text')),
+      findsOneWidget,
+    );
+    expect(
+      find.textContaining('Balanced multimodal Gemini model.'),
+      findsWidgets,
+    );
+    expect(
+      find.textContaining('Multimodal · Text · Image input'),
+      findsWidgets,
+    );
+
+    expect(
+      find.descendant(
+        of: find
+            .byKey(const ValueKey('settings-diary-ai-model-group-multimodal')),
+        matching: find.text('gemini-1.5-pro'),
+      ),
+      findsOneWidget,
+    );
+    expect(
+      find.descendant(
+        of: find.byKey(const ValueKey('settings-diary-ai-model-group-text')),
+        matching: find.text('gemini-1.5-pro'),
+      ),
+      findsOneWidget,
+    );
+
+    expect(
+      find.byKey(const ValueKey('settings-diary-ai-model-group-image')),
+      findsOneWidget,
+    );
+    expect(
+      find.descendant(
+        of: find.byKey(const ValueKey('settings-diary-ai-model-group-image')),
+        matching: find.text('gemini-1.5-pro'),
+      ),
+      findsOneWidget,
+    );
+
+    await tester.ensureVisible(
+      find.byKey(
+        const ValueKey('settings-diary-ai-model-option-image-gemini-1.5-pro'),
+      ),
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(
+      find.byKey(
+        const ValueKey('settings-diary-ai-model-option-image-gemini-1.5-pro'),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(
+      find.descendant(
+        of: find.byKey(const ValueKey('settings-diary-ai-selected-model')),
+        matching: find.text('gemini-1.5-pro'),
+      ),
+      findsOneWidget,
+    );
+    expect(
+      find.byKey(const ValueKey('settings-diary-ai-selected-model-value')),
+      findsOneWidget,
+    );
+    expect(
+      tester
+          .widget<Text>(
+            find.byKey(
+                const ValueKey('settings-diary-ai-selected-model-value')),
+          )
+          .data,
+      'gemini-1.5-pro',
+    );
+    expect(
+      find.byKey(const ValueKey('settings-diary-ai-model-info')),
+      findsOneWidget,
+    );
+    expect(
+      find.textContaining('Balanced multimodal Gemini model.'),
+      findsOneWidget,
+    );
+  });
+
+  testWidgets(
+      'settings page saves diary AI provider config after fetch failure',
+      (tester) async {
     final repository = FakeDiaryRepository(
       moods: DiaryMood.values,
     );
     final diaryAiSettingsStorage = FakeDiaryAiSettingsStorage();
+    final mockClient = MockClient((request) async {
+      return http.Response('{"error":"invalid key"}', 401);
+    });
 
     await pumpPage(
       tester,
@@ -1289,6 +1521,7 @@ void main() {
       overrides: buildOverrides(
         repository: repository,
         diaryAiSettingsStorage: diaryAiSettingsStorage,
+        diaryAiModelCatalogHttpClient: mockClient,
       ),
     );
 
@@ -1311,38 +1544,258 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(
-      tester
-          .widget<TextField>(
-            find.byKey(const ValueKey('settings-diary-ai-base-url')),
-          )
-          .controller!
-          .text,
+      cupertinoTextFieldController(
+        tester,
+        const ValueKey('settings-diary-ai-base-url'),
+      ).text,
       DiaryAiProviderPreset.gemini.defaultBaseUrl,
     );
     expect(
       tester
-          .widget<TextField>(
-            find.byKey(const ValueKey('settings-diary-ai-model')),
+          .widget<Text>(
+            find.byKey(
+                const ValueKey('settings-diary-ai-selected-model-value')),
           )
-          .controller!
-          .text,
+          .data,
       DiaryAiProviderPreset.gemini.defaultModel,
+    );
+    expect(
+      tester
+          .widget<CupertinoActionButton>(
+            find.byKey(const ValueKey('settings-diary-ai-select-model')),
+          )
+          .onPressed,
+      isNull,
+    );
+    expect(
+      tester
+          .widget<CupertinoActionButton>(
+            find.byKey(const ValueKey('settings-diary-ai-manual-model')),
+          )
+          .onPressed,
+      isNotNull,
     );
 
     await tester.enterText(
       find.byKey(const ValueKey('settings-diary-ai-api-key')),
-      'gem-key',
+      'bad-key',
     );
+    await tester.scrollUntilVisible(
+      find.byKey(const ValueKey('settings-diary-ai-fetch-models')),
+      200,
+      scrollable: find.byType(Scrollable).first,
+    );
+    await tester.pumpAndSettle();
+    await tester
+        .tap(find.byKey(const ValueKey('settings-diary-ai-fetch-models')));
+    await tester.pumpAndSettle();
+
+    expect(find.text(strings.diaryAiModelCatalogApiKeyInvalid), findsOneWidget);
+
+    await tester
+        .tap(find.byKey(const ValueKey('settings-diary-ai-manual-model')));
+    await tester.pumpAndSettle();
+    expect(
+      find.byKey(const ValueKey('settings-diary-ai-manual-model-field')),
+      findsOneWidget,
+    );
+    await tester.enterText(
+      find.byKey(const ValueKey('settings-diary-ai-manual-model-field')),
+      'gemini-custom',
+    );
+    await tester.tap(
+      find.byKey(const ValueKey('settings-diary-ai-manual-model-submit')),
+    );
+    await tester.pumpAndSettle();
+    expect(
+      tester
+          .widget<Text>(
+            find.byKey(
+                const ValueKey('settings-diary-ai-selected-model-value')),
+          )
+          .data,
+      'gemini-custom',
+    );
+    await tester.scrollUntilVisible(
+      find.byKey(const ValueKey('settings-diary-ai-save')),
+      200,
+      scrollable: find.byType(Scrollable).first,
+    );
+    await tester.pumpAndSettle();
     await tester.tap(find.byKey(const ValueKey('settings-diary-ai-save')));
     await tester.pumpAndSettle();
 
     final saved = await diaryAiSettingsStorage.readConfig();
     expect(saved.preset, DiaryAiProviderPreset.gemini);
     expect(
-        saved.normalizedBaseUrl, DiaryAiProviderPreset.gemini.defaultBaseUrl);
-    expect(saved.normalizedModel, DiaryAiProviderPreset.gemini.defaultModel);
-    expect(saved.normalizedApiKey, 'gem-key');
+      saved.normalizedBaseUrl,
+      DiaryAiProviderPreset.gemini.defaultBaseUrl,
+    );
+    expect(saved.normalizedModel, 'gemini-custom');
+    expect(saved.normalizedApiKey, 'bad-key');
     expect(find.text(strings.diaryAiConfigUpdated), findsOneWidget);
+  });
+
+  testWidgets('settings page clears fetched models when connection changes',
+      (tester) async {
+    final repository = FakeDiaryRepository(
+      moods: DiaryMood.values,
+    );
+    final mockClient = MockClient((request) async {
+      return http.Response(
+        '''
+        {
+          "data": [
+            {"id": "qwen-max"},
+            {"id": "qwen-plus"}
+          ]
+        }
+        ''',
+        200,
+      );
+    });
+
+    await pumpPage(
+      tester,
+      const SettingsPage(),
+      path: '/settings',
+      overrides: buildOverrides(
+        repository: repository,
+        diaryAiModelCatalogHttpClient: mockClient,
+      ),
+    );
+
+    await tester.scrollUntilVisible(
+      find.text(strings.diaryAiSettingsTitle),
+      300,
+      scrollable: find.byType(Scrollable).first,
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(find.text(strings.diaryAiSettingsTitle));
+    await tester.pumpAndSettle();
+
+    await tester.enterText(
+      find.byKey(const ValueKey('settings-diary-ai-api-key')),
+      'dash-key',
+    );
+    await tester.scrollUntilVisible(
+      find.byKey(const ValueKey('settings-diary-ai-fetch-models')),
+      200,
+      scrollable: find.byType(Scrollable).first,
+    );
+    await tester.pumpAndSettle();
+    await tester
+        .tap(find.byKey(const ValueKey('settings-diary-ai-fetch-models')));
+    await tester.pumpAndSettle();
+
+    expect(find.text(strings.diaryAiModelCatalogLoaded(2)), findsOneWidget);
+    expect(
+      tester
+          .widget<CupertinoActionButton>(
+            find.byKey(const ValueKey('settings-diary-ai-select-model')),
+          )
+          .onPressed,
+      isNotNull,
+    );
+
+    await tester
+        .tap(find.byKey(const ValueKey('settings-diary-ai-select-model')));
+    await tester.pumpAndSettle();
+    await tester.tap(
+      find.byKey(
+        const ValueKey('settings-diary-ai-model-option-text-qwen-max'),
+      ),
+    );
+    await tester.pumpAndSettle();
+    expect(
+      tester
+          .widget<Text>(
+            find.byKey(
+                const ValueKey('settings-diary-ai-selected-model-value')),
+          )
+          .data,
+      'qwen-max',
+    );
+
+    await tester.enterText(
+      find.byKey(const ValueKey('settings-diary-ai-base-url')),
+      'https://dashscope.aliyuncs.com/compatible-mode/v1/custom',
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text(strings.diaryAiModelCatalogStale), findsOneWidget);
+    expect(
+      tester
+          .widget<CupertinoActionButton>(
+            find.byKey(const ValueKey('settings-diary-ai-select-model')),
+          )
+          .onPressed,
+      isNull,
+    );
+    expect(
+      tester
+          .widget<Text>(
+            find.byKey(
+                const ValueKey('settings-diary-ai-selected-model-value')),
+          )
+          .data,
+      'qwen-max',
+    );
+  });
+
+  testWidgets(
+      'settings page uses environment diary AI key when fetching models',
+      (tester) async {
+    final repository = FakeDiaryRepository(
+      moods: DiaryMood.values,
+    );
+    final mockClient = MockClient((request) async {
+      expect(request.headers['authorization'], 'Bearer env-key');
+      return http.Response(
+        '''
+        {
+          "data": [
+            {"id": "qwen-plus"}
+          ]
+        }
+        ''',
+        200,
+      );
+    });
+
+    await pumpPage(
+      tester,
+      const SettingsPage(),
+      path: '/settings',
+      overrides: buildOverrides(
+        repository: repository,
+        diaryAiEnvironmentApiKey: 'env-key',
+        diaryAiModelCatalogHttpClient: mockClient,
+      ),
+    );
+
+    await tester.scrollUntilVisible(
+      find.text(strings.diaryAiSettingsTitle),
+      300,
+      scrollable: find.byType(Scrollable).first,
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(find.text(strings.diaryAiSettingsTitle));
+    await tester.pumpAndSettle();
+
+    expect(find.text(strings.usingDiaryAiEnvironmentApiKey), findsOneWidget);
+
+    await tester.scrollUntilVisible(
+      find.byKey(const ValueKey('settings-diary-ai-fetch-models')),
+      200,
+      scrollable: find.byType(Scrollable).first,
+    );
+    await tester.pumpAndSettle();
+    await tester
+        .tap(find.byKey(const ValueKey('settings-diary-ai-fetch-models')));
+    await tester.pumpAndSettle();
+
+    expect(find.text(strings.diaryAiModelCatalogLoaded(1)), findsOneWidget);
   });
 
   testWidgets('settings page can set a new startup password', (tester) async {
@@ -2247,6 +2700,13 @@ TextEditingController editableTextController(
       .controller;
 }
 
+TextEditingController cupertinoTextFieldController(
+  WidgetTester tester,
+  Key key,
+) {
+  return tester.widget<CupertinoTextField>(find.byKey(key)).controller!;
+}
+
 Future<void> pumpEditorNavigationApp(
   WidgetTester tester, {
   required String initialLocation,
@@ -2326,6 +2786,8 @@ List<Override> buildOverrides({
   FakePasswordSettingsStorage? passwordSettingsStorage,
   FakeHiddenDiaryPasswordSettingsStorage? hiddenDiaryPasswordSettingsStorage,
   FakeDiaryAiSettingsStorage? diaryAiSettingsStorage,
+  http.Client? diaryAiModelCatalogHttpClient,
+  String? diaryAiEnvironmentApiKey,
 }) {
   final effectiveDiaryListSettingsStorage =
       diaryListSettingsStorage ?? FakeDiaryListSettingsStorage();
@@ -2360,6 +2822,12 @@ List<Override> buildOverrides({
     ),
     diaryAiSettingsStorageProvider.overrideWith(
       (ref) => effectiveDiaryAiSettingsStorage,
+    ),
+    diaryAiModelCatalogHttpClientProvider.overrideWith(
+      (ref) => diaryAiModelCatalogHttpClient ?? http.Client(),
+    ),
+    diaryAiEnvironmentApiKeyProvider.overrideWith(
+      (ref) => diaryAiEnvironmentApiKey ?? '',
     ),
     diaryListSettingsStorageProvider.overrideWith(
       (ref) => effectiveDiaryListSettingsStorage,

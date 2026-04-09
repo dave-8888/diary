@@ -307,11 +307,82 @@ class AppStrings {
   String get diaryAiModelHint => isChinese
       ? '\u4f8b\u5982\uff1agpt-4.1-mini / qwen-plus / gemini-2.5-flash'
       : 'For example: gpt-4.1-mini / qwen-plus / gemini-2.5-flash';
+  String get diaryAiModelSelectionHint => isChinese
+      ? '\u53ef\u4ee5\u5148\u83b7\u53d6\u6a21\u578b\u5217\u8868\uff0c\u518d\u6309\u7c7b\u578b\u9009\u62e9\uff1b\u5982\u679c\u9700\u8981\uff0c\u4e5f\u53ef\u4ee5\u624b\u52a8\u8f93\u5165\u6a21\u578b ID\u3002'
+      : 'Fetch the available models first to choose by category, or enter a model ID manually when needed.';
+  String get currentDiaryAiModelLabel =>
+      isChinese ? '\u5f53\u524d\u5df2\u9009\u6a21\u578b' : 'Current model';
+  String get diaryAiModelNotSelected => isChinese
+      ? '\u8fd8\u672a\u9009\u62e9\u6a21\u578b'
+      : 'No model selected yet';
+  String get selectDiaryAiModelAction =>
+      isChinese ? '\u9009\u62e9\u6a21\u578b' : 'Choose model';
+  String get manualDiaryAiModelAction => isChinese
+      ? '\u624b\u52a8\u8f93\u5165\u6a21\u578b ID'
+      : 'Enter model ID manually';
+  String get diaryAiManualModelDialogTitle => isChinese
+      ? '\u624b\u52a8\u8f93\u5165\u6a21\u578b ID'
+      : 'Enter model ID manually';
+  String get diaryAiManualModelDialogHint => isChinese
+      ? '\u8f93\u5165\u4e00\u4e2a\u5b8c\u6574\u7684\u6a21\u578b ID\uff0c\u4f8b\u5982\uff1agpt-4.1-mini'
+      : 'Enter a full model ID, for example: gpt-4.1-mini';
+  String get diaryAiManualModelMissing => isChinese
+      ? '\u8bf7\u5148\u8f93\u5165\u6a21\u578b ID\u3002'
+      : 'Enter a model ID first.';
+  String get diaryAiModelNotInFetchedList => isChinese
+      ? '\u5f53\u524d\u6a21\u578b\u4e0d\u5728\u5df2\u83b7\u53d6\u7684\u5217\u8868\u4e2d\uff0c\u53ef\u80fd\u662f\u624b\u52a8\u8f93\u5165\u6216\u9700\u8981\u91cd\u65b0\u83b7\u53d6\u3002'
+      : 'The current model is not in the fetched list. It may have been entered manually or require refetching.';
   String get diaryAiApiKeyLabel =>
       isChinese ? 'Diary AI API Key' : 'Diary AI API key';
   String get diaryAiApiKeyHint => isChinese
       ? '\u8f93\u5165\u5bf9\u5e94\u670d\u52a1\u5546\u7684 API Key'
       : 'Enter the API key for the selected provider.';
+  String get fetchDiaryAiModelsAction =>
+      isChinese ? '\u83b7\u53d6\u6a21\u578b' : 'Fetch models';
+  String get refetchDiaryAiModelsAction =>
+      isChinese ? '\u91cd\u65b0\u83b7\u53d6\u6a21\u578b' : 'Refetch models';
+  String get diaryAiModelPickerTitle =>
+      isChinese ? '\u9009\u62e9\u6a21\u578b' : 'Select model';
+  String get diaryAiModelGroupMultimodal =>
+      isChinese ? '\u591a\u6a21\u6001' : 'Multimodal';
+  String get diaryAiModelGroupText => isChinese ? '\u6587\u672c' : 'Text';
+  String get diaryAiModelGroupImage => isChinese ? '\u56fe\u50cf' : 'Image';
+  String get diaryAiModelGroupAudio => isChinese ? '\u97f3\u9891' : 'Audio';
+  String get diaryAiModelGroupVideo => isChinese ? '\u89c6\u9891' : 'Video';
+  String get diaryAiModelGroupReasoning =>
+      isChinese ? '\u63a8\u7406' : 'Reasoning';
+  String get diaryAiModelGroupVectorAndReranking => isChinese
+      ? '\u5411\u91cf\u4e0e\u91cd\u6392\u5e8f'
+      : 'Embedding & reranking';
+  String get diaryAiModelGroupRealtime =>
+      isChinese ? '\u5b9e\u65f6' : 'Realtime';
+  String get diaryAiModelGroupModeration =>
+      isChinese ? '\u5ba1\u6838' : 'Moderation';
+  String get diaryAiModelGroupOther => isChinese ? '\u5176\u4ed6' : 'Other';
+  String get diaryAiModelCatalogLoading => isChinese
+      ? '\u6b63\u5728\u83b7\u53d6\u6a21\u578b\u5217\u8868\u5e76\u6821\u9a8c API Key\u3002'
+      : 'Fetching available models and validating the API key.';
+  String diaryAiModelCatalogLoaded(int count) => isChinese
+      ? '\u5df2\u83b7\u53d6 $count \u4e2a\u53ef\u7528\u6a21\u578b\u3002'
+      : 'Fetched $count available models.';
+  String get diaryAiModelCatalogEmpty => isChinese
+      ? '\u6a21\u578b\u63a5\u53e3\u8c03\u7528\u6210\u529f\uff0c\u4f46\u6ca1\u6709\u8fd4\u56de\u53ef\u9009\u6a21\u578b\u3002'
+      : 'The models endpoint succeeded, but it returned no selectable models.';
+  String get diaryAiModelCatalogApiKeyRequired => isChinese
+      ? '\u8bf7\u5148\u586b\u5199\u53ef\u7528\u7684 API Key\uff0c\u6216\u5728\u542f\u52a8\u65f6\u4f20\u5165 DIARY_AI_API_KEY\u3002'
+      : 'Enter a valid API key first, or provide DIARY_AI_API_KEY at launch.';
+  String get diaryAiModelCatalogApiKeyInvalid => isChinese
+      ? 'API Key \u4e0d\u53ef\u7528\uff0c\u8bf7\u68c0\u67e5\u540e\u91cd\u8bd5\u3002'
+      : 'The API key is not valid for fetching models. Please check it and try again.';
+  String get diaryAiModelCatalogInvalidConfig => isChinese
+      ? '\u8bf7\u5148\u914d\u7f6e\u53ef\u7528\u7684 Base URL / Endpoint\u3002'
+      : 'Please configure a valid base URL / endpoint first.';
+  String diaryAiModelCatalogRequestFailed(int? statusCode) => isChinese
+      ? '\u83b7\u53d6\u6a21\u578b\u5931\u8d25${statusCode == null ? '' : '\uff08$statusCode\uff09'}\u3002'
+      : 'Failed to fetch models${statusCode == null ? '' : ' ($statusCode)'}.';
+  String get diaryAiModelCatalogStale => isChinese
+      ? '\u670d\u52a1\u5546\u3001Base URL \u6216 API Key \u5df2\u53d8\u66f4\uff0c\u8bf7\u91cd\u65b0\u83b7\u53d6\u6a21\u578b\u5217\u8868\u3002'
+      : 'The provider, base URL, or API key changed. Please fetch the model list again.';
   String get resetDiaryAiConfig => isChinese
       ? '\u6062\u590d\u9ed8\u8ba4 AI \u914d\u7f6e'
       : 'Reset AI config';

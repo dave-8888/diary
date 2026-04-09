@@ -9,6 +9,10 @@ final diaryAiSettingsStorageProvider = Provider<DiaryAiSettingsStorage>((ref) {
   return DiaryAiSettingsStorage();
 });
 
+final diaryAiEnvironmentApiKeyProvider = Provider<String>((ref) {
+  return resolvedDiaryAiEnvironmentApiKey;
+});
+
 final diaryAiConfigControllerProvider =
     AsyncNotifierProvider<DiaryAiConfigController, DiaryAiProviderConfig>(
   DiaryAiConfigController.new,
@@ -155,6 +159,21 @@ class DiaryAiProviderConfig {
       return null;
     }
     return value;
+  }
+
+  String? resolvedApiKey({
+    String? fallbackApiKey,
+  }) {
+    final configured = normalizedApiKey;
+    if (configured != null) {
+      return configured;
+    }
+
+    final fallback = fallbackApiKey?.trim();
+    if (fallback == null || fallback.isEmpty) {
+      return null;
+    }
+    return fallback;
   }
 
   DiaryAiProviderConfig copyWith({
@@ -448,3 +467,11 @@ const String diaryAiEnvironmentApiKey =
     String.fromEnvironment('DIARY_AI_API_KEY');
 const String legacyDiaryAiEnvironmentApiKey =
     String.fromEnvironment('DASHSCOPE_API_KEY');
+
+String get resolvedDiaryAiEnvironmentApiKey {
+  final primary = diaryAiEnvironmentApiKey.trim();
+  if (primary.isNotEmpty) {
+    return primary;
+  }
+  return legacyDiaryAiEnvironmentApiKey.trim();
+}
