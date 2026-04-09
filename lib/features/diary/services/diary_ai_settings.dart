@@ -127,12 +127,14 @@ class DiaryAiProviderConfig {
     required this.presetId,
     required this.baseUrl,
     required this.model,
+    this.modelType,
     this.apiKey,
   });
 
   final String presetId;
   final String baseUrl;
   final String model;
+  final String? modelType;
   final String? apiKey;
 
   DiaryAiProviderPreset get preset => DiaryAiProviderPresetX.fromId(presetId);
@@ -151,6 +153,14 @@ class DiaryAiProviderConfig {
       return value;
     }
     return preset.defaultModel;
+  }
+
+  String? get normalizedModelType {
+    final value = modelType?.trim();
+    if (value == null || value.isEmpty) {
+      return null;
+    }
+    return value;
   }
 
   String? get normalizedApiKey {
@@ -180,12 +190,16 @@ class DiaryAiProviderConfig {
     String? presetId,
     String? baseUrl,
     String? model,
+    Object? modelType = _copyWithSentinel,
     Object? apiKey = _copyWithSentinel,
   }) {
     return DiaryAiProviderConfig(
       presetId: presetId ?? this.presetId,
       baseUrl: baseUrl ?? this.baseUrl,
       model: model ?? this.model,
+      modelType: identical(modelType, _copyWithSentinel)
+          ? this.modelType
+          : modelType as String?,
       apiKey: identical(apiKey, _copyWithSentinel)
           ? this.apiKey
           : apiKey as String?,
@@ -197,6 +211,7 @@ class DiaryAiProviderConfig {
       'ai_provider_preset': preset.id,
       'ai_base_url': normalizedBaseUrl,
       'ai_model': normalizedModel,
+      if (normalizedModelType != null) 'ai_model_type': normalizedModelType,
       if (normalizedApiKey != null) 'ai_api_key': normalizedApiKey,
     };
   }
@@ -224,6 +239,7 @@ class DiaryAiProviderConfig {
         : DiaryAiProviderPreset.dashScope;
     final baseUrl = _readString(raw['ai_base_url']);
     final model = _readString(raw['ai_model']);
+    final modelType = _readString(raw['ai_model_type']);
     final apiKey =
         _readString(raw['ai_api_key']) ?? _readString(raw['dashscope_api_key']);
 
@@ -231,6 +247,7 @@ class DiaryAiProviderConfig {
       presetId: preset.id,
       baseUrl: baseUrl ?? preset.defaultBaseUrl,
       model: model ?? preset.defaultModel,
+      modelType: modelType,
       apiKey: apiKey,
     );
   }
@@ -254,6 +271,11 @@ class DiaryAiSettingsStorage {
     final raw = await _readRaw();
     raw
       ..remove('dashscope_api_key')
+      ..remove('ai_provider_preset')
+      ..remove('ai_base_url')
+      ..remove('ai_model')
+      ..remove('ai_model_type')
+      ..remove('ai_api_key')
       ..addAll(config.toJson());
     await _writeRaw(raw);
   }
@@ -362,6 +384,7 @@ class DiaryAiConfigController extends AsyncNotifier<DiaryAiProviderConfig> {
     final normalized = config.copyWith(
       baseUrl: config.normalizedBaseUrl,
       model: config.normalizedModel,
+      modelType: config.normalizedModelType,
       apiKey: config.normalizedApiKey,
     );
     state = AsyncData(normalized);

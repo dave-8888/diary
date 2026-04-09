@@ -62,6 +62,7 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
   bool _isUpdatingDiaryAiConnectionFields = false;
   bool _diaryAiModelCatalogStale = false;
   String? _lastFetchedDiaryAiModelSignature;
+  String? _selectedDiaryAiModelTypeId;
   DiaryAiProviderPreset _selectedDiaryAiPreset =
       DiaryAiProviderPreset.dashScope;
 
@@ -848,6 +849,9 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
     final String? environmentHint = resolvedDiaryAiEnvironmentApiKey.isNotEmpty
         ? strings.usingDiaryAiEnvironmentApiKey
         : null;
+    final selectedDiaryAiModelInfoText = selectedDiaryAiModelEntry == null
+        ? null
+        : _buildDiaryAiModelInfoText(selectedDiaryAiModelEntry);
 
     return LayoutBuilder(
       builder: (context, constraints) {
@@ -912,13 +916,17 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
               context,
               strings,
               selectedDiaryAiModelId,
+              persistedModelTypeId: _selectedDiaryAiModelTypeId,
+              selectedModelEntry: selectedDiaryAiModelEntry,
+              onSelectModel: diaryAiModelCatalog.hasModels
+                  ? _openDiaryAiModelPicker
+                  : null,
             ),
-            if (selectedDiaryAiModelEntry != null) ...[
+            if (selectedDiaryAiModelInfoText != null) ...[
               const SizedBox(height: 10),
               _buildDiaryAiModelInfoCard(
                 context,
-                strings,
-                selectedDiaryAiModelEntry,
+                selectedDiaryAiModelInfoText,
               ),
             ] else if (selectedDiaryAiModelId.isNotEmpty &&
                 diaryAiModelCatalog.hasModels &&
@@ -933,75 +941,51 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
           ],
         );
 
-        final modelActions = isWide
-            ? Row(
-                children: [
-                  Expanded(
-                    child: _buildDiaryAiPanelActionButton(
-                      key: const ValueKey('settings-diary-ai-select-model'),
-                      onPressed: diaryAiModelCatalog.hasModels
-                          ? _openDiaryAiModelPicker
-                          : null,
-                      label: strings.selectDiaryAiModelAction,
-                    ),
-                  ),
-                  SizedBox(width: spacing),
-                  Expanded(
-                    child: _buildDiaryAiPanelActionButton(
-                      key: const ValueKey('settings-diary-ai-manual-model'),
-                      onPressed: _openDiaryAiManualModelDialog,
-                      label: strings.manualDiaryAiModelAction,
-                      variant: CupertinoActionButtonVariant.outline,
-                    ),
-                  ),
-                ],
-              )
-            : Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  _buildDiaryAiPanelActionButton(
-                    key: const ValueKey('settings-diary-ai-select-model'),
-                    onPressed: diaryAiModelCatalog.hasModels
-                        ? _openDiaryAiModelPicker
-                        : null,
-                    label: strings.selectDiaryAiModelAction,
-                    expand: true,
-                  ),
-                  SizedBox(height: spacing * 0.67),
-                  _buildDiaryAiPanelActionButton(
-                    key: const ValueKey('settings-diary-ai-manual-model'),
-                    onPressed: _openDiaryAiManualModelDialog,
-                    label: strings.manualDiaryAiModelAction,
-                    variant: CupertinoActionButtonVariant.outline,
-                    expand: true,
-                  ),
-                ],
-              );
+        Widget buildModelHeaderActions({required bool compact}) {
+          final fetchButton = _buildDiaryAiPanelActionButton(
+            key: const ValueKey('settings-diary-ai-fetch-models'),
+            onPressed:
+                diaryAiModelCatalog.isLoading ? null : _fetchDiaryAiModels,
+            isBusy: diaryAiModelCatalog.isLoading,
+            variant: CupertinoActionButtonVariant.outline,
+            label: diaryAiModelCatalog.hasModels
+                ? strings.refetchDiaryAiModelsAction
+                : strings.fetchDiaryAiModelsAction,
+          );
+          final manualButton = _buildDiaryAiPanelActionButton(
+            key: const ValueKey('settings-diary-ai-manual-model'),
+            onPressed: _openDiaryAiManualModelDialog,
+            label: strings.manualDiaryAiModelAction,
+            variant: CupertinoActionButtonVariant.outline,
+          );
 
-        final modelBody = isWide
-            ? Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Expanded(child: selectedModelColumn),
-                  SizedBox(width: spacing),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        modelActions,
-                      ],
-                    ),
-                  ),
-                ],
-              )
-            : Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  selectedModelColumn,
-                  SizedBox(height: spacing),
-                  modelActions,
-                ],
-              );
+          if (!compact) {
+            return Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                fetchButton,
+                SizedBox(width: spacing * 0.67),
+                manualButton,
+              ],
+            );
+          }
+
+          return Wrap(
+            alignment: WrapAlignment.end,
+            spacing: spacing * 0.67,
+            runSpacing: spacing * 0.67,
+            children: [
+              fetchButton,
+              manualButton,
+            ],
+          );
+        }
+
+        final modelHeaderTitle = _buildDiaryAiModelHeaderTitle(
+          context,
+          strings,
+          diaryAiModelCatalog,
+        );
 
         return Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -1064,51 +1048,22 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
                   ? Row(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Expanded(
-                          child: Text(
-                            strings.diaryAiModelLabel,
-                            style: Theme.of(context)
-                                .textTheme
-                                .titleSmall
-                                ?.copyWith(fontWeight: FontWeight.w700),
-                          ),
-                        ),
+                        Expanded(child: modelHeaderTitle),
                         SizedBox(width: spacing),
-                        _buildDiaryAiPanelActionButton(
-                          key: const ValueKey('settings-diary-ai-fetch-models'),
-                          onPressed: diaryAiModelCatalog.isLoading
-                              ? null
-                              : _fetchDiaryAiModels,
-                          isBusy: diaryAiModelCatalog.isLoading,
-                          variant: CupertinoActionButtonVariant.outline,
-                          label: diaryAiModelCatalog.hasModels
-                              ? strings.refetchDiaryAiModelsAction
-                              : strings.fetchDiaryAiModelsAction,
+                        Align(
+                          alignment: Alignment.centerRight,
+                          child: buildModelHeaderActions(compact: false),
                         ),
                       ],
                     )
                   : Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text(
-                          strings.diaryAiModelLabel,
-                          style: Theme.of(context)
-                              .textTheme
-                              .titleSmall
-                              ?.copyWith(fontWeight: FontWeight.w700),
-                        ),
+                        modelHeaderTitle,
                         SizedBox(height: spacing * 0.75),
-                        _buildDiaryAiPanelActionButton(
-                          key: const ValueKey('settings-diary-ai-fetch-models'),
-                          onPressed: diaryAiModelCatalog.isLoading
-                              ? null
-                              : _fetchDiaryAiModels,
-                          isBusy: diaryAiModelCatalog.isLoading,
-                          variant: CupertinoActionButtonVariant.outline,
-                          expand: true,
-                          label: diaryAiModelCatalog.hasModels
-                              ? strings.refetchDiaryAiModelsAction
-                              : strings.fetchDiaryAiModelsAction,
+                        Align(
+                          alignment: Alignment.centerRight,
+                          child: buildModelHeaderActions(compact: true),
                         ),
                       ],
                     ),
@@ -1123,7 +1078,7 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
                     ),
                     SizedBox(height: spacing),
                   ],
-                  modelBody,
+                  selectedModelColumn,
                 ],
               ),
             ),
@@ -1835,8 +1790,11 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
       return;
     }
 
+    final selectedEntry = result.findById(selectedModel);
     setState(() {
       _diaryAiModelController.text = selectedModel;
+      _selectedDiaryAiModelTypeId =
+          _buildDiaryAiPrimaryModelTypeId(selectedEntry);
       _diaryAiModelController.selection = TextSelection.collapsed(
         offset: _diaryAiModelController.text.length,
       );
@@ -1921,6 +1879,7 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
 
     setState(() {
       _diaryAiModelController.text = result;
+      _selectedDiaryAiModelTypeId = null;
       _diaryAiModelController.selection = TextSelection.collapsed(
         offset: _diaryAiModelController.text.length,
       );
@@ -1932,6 +1891,7 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
       presetId: _selectedDiaryAiPreset.id,
       baseUrl: _diaryAiBaseUrlController.text,
       model: _diaryAiModelController.text,
+      modelType: _selectedDiaryAiModelTypeId,
       apiKey: _diaryAiApiKeyController.text,
     );
   }
@@ -1983,7 +1943,7 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
       case DiaryAiModelCatalogStatus.loading:
         return strings.diaryAiModelCatalogLoading;
       case DiaryAiModelCatalogStatus.success:
-        return strings.diaryAiModelCatalogLoaded(result.models.length);
+        return null;
       case DiaryAiModelCatalogStatus.empty:
         return strings.diaryAiModelCatalogEmpty;
       case DiaryAiModelCatalogStatus.requestFailed:
@@ -1996,6 +1956,54 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
       case DiaryAiModelCatalogStatus.apiKeyMissing:
         return strings.diaryAiModelCatalogApiKeyRequired;
     }
+  }
+
+  Widget _buildDiaryAiModelHeaderTitle(
+    BuildContext context,
+    AppStrings strings,
+    DiaryAiModelCatalogResult result,
+  ) {
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+    final title = Text(
+      strings.diaryAiModelLabel,
+      style: theme.textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w700),
+    );
+    final showCatalogSummary = !_diaryAiModelCatalogStale &&
+        result.status == DiaryAiModelCatalogStatus.success &&
+        result.models.isNotEmpty;
+    if (!showCatalogSummary) {
+      return title;
+    }
+
+    return Wrap(
+      spacing: 10,
+      runSpacing: 8,
+      crossAxisAlignment: WrapCrossAlignment.center,
+      children: [
+        title,
+        DecoratedBox(
+          decoration: BoxDecoration(
+            color: colorScheme.primary.withValues(alpha: 0.10),
+            borderRadius: BorderRadius.circular(999),
+            border: Border.all(
+              color: colorScheme.primary.withValues(alpha: 0.18),
+            ),
+          ),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+            child: Text(
+              strings.diaryAiModelCatalogInlineSummary(result.models.length),
+              style: theme.textTheme.bodySmall?.copyWith(
+                color: colorScheme.primary,
+                fontWeight: FontWeight.w600,
+                height: 1.2,
+              ),
+            ),
+          ),
+        ),
+      ],
+    );
   }
 
   Color _buildDiaryAiModelCatalogStatusColor(
@@ -2024,10 +2032,8 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
 
   Widget _buildDiaryAiModelInfoCard(
     BuildContext context,
-    AppStrings strings,
-    DiaryAiModelCatalogEntry entry,
+    String infoText,
   ) {
-    final infoText = _buildDiaryAiModelInfoText(strings, entry);
     return _buildDiaryAiModelNoteCard(
       context,
       infoText,
@@ -2038,12 +2044,67 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
   Widget _buildDiaryAiSelectedModelCard(
     BuildContext context,
     AppStrings strings,
-    String selectedModelId,
-  ) {
+    String selectedModelId, {
+    String? persistedModelTypeId,
+    DiaryAiModelCatalogEntry? selectedModelEntry,
+    VoidCallback? onSelectModel,
+  }) {
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
     final hasSelection = selectedModelId.isNotEmpty;
     final isDark = colorScheme.brightness == Brightness.dark;
+    final selectedModelDisplayText = _buildDiaryAiSelectedModelDisplayName(
+      selectedModelId,
+      selectedModelEntry,
+    );
+    final selectedModelTypeLabel = _resolveDiaryAiSelectedModelTypeLabel(
+      strings,
+      persistedModelTypeId,
+      selectedModelEntry,
+    );
+    final labelText = strings.isChinese
+        ? '${strings.currentDiaryAiModelLabel}：'
+        : '${strings.currentDiaryAiModelLabel}:';
+    final labelStyle = theme.textTheme.labelMedium?.copyWith(
+      color: colorScheme.onSurfaceVariant,
+      fontWeight: FontWeight.w600,
+    );
+    final valueStyle = theme.textTheme.bodyLarge?.copyWith(
+      fontWeight: hasSelection ? FontWeight.w600 : FontWeight.w400,
+      color:
+          hasSelection ? colorScheme.onSurface : colorScheme.onSurfaceVariant,
+    );
+    final modelText = Wrap(
+      spacing: 6,
+      runSpacing: 4,
+      crossAxisAlignment: WrapCrossAlignment.center,
+      children: [
+        Text(labelText, style: labelStyle),
+        Text(
+          hasSelection
+              ? selectedModelDisplayText
+              : strings.diaryAiModelNotSelected,
+          key: const ValueKey('settings-diary-ai-selected-model-value'),
+          style: valueStyle,
+        ),
+        if (hasSelection && selectedModelTypeLabel != null)
+          CupertinoPill(
+            key: const ValueKey('settings-diary-ai-selected-model-type-tag'),
+            label: Text(
+              selectedModelTypeLabel,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              softWrap: false,
+            ),
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+          ),
+      ],
+    );
+    final selectModelButton = _buildDiaryAiPanelActionButton(
+      key: const ValueKey('settings-diary-ai-select-model'),
+      onPressed: onSelectModel,
+      label: strings.selectDiaryAiModelAction,
+    );
 
     return DecoratedBox(
       key: const ValueKey('settings-diary-ai-selected-model'),
@@ -2059,31 +2120,114 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
       ),
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              strings.currentDiaryAiModelLabel,
-              style: theme.textTheme.labelMedium?.copyWith(
-                color: colorScheme.onSurfaceVariant,
-                fontWeight: FontWeight.w600,
-              ),
-            ),
-            const SizedBox(height: 8),
-            Text(
-              hasSelection ? selectedModelId : strings.diaryAiModelNotSelected,
-              key: const ValueKey('settings-diary-ai-selected-model-value'),
-              style: theme.textTheme.bodyLarge?.copyWith(
-                fontWeight: hasSelection ? FontWeight.w600 : FontWeight.w400,
-                color: hasSelection
-                    ? colorScheme.onSurface
-                    : colorScheme.onSurfaceVariant,
-              ),
-            ),
-          ],
+        child: LayoutBuilder(
+          builder: (context, constraints) {
+            final useStackedLayout = constraints.maxWidth < 520;
+            if (useStackedLayout) {
+              return Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  modelText,
+                  const SizedBox(height: 12),
+                  Align(
+                    alignment: Alignment.centerRight,
+                    child: selectModelButton,
+                  ),
+                ],
+              );
+            }
+
+            return Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Expanded(child: modelText),
+                const SizedBox(width: 12),
+                selectModelButton,
+              ],
+            );
+          },
         ),
       ),
     );
+  }
+
+  String _buildDiaryAiSelectedModelDisplayName(
+    String selectedModelId,
+    DiaryAiModelCatalogEntry? selectedModelEntry,
+  ) {
+    final normalizedModelId = selectedModelId.trim();
+    if (normalizedModelId.isEmpty) {
+      return normalizedModelId;
+    }
+
+    final entry = selectedModelEntry;
+    if (entry == null) {
+      return normalizedModelId;
+    }
+
+    final modelName = entry.name?.trim();
+    return modelName != null && modelName.isNotEmpty ? modelName : entry.id;
+  }
+
+  String? _resolveDiaryAiSelectedModelTypeLabel(
+    AppStrings strings,
+    String? persistedModelTypeId,
+    DiaryAiModelCatalogEntry? selectedModelEntry,
+  ) {
+    final entry = selectedModelEntry;
+    if (entry != null) {
+      return _buildDiaryAiPrimaryModelTypeLabel(strings, entry);
+    }
+
+    final persistedGroup = _parseDiaryAiModelDisplayGroup(persistedModelTypeId);
+    if (persistedGroup == null ||
+        persistedGroup == DiaryAiModelDisplayGroup.other) {
+      return null;
+    }
+    return _diaryAiModelDisplayGroupTitle(strings, persistedGroup);
+  }
+
+  String? _buildDiaryAiPrimaryModelTypeLabel(
+    AppStrings strings,
+    DiaryAiModelCatalogEntry entry,
+  ) {
+    final group = _resolveDiaryAiPrimaryModelDisplayGroup(entry);
+    if (group == null) {
+      return null;
+    }
+    return _diaryAiModelDisplayGroupTitle(strings, group);
+  }
+
+  String? _buildDiaryAiPrimaryModelTypeId(DiaryAiModelCatalogEntry? entry) {
+    final group =
+        entry == null ? null : _resolveDiaryAiPrimaryModelDisplayGroup(entry);
+    return group?.name;
+  }
+
+  DiaryAiModelDisplayGroup? _resolveDiaryAiPrimaryModelDisplayGroup(
+    DiaryAiModelCatalogEntry entry,
+  ) {
+    for (final group in entry.displayGroups) {
+      if (group == DiaryAiModelDisplayGroup.other) {
+        continue;
+      }
+      return group;
+    }
+    return null;
+  }
+
+  DiaryAiModelDisplayGroup? _parseDiaryAiModelDisplayGroup(String? rawValue) {
+    final normalized = rawValue?.trim();
+    if (normalized == null || normalized.isEmpty) {
+      return null;
+    }
+
+    for (final group in DiaryAiModelDisplayGroup.values) {
+      if (group.name == normalized) {
+        return group;
+      }
+    }
+    return null;
   }
 
   Widget _buildDiaryAiModelNoteCard(
@@ -2116,56 +2260,12 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
     );
   }
 
-  String _buildDiaryAiModelInfoText(
-    AppStrings strings,
-    DiaryAiModelCatalogEntry entry,
-  ) {
-    final parts = <String>[];
+  String? _buildDiaryAiModelInfoText(DiaryAiModelCatalogEntry entry) {
     final description = entry.description?.trim();
-    if (description != null && description.isNotEmpty) {
-      parts.add(description);
+    if (description == null || description.isEmpty) {
+      return null;
     }
-    final traitLabels = _modelTraitLabels(strings, entry.traits);
-    if (traitLabels.isNotEmpty) {
-      parts.add(traitLabels.join(' · '));
-    }
-    return parts.join('\n');
-  }
-
-  List<String> _modelTraitLabels(
-    AppStrings strings,
-    List<DiaryAiModelTrait> traits,
-  ) {
-    return traits.map((trait) {
-      switch (trait) {
-        case DiaryAiModelTrait.multimodal:
-          return strings.isChinese ? '多模态' : 'Multimodal';
-        case DiaryAiModelTrait.text:
-          return strings.isChinese ? '文本' : 'Text';
-        case DiaryAiModelTrait.imageInput:
-          return strings.isChinese ? '图像输入' : 'Image input';
-        case DiaryAiModelTrait.imageOutput:
-          return strings.isChinese ? '图像输出' : 'Image output';
-        case DiaryAiModelTrait.audioInput:
-          return strings.isChinese ? '音频输入' : 'Audio input';
-        case DiaryAiModelTrait.audioOutput:
-          return strings.isChinese ? '音频输出' : 'Audio output';
-        case DiaryAiModelTrait.videoInput:
-          return strings.isChinese ? '视频输入' : 'Video input';
-        case DiaryAiModelTrait.videoOutput:
-          return strings.isChinese ? '视频输出' : 'Video output';
-        case DiaryAiModelTrait.reasoning:
-          return strings.isChinese ? '推理' : 'Reasoning';
-        case DiaryAiModelTrait.embedding:
-          return strings.isChinese ? '向量' : 'Embedding';
-        case DiaryAiModelTrait.reranking:
-          return strings.isChinese ? '重排序' : 'Reranking';
-        case DiaryAiModelTrait.moderation:
-          return strings.isChinese ? '审核' : 'Moderation';
-        case DiaryAiModelTrait.realtime:
-          return strings.isChinese ? '实时' : 'Realtime';
-      }
-    }).toList(growable: false);
+    return description;
   }
 
   String _diaryAiModelDisplayGroupTitle(
@@ -2253,6 +2353,7 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
     _selectedDiaryAiPreset = config.preset;
     _diaryAiBaseUrlController.text = config.normalizedBaseUrl;
     _diaryAiModelController.text = config.normalizedModel;
+    _selectedDiaryAiModelTypeId = config.normalizedModelType;
     _diaryAiApiKeyController.text = config.normalizedApiKey ?? '';
     _diaryAiBaseUrlController.selection = TextSelection.collapsed(
       offset: _diaryAiBaseUrlController.text.length,
@@ -2273,6 +2374,7 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
         _isUpdatingDiaryAiConnectionFields = true;
         _diaryAiBaseUrlController.text = preset.defaultBaseUrl;
         _diaryAiModelController.text = preset.defaultModel;
+        _selectedDiaryAiModelTypeId = null;
         _diaryAiBaseUrlController.selection = TextSelection.collapsed(
           offset: _diaryAiBaseUrlController.text.length,
         );

@@ -1352,29 +1352,47 @@ void main() {
     final baseUrlField =
         find.byKey(const ValueKey('settings-diary-ai-base-url'));
     final apiKeyField = find.byKey(const ValueKey('settings-diary-ai-api-key'));
+    final selectedModelCard =
+        find.byKey(const ValueKey('settings-diary-ai-selected-model'));
+    final fetchModelsButton =
+        find.byKey(const ValueKey('settings-diary-ai-fetch-models'));
+    final manualModelButton =
+        find.byKey(const ValueKey('settings-diary-ai-manual-model'));
+    final selectModelButton =
+        find.byKey(const ValueKey('settings-diary-ai-select-model'));
 
     expect(connectionPanel, findsOneWidget);
     expect(modelPanel, findsOneWidget);
+    expect(fetchModelsButton, findsOneWidget);
+    expect(manualModelButton, findsOneWidget);
+    expect(selectedModelCard, findsOneWidget);
 
     final connectionRect = tester.getRect(connectionPanel);
     final modelRect = tester.getRect(modelPanel);
     final baseUrlRect = tester.getRect(baseUrlField);
     final apiKeyRect = tester.getRect(apiKeyField);
+    final selectedModelRect = tester.getRect(selectedModelCard);
+    final fetchRect = tester.getRect(fetchModelsButton);
+    final manualRect = tester.getRect(manualModelButton);
+    final selectRect = tester.getRect(selectModelButton);
 
     expect(connectionRect.bottom, lessThan(modelRect.top));
     expect(baseUrlRect.bottom, lessThan(apiKeyRect.top));
     expect((baseUrlRect.left - apiKeyRect.left).abs(), lessThan(1));
+    expect(fetchRect.bottom, lessThanOrEqualTo(selectedModelRect.top));
+    expect(manualRect.bottom, lessThanOrEqualTo(selectedModelRect.top));
+    expect((fetchRect.top - manualRect.top).abs(), lessThan(1));
+    expect(fetchRect.left, lessThan(manualRect.left));
     expect(
-      find.descendant(
-        of: modelPanel,
-        matching: find.byKey(const ValueKey('settings-diary-ai-select-model')),
-      ),
+      find.descendant(of: selectedModelCard, matching: selectModelButton),
       findsOneWidget,
     );
+    expect(selectRect.right, lessThanOrEqualTo(selectedModelRect.right));
+    expect(selectRect.left, greaterThan(selectedModelRect.center.dx));
     expect(
       find.descendant(
         of: modelPanel,
-        matching: find.byKey(const ValueKey('settings-diary-ai-manual-model')),
+        matching: manualModelButton,
       ),
       findsOneWidget,
     );
@@ -1414,20 +1432,53 @@ void main() {
     final baseUrlField =
         find.byKey(const ValueKey('settings-diary-ai-base-url'));
     final apiKeyField = find.byKey(const ValueKey('settings-diary-ai-api-key'));
+    final selectedModelCard =
+        find.byKey(const ValueKey('settings-diary-ai-selected-model'));
+    final selectedModelValue =
+        find.byKey(const ValueKey('settings-diary-ai-selected-model-value'));
+    final fetchModelsButton =
+        find.byKey(const ValueKey('settings-diary-ai-fetch-models'));
+    final manualModelButton =
+        find.byKey(const ValueKey('settings-diary-ai-manual-model'));
+    final selectModelButton =
+        find.byKey(const ValueKey('settings-diary-ai-select-model'));
+    final modelTitle = find.text(strings.diaryAiModelLabel);
 
     expect(connectionPanel, findsOneWidget);
     expect(modelPanel, findsOneWidget);
     expect(footerActions, findsOneWidget);
+    expect(fetchModelsButton, findsOneWidget);
+    expect(manualModelButton, findsOneWidget);
+    expect(selectedModelCard, findsOneWidget);
+    expect(modelTitle, findsOneWidget);
 
     final connectionRect = tester.getRect(connectionPanel);
     final modelRect = tester.getRect(modelPanel);
     final footerRect = tester.getRect(footerActions);
     final baseUrlRect = tester.getRect(baseUrlField);
     final apiKeyRect = tester.getRect(apiKeyField);
+    final selectedModelRect = tester.getRect(selectedModelCard);
+    final selectedValueRect = tester.getRect(selectedModelValue);
+    final fetchRect = tester.getRect(fetchModelsButton);
+    final manualRect = tester.getRect(manualModelButton);
+    final selectRect = tester.getRect(selectModelButton);
+    final modelTitleRect = tester.getRect(modelTitle);
 
     expect(connectionRect.bottom, lessThan(modelRect.top));
     expect(modelRect.bottom, lessThan(footerRect.top));
     expect(baseUrlRect.bottom, lessThan(apiKeyRect.top));
+    expect(modelTitleRect.bottom, lessThan(fetchRect.top));
+    expect(fetchRect.right, lessThanOrEqualTo(modelRect.right));
+    expect(manualRect.right, lessThanOrEqualTo(modelRect.right));
+    expect(fetchRect.right, greaterThan(modelRect.center.dx));
+    expect(manualRect.right, greaterThan(modelRect.center.dx));
+    expect(
+      find.descendant(of: selectedModelCard, matching: selectModelButton),
+      findsOneWidget,
+    );
+    expect(selectRect.top, greaterThan(selectedValueRect.bottom));
+    expect(selectRect.right, lessThanOrEqualTo(selectedModelRect.right));
+    expect(tester.takeException(), isNull);
   });
 
   testWidgets('settings page fetches diary AI models and lets user pick one',
@@ -1508,7 +1559,14 @@ void main() {
 
     await tester.pumpAndSettle();
 
-    expect(find.text(strings.diaryAiModelCatalogLoaded(2)), findsOneWidget);
+    expect(
+      find.text(strings.diaryAiModelCatalogInlineSummary(2)),
+      findsOneWidget,
+    );
+    expect(
+      find.byKey(const ValueKey('settings-diary-ai-model-catalog-status')),
+      findsNothing,
+    );
     expect(
       tester
           .widget<CupertinoActionButton>(
@@ -1641,6 +1699,19 @@ void main() {
           )
           .data,
       'gemini-1.5-pro',
+    );
+    expect(
+      find.byKey(const ValueKey('settings-diary-ai-selected-model-type-tag')),
+      findsOneWidget,
+    );
+    expect(
+      find.descendant(
+        of: find.byKey(
+          const ValueKey('settings-diary-ai-selected-model-type-tag'),
+        ),
+        matching: find.text(strings.diaryAiModelGroupMultimodal),
+      ),
+      findsOneWidget,
     );
     expect(
       find.byKey(const ValueKey('settings-diary-ai-model-info')),
@@ -1785,8 +1856,63 @@ void main() {
       DiaryAiProviderPreset.gemini.defaultBaseUrl,
     );
     expect(saved.normalizedModel, 'gemini-custom');
+    expect(saved.normalizedModelType, isNull);
     expect(saved.normalizedApiKey, 'bad-key');
     expect(find.text(strings.diaryAiConfigUpdated), findsOneWidget);
+  });
+
+  testWidgets('settings page restores persisted diary AI model type tag',
+      (tester) async {
+    final repository = FakeDiaryRepository(
+      moods: DiaryMood.values,
+    );
+    final diaryAiSettingsStorage = FakeDiaryAiSettingsStorage(
+      const DiaryAiProviderConfig(
+        presetId: 'gemini',
+        baseUrl: 'https://generativelanguage.googleapis.com/v1beta/openai/',
+        model: 'gemini-1.5-pro',
+        modelType: 'multimodal',
+        apiKey: 'gem-key',
+      ),
+    );
+
+    await pumpPage(
+      tester,
+      const SettingsPage(),
+      path: '/settings',
+      overrides: buildOverrides(
+        repository: repository,
+        diaryAiSettingsStorage: diaryAiSettingsStorage,
+      ),
+    );
+
+    await tester.scrollUntilVisible(
+      find.text(strings.diaryAiSettingsTitle),
+      300,
+      scrollable: find.byType(Scrollable).first,
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(find.text(strings.diaryAiSettingsTitle));
+    await tester.pumpAndSettle();
+
+    expect(
+      tester
+          .widget<Text>(
+            find.byKey(
+                const ValueKey('settings-diary-ai-selected-model-value')),
+          )
+          .data,
+      'gemini-1.5-pro',
+    );
+    expect(
+      find.descendant(
+        of: find.byKey(
+          const ValueKey('settings-diary-ai-selected-model-type-tag'),
+        ),
+        matching: find.text(strings.diaryAiModelGroupMultimodal),
+      ),
+      findsOneWidget,
+    );
   });
 
   testWidgets('settings page clears fetched models when connection changes',
@@ -1841,7 +1967,10 @@ void main() {
         .tap(find.byKey(const ValueKey('settings-diary-ai-fetch-models')));
     await tester.pumpAndSettle();
 
-    expect(find.text(strings.diaryAiModelCatalogLoaded(2)), findsOneWidget);
+    expect(
+      find.text(strings.diaryAiModelCatalogInlineSummary(2)),
+      findsOneWidget,
+    );
     expect(
       tester
           .widget<CupertinoActionButton>(
@@ -1877,6 +2006,15 @@ void main() {
           .data,
       'qwen-max',
     );
+    expect(
+      find.descendant(
+        of: find.byKey(
+          const ValueKey('settings-diary-ai-selected-model-type-tag'),
+        ),
+        matching: find.text(strings.diaryAiModelGroupText),
+      ),
+      findsOneWidget,
+    );
 
     await tester.enterText(
       find.byKey(const ValueKey('settings-diary-ai-base-url')),
@@ -1901,6 +2039,15 @@ void main() {
           )
           .data,
       'qwen-max',
+    );
+    expect(
+      find.descendant(
+        of: find.byKey(
+          const ValueKey('settings-diary-ai-selected-model-type-tag'),
+        ),
+        matching: find.text(strings.diaryAiModelGroupText),
+      ),
+      findsOneWidget,
     );
   });
 
@@ -1956,7 +2103,10 @@ void main() {
         .tap(find.byKey(const ValueKey('settings-diary-ai-fetch-models')));
     await tester.pumpAndSettle();
 
-    expect(find.text(strings.diaryAiModelCatalogLoaded(1)), findsOneWidget);
+    expect(
+      find.text(strings.diaryAiModelCatalogInlineSummary(1)),
+      findsOneWidget,
+    );
   });
 
   testWidgets('settings page can set a new startup password', (tester) async {
@@ -3220,6 +3370,7 @@ class FakeDiaryAiSettingsStorage extends DiaryAiSettingsStorage {
     _config = config.copyWith(
       baseUrl: config.normalizedBaseUrl,
       model: config.normalizedModel,
+      modelType: config.normalizedModelType,
       apiKey: config.normalizedApiKey,
     );
   }

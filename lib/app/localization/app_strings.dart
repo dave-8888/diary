@@ -360,6 +360,9 @@ class AppStrings {
   String get diaryAiModelCatalogLoading => isChinese
       ? '\u6b63\u5728\u83b7\u53d6\u6a21\u578b\u5217\u8868\u5e76\u6821\u9a8c API Key\u3002'
       : 'Fetching available models and validating the API key.';
+  String diaryAiModelCatalogInlineSummary(int count) => isChinese
+      ? '\u5df2\u83b7\u53d6 $count \u4e2a\u53ef\u7528\u6a21\u578b'
+      : 'Fetched $count models';
   String diaryAiModelCatalogLoaded(int count) => isChinese
       ? '\u5df2\u83b7\u53d6 $count \u4e2a\u53ef\u7528\u6a21\u578b\u3002'
       : 'Fetched $count available models.';
