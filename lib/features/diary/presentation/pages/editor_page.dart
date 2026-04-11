@@ -413,14 +413,6 @@ class _EditorPageState extends ConsumerState<EditorPage>
               ),
             ],
           ),
-          const SizedBox(height: 10),
-          Text(
-            strings.pasteImageHint,
-            style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                  color: Theme.of(context).colorScheme.onSurfaceVariant,
-                  height: 1.4,
-                ),
-          ),
           if (visualMedia.isNotEmpty) ...[
             const SizedBox(height: 14),
             ImageMediaGrid(
