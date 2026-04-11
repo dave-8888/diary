@@ -1060,8 +1060,13 @@ class AppStrings {
       isChinese ? '\u6682\u65e0\u5185\u5bb9' : 'No content';
   String get mediaToolbar =>
       isChinese ? '\u5a92\u4f53\u5de5\u5177\u680f' : 'Media toolbar';
+  String get pasteImage =>
+      isChinese ? '\u7c98\u8d34\u56fe\u7247' : 'Paste image';
   String get importImage =>
       isChinese ? '\u5bfc\u5165\u56fe\u7247' : 'Import image';
+  String get pasteImageHint => isChinese
+      ? '\u526a\u8d34\u677f\u91cc\u6709\u56fe\u7247\u65f6\uff0c\u53ef\u4ee5\u76f4\u63a5\u6309 Ctrl/Cmd+V \u7c98\u8d34\u5230\u8fd9\u7bc7\u65e5\u8bb0\u3002'
+      : 'When the clipboard contains an image, press Ctrl/Cmd+V to attach it to this entry.';
   String get takePhoto => isChinese ? '\u62cd\u7167' : 'Take photo';
   String get recordVideo => isChinese ? '\u5f55\u89c6\u9891' : 'Record video';
   String get photoMode => isChinese ? '\u7167\u7247' : 'Photo';
@@ -1205,6 +1210,18 @@ class AppStrings {
   String importedImages(int count) => isChinese
       ? '\u5df2\u5bfc\u5165 $count \u5f20\u56fe\u7247\u3002'
       : 'Imported $count image file(s).';
+  String pastedImages(int count) => isChinese
+      ? '\u5df2\u4ece\u526a\u8d34\u677f\u7c98\u8d34 $count \u5f20\u56fe\u7247\u3002'
+      : 'Pasted $count image(s) from the clipboard.';
+  String get clipboardHasNoImage => isChinese
+      ? '\u526a\u8d34\u677f\u91cc\u6ca1\u6709\u53ef\u7c98\u8d34\u7684\u56fe\u7247\u3002'
+      : 'There is no image in the clipboard.';
+  String get clipboardImageUnavailable => isChinese
+      ? '\u5f53\u524d\u5e73\u53f0\u6682\u4e0d\u652f\u6301\u8bfb\u53d6\u526a\u8d34\u677f\u56fe\u7247\u3002'
+      : 'This platform does not currently support clipboard image access.';
+  String pasteImageFailed(Object error) => isChinese
+      ? '\u7c98\u8d34\u56fe\u7247\u5931\u8d25\uff1a$error'
+      : 'Failed to paste image: $error';
   String get microphonePermissionDenied => isChinese
       ? '\u9ea6\u514b\u98ce\u6743\u9650\u88ab\u62d2\u7edd\u3002'
       : 'Microphone permission denied.';

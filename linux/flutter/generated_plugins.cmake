@@ -5,10 +5,12 @@
 list(APPEND FLUTTER_PLUGIN_LIST
   audioplayers_linux
   camera_desktop
+  irondash_engine_context
   media_kit_libs_linux
   media_kit_video
   record_linux
   sqlite3_flutter_libs
+  super_native_extensions
 )
 
 list(APPEND FLUTTER_FFI_PLUGIN_LIST

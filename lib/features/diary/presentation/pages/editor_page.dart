@@ -19,6 +19,7 @@ import 'package:diary_mvp/features/diary/presentation/widgets/image_media_grid.d
 import 'package:diary_mvp/features/diary/presentation/widgets/mood_selector.dart';
 import 'package:diary_mvp/features/diary/services/diary_ai_service.dart';
 import 'package:diary_mvp/features/diary/services/diary_ai_settings.dart';
+import 'package:diary_mvp/features/diary/services/clipboard_image_service.dart';
 import 'package:diary_mvp/features/diary/services/export_service.dart';
 import 'package:diary_mvp/features/diary/services/hidden_diary_settings.dart';
 import 'package:diary_mvp/features/diary/services/location_service.dart';
@@ -174,6 +175,10 @@ class _EditorPageState extends ConsumerState<EditorPage>
             _handleSaveShortcut,
         const SingleActivator(LogicalKeyboardKey.keyS, meta: true):
             _handleSaveShortcut,
+        const SingleActivator(LogicalKeyboardKey.keyV, control: true):
+            _handlePasteShortcut,
+        const SingleActivator(LogicalKeyboardKey.keyV, meta: true):
+            _handlePasteShortcut,
         const SingleActivator(LogicalKeyboardKey.keyZ, control: true):
             _handleUndoShortcut,
         const SingleActivator(LogicalKeyboardKey.keyZ, meta: true):
@@ -373,6 +378,13 @@ class _EditorPageState extends ConsumerState<EditorPage>
             runSpacing: 12,
             children: [
               CupertinoActionButton(
+                key: const ValueKey<String>('editor-paste-image-button'),
+                onPressed: () => _pasteImageFromClipboard(),
+                variant: CupertinoActionButtonVariant.tinted,
+                icon: Icons.content_paste_outlined,
+                label: strings.pasteImage,
+              ),
+              CupertinoActionButton(
                 onPressed: _pickImages,
                 variant: CupertinoActionButtonVariant.tinted,
                 icon: Icons.image_outlined,
@@ -400,6 +412,14 @@ class _EditorPageState extends ConsumerState<EditorPage>
                     : strings.startRecording,
               ),
             ],
+          ),
+          const SizedBox(height: 10),
+          Text(
+            strings.pasteImageHint,
+            style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                  color: Theme.of(context).colorScheme.onSurfaceVariant,
+                  height: 1.4,
+                ),
           ),
           if (visualMedia.isNotEmpty) ...[
             const SizedBox(height: 14),
@@ -638,6 +658,21 @@ class _EditorPageState extends ConsumerState<EditorPage>
     _isApplyingTextUndo = false;
   }
 
+  Future<void> _handlePasteShortcut() async {
+    final didPasteImage = await _pasteImageFromClipboard(
+      showMissingImageFeedback: false,
+    );
+    if (didPasteImage) {
+      return;
+    }
+
+    final editableTextState = _focusedEditableTextState;
+    if (editableTextState == null) {
+      return;
+    }
+    await editableTextState.pasteText(SelectionChangedCause.keyboard);
+  }
+
   TextEditingController? get _focusedTextController {
     if (_titleFocusNode.hasFocus) {
       return _titleController;
@@ -652,6 +687,15 @@ class _EditorPageState extends ConsumerState<EditorPage>
       return _tagController;
     }
     return null;
+  }
+
+  EditableTextState? get _focusedEditableTextState {
+    final focusContext = FocusManager.instance.primaryFocus?.context;
+    if (focusContext is StatefulElement &&
+        focusContext.state is EditableTextState) {
+      return focusContext.state as EditableTextState;
+    }
+    return focusContext?.findAncestorStateOfType<EditableTextState>();
   }
 
   void _initializeTextHistory() {
@@ -1541,6 +1585,66 @@ class _EditorPageState extends ConsumerState<EditorPage>
         tone: AppSnackBarTone.success,
       );
     }
+  }
+
+  Future<bool> _pasteImageFromClipboard({
+    bool showMissingImageFeedback = true,
+  }) async {
+    final strings = context.strings;
+
+    ClipboardImagePasteResult result;
+    try {
+      result = await ref
+          .read(clipboardImageServiceProvider)
+          .pasteImageFromClipboard();
+    } catch (error) {
+      if (mounted) {
+        context.showAppSnackBar(
+          strings.pasteImageFailed(error),
+          tone: AppSnackBarTone.error,
+        );
+      }
+      return false;
+    }
+
+    if (!mounted) {
+      return false;
+    }
+
+    if (result.didPaste) {
+      setState(() {
+        _media.add(
+          DiaryMedia(
+            id: _uuid.v4(),
+            type: MediaType.image,
+            path: result.savedPath!,
+            addedAt: DateTime.now(),
+            origin: MediaOrigin.imported,
+          ),
+        );
+      });
+      context.showAppSnackBar(
+        strings.pastedImages(1),
+        tone: AppSnackBarTone.success,
+      );
+      return true;
+    }
+
+    if (!showMissingImageFeedback) {
+      return false;
+    }
+
+    final message = switch (result.status) {
+      ClipboardImagePasteStatus.unavailable =>
+        strings.clipboardImageUnavailable,
+      ClipboardImagePasteStatus.noImage => strings.clipboardHasNoImage,
+      ClipboardImagePasteStatus.pasted => strings.pastedImages(1),
+    };
+    context.showAppSnackBar(
+      message,
+      tone: AppSnackBarTone.warning,
+    );
+    return false;
   }
 
   Future<void> _takePhoto() => _captureWithCamera(mode: 'photo');

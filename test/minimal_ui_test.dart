@@ -21,6 +21,7 @@ import 'package:diary_mvp/features/diary/presentation/widgets/entry_list_preview
 import 'package:diary_mvp/features/diary/presentation/widgets/entry_readonly_view.dart';
 import 'package:diary_mvp/features/diary/presentation/widgets/image_media_grid.dart';
 import 'package:diary_mvp/features/diary/presentation/widgets/tag_multi_select_dropdown.dart';
+import 'package:diary_mvp/features/diary/services/clipboard_image_service.dart';
 import 'package:diary_mvp/features/diary/services/diary_ai_model_catalog_service.dart';
 import 'package:diary_mvp/features/diary/services/diary_ai_settings.dart';
 import 'package:diary_mvp/features/diary/services/diary_list_settings.dart';
@@ -84,7 +85,7 @@ void main() {
     await tester.pumpAndSettle();
     await tester.tap(find.text('#life'));
     await tester.pumpAndSettle();
-    await tester.tap(find.byIcon(Icons.expand_less_rounded));
+    await tester.tap(find.byIcon(CupertinoIcons.chevron_up));
     await tester.pumpAndSettle();
 
     expect(find.text(strings.allTags), findsNothing);
@@ -484,15 +485,9 @@ void main() {
       of: aiCard,
       matching: find.byIcon(Icons.expand_less),
     );
-    final actionButton = find
-        .ancestor(
-          of: find.text(strings.reanalyzeDiaryWithAi),
-          matching: find.byType(FilledButton),
-        )
-        .first;
     final cardRect = tester.getRect(aiCard);
     final expandRect = tester.getRect(expandIcon);
-    final buttonRect = tester.getRect(actionButton);
+    final buttonRect = tester.getRect(find.text(strings.reanalyzeDiaryWithAi));
 
     expect(buttonRect.left, greaterThan(expandRect.right));
     expect(cardRect.right - buttonRect.right, lessThan(32));
@@ -606,9 +601,15 @@ void main() {
       overrides: buildOverrides(repository: repository),
     );
 
-    await tester.enterText(find.byType(TextField).at(0), 'Saved draft');
-    await tester.enterText(find.byType(TextField).at(1), 'Keep me here.');
-    await tester.tap(find.byIcon(Icons.save_outlined));
+    await tester.enterText(
+      cupertinoEditableTextFinder(const ValueKey('editor-title-field')),
+      'Saved draft',
+    );
+    await tester.enterText(
+      cupertinoEditableTextFinder(const ValueKey('editor-content-field')),
+      'Keep me here.',
+    );
+    await tester.tap(find.text(strings.saveEntry));
     await tester.pumpAndSettle();
 
     expect(find.text(strings.whatHappenedToday), findsOneWidget);
@@ -628,17 +629,123 @@ void main() {
       overrides: buildOverrides(repository: repository),
     );
 
-    await tester.tap(find.byType(TextField).at(0));
+    await tester.showKeyboard(
+      cupertinoEditableTextFinder(const ValueKey('editor-title-field')),
+    );
     await tester.pump();
-    await tester.enterText(find.byType(TextField).at(0), 'Shortcut save');
     await tester.enterText(
-        find.byType(TextField).at(1), 'Saved from keyboard.');
+      cupertinoEditableTextFinder(const ValueKey('editor-title-field')),
+      'Shortcut save',
+    );
+    await tester.enterText(
+      cupertinoEditableTextFinder(const ValueKey('editor-content-field')),
+      'Saved from keyboard.',
+    );
 
     await pressControlShortcut(tester, LogicalKeyboardKey.keyS);
     await tester.pumpAndSettle();
 
     expect(find.text(strings.entrySaved), findsOneWidget);
     expect((await repository.listEntries()).length, 1);
+  });
+
+  testWidgets('editor page pastes clipboard images with Ctrl+V',
+      (tester) async {
+    final repository = FakeDiaryRepository(
+      moods: DiaryMood.values,
+    );
+    final clipboardImageService = FakeClipboardImageService(
+      result: ClipboardImagePasteResult.pasted(
+        '${Directory.systemTemp.path}'
+        '${Platform.pathSeparator}'
+        'clipboard_pasted_image.png',
+      ),
+    );
+
+    await pumpPage(
+      tester,
+      const EditorPage(),
+      path: '/editor',
+      overrides: buildOverrides(
+        repository: repository,
+        clipboardImageService: clipboardImageService,
+      ),
+    );
+
+    final titleEditable = find.descendant(
+      of: find.byKey(const ValueKey('editor-title-field')),
+      matching: find.byType(EditableText),
+    );
+    tester.widget<EditableText>(titleEditable).focusNode.requestFocus();
+    await tester.showKeyboard(titleEditable);
+    await tester.pump();
+
+    await pressControlShortcut(tester, LogicalKeyboardKey.keyV);
+    await tester.pump(const Duration(milliseconds: 300));
+
+    expect(clipboardImageService.pasteRequests, 1);
+    expect(find.text(strings.pastedImages(1)), findsOneWidget);
+    expect(find.byType(ImageMediaGrid), findsOneWidget);
+  });
+
+  testWidgets('editor page keeps text paste when clipboard has no image',
+      (tester) async {
+    final repository = FakeDiaryRepository(
+      moods: DiaryMood.values,
+    );
+    final clipboardImageService = FakeClipboardImageService(
+      result: const ClipboardImagePasteResult.noImage(),
+    );
+
+    tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(
+      SystemChannels.platform,
+      (methodCall) async {
+        switch (methodCall.method) {
+          case 'Clipboard.getData':
+            return <String, dynamic>{'text': 'pasted title'};
+          case 'Clipboard.hasStrings':
+            return <String, dynamic>{'value': true};
+        }
+        return null;
+      },
+    );
+    addTearDown(
+      () => tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(
+        SystemChannels.platform,
+        null,
+      ),
+    );
+
+    await pumpPage(
+      tester,
+      const EditorPage(),
+      path: '/editor',
+      overrides: buildOverrides(
+        repository: repository,
+        clipboardImageService: clipboardImageService,
+      ),
+    );
+
+    final titleEditable = find.descendant(
+      of: find.byKey(const ValueKey('editor-title-field')),
+      matching: find.byType(EditableText),
+    );
+    tester.widget<EditableText>(titleEditable).focusNode.requestFocus();
+    await tester.showKeyboard(titleEditable);
+    await tester.pump();
+
+    await pressControlShortcut(tester, LogicalKeyboardKey.keyV);
+    await tester.pump(const Duration(milliseconds: 300));
+
+    expect(clipboardImageService.pasteRequests, 1);
+    expect(
+      cupertinoTextFieldController(
+        tester,
+        const ValueKey('editor-title-field'),
+      ).text,
+      'pasted title',
+    );
+    expect(find.text(strings.pastedImages(1)), findsNothing);
   });
 
   testWidgets('editor page undoes text edits with Ctrl+Z', (tester) async {
@@ -653,18 +760,31 @@ void main() {
       overrides: buildOverrides(repository: repository),
     );
 
-    final titleField = find.byType(TextField).at(0);
-    await tester.tap(titleField);
+    final titleField =
+        cupertinoEditableTextFinder(const ValueKey('editor-title-field'));
+    await tester.showKeyboard(titleField);
     await tester.pump();
     await tester.enterText(titleField, 'Undo me');
     await tester.pump();
 
-    expect(editableTextController(tester, 0).text, 'Undo me');
+    expect(
+      cupertinoTextFieldController(
+        tester,
+        const ValueKey('editor-title-field'),
+      ).text,
+      'Undo me',
+    );
 
     await pressControlShortcut(tester, LogicalKeyboardKey.keyZ);
     await tester.pump();
 
-    expect(editableTextController(tester, 0).text, isEmpty);
+    expect(
+      cupertinoTextFieldController(
+        tester,
+        const ValueKey('editor-title-field'),
+      ).text,
+      isEmpty,
+    );
   });
 
   testWidgets('saving a new entry twice updates the same entry',
@@ -680,14 +800,20 @@ void main() {
       overrides: buildOverrides(repository: repository),
     );
 
-    await tester.enterText(find.byType(TextField).at(0), 'Saved draft');
-    await tester.enterText(find.byType(TextField).at(1), 'Keep me here.');
-    await tester.tap(find.byIcon(Icons.save_outlined));
+    await tester.enterText(
+      cupertinoEditableTextFinder(const ValueKey('editor-title-field')),
+      'Saved draft',
+    );
+    await tester.enterText(
+      cupertinoEditableTextFinder(const ValueKey('editor-content-field')),
+      'Keep me here.',
+    );
+    await tester.tap(find.text(strings.saveEntry));
     await tester.pumpAndSettle();
 
     expect((await repository.listEntries()).length, 1);
 
-    await tester.tap(find.byIcon(Icons.save_outlined));
+    await tester.tap(find.text(strings.updateEntry));
     await tester.pumpAndSettle();
 
     expect(find.text(strings.entryUpdated), findsOneWidget);
@@ -706,7 +832,10 @@ void main() {
       overrides: buildOverrides(repository: repository),
     );
 
-    await tester.enterText(find.byType(TextField).at(0), 'Unsaved draft');
+    await tester.enterText(
+      cupertinoEditableTextFinder(const ValueKey('editor-title-field')),
+      'Unsaved draft',
+    );
     await tester.tap(find.text(strings.homeNav));
     await tester.pumpAndSettle();
 
@@ -723,7 +852,7 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text(strings.unsavedChangesTitle), findsNothing);
-    expect(find.text(strings.recentEntries), findsOneWidget);
+    expect(find.text(strings.firstEntryPrompt), findsOneWidget);
   });
 
   testWidgets('home page keeps only the first image and video on one media row',
@@ -2752,7 +2881,7 @@ void main() {
       isTrue,
     );
 
-    await tester.tap(find.byType(Switch).first);
+    await tester.tap(find.byType(CupertinoSwitch).first);
     await tester.pumpAndSettle();
 
     expect(
@@ -2852,12 +2981,10 @@ void main() {
     await tester.pumpAndSettle();
 
     await tester.tap(
-      find.widgetWithText(OutlinedButton, strings.disablePasscode),
+      find.widgetWithText(CupertinoActionButton, strings.disablePasscode),
     );
     await tester.pumpAndSettle();
-    await tester.tap(
-      find.widgetWithText(FilledButton, strings.confirmDisablePasscode),
-    );
+    await tester.tap(find.text(strings.confirmDisablePasscode).last);
     await tester.pumpAndSettle();
 
     expect(find.text(strings.passcodeDisabled), findsOneWidget);
@@ -2944,13 +3071,13 @@ void main() {
       find.byKey(const ValueKey('startup-passcode-field')),
       'hello-123',
     );
-    await tester.tap(find.widgetWithText(FilledButton, strings.unlockAction));
+    await tester.tap(find.text(strings.unlockAction));
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 300));
     await tester.pumpAndSettle();
 
     expect(find.text(strings.unlockAppTitle), findsNothing);
-    expect(find.text(strings.recentEntries), findsOneWidget);
+    expect(find.text('Unlock me'), findsOneWidget);
   });
 
   testWidgets('editor image preview shows upload metadata', (tester) async {
@@ -3578,6 +3705,13 @@ TextEditingController editableTextController(
       .controller;
 }
 
+Finder cupertinoEditableTextFinder(Key key) {
+  return find.descendant(
+    of: find.byKey(key),
+    matching: find.byType(EditableText),
+  );
+}
+
 TextEditingController cupertinoTextFieldController(
   WidgetTester tester,
   Key key,
@@ -3660,6 +3794,7 @@ Future<void> pumpReadonlyView(
 
 List<Override> buildOverrides({
   required FakeDiaryRepository repository,
+  ClipboardImageService? clipboardImageService,
   FakeDiaryListSettingsStorage? diaryListSettingsStorage,
   FakePasswordSettingsStorage? passwordSettingsStorage,
   FakeHiddenDiaryPasswordSettingsStorage? hiddenDiaryPasswordSettingsStorage,
@@ -3679,6 +3814,10 @@ List<Override> buildOverrides({
 
   return [
     diaryRepositoryProvider.overrideWith((ref) => repository),
+    if (clipboardImageService != null)
+      clipboardImageServiceProvider.overrideWith(
+        (ref) => clipboardImageService,
+      ),
     appThemeStorageProvider.overrideWith(
       (ref) => FakeAppThemeStorage(DiaryThemePreset.daylight),
     ),
@@ -4034,4 +4173,19 @@ class FakeTranscriptionApiKeyStorage extends TranscriptionApiKeyStorage {
 
   @override
   Future<void> write(String? apiKey) async {}
+}
+
+class FakeClipboardImageService implements ClipboardImageService {
+  FakeClipboardImageService({
+    required this.result,
+  });
+
+  final ClipboardImagePasteResult result;
+  int pasteRequests = 0;
+
+  @override
+  Future<ClipboardImagePasteResult> pasteImageFromClipboard() async {
+    pasteRequests += 1;
+    return result;
+  }
 }
