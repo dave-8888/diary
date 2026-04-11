@@ -157,8 +157,10 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
       _appNameInitialized = true;
     }
     if (!_diaryAiConfigInitialized && diaryAiConfigAsync.hasValue) {
-      _applyDiaryAiConfigForm(diaryAiConfigAsync.valueOrNull!);
+      final initialConfig = diaryAiConfigAsync.valueOrNull!;
+      _applyDiaryAiConfigForm(initialConfig);
       _diaryAiConfigInitialized = true;
+      _restorePersistedDiaryAiModels(initialConfig);
     }
 
     return DiaryShell(
@@ -457,9 +459,7 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
                   summary:
                       '${strings.diaryAiVisibilityLabel}: ${diaryAiVisible ? strings.enabledLabel : strings.disabledLabel} · ${diaryAiConfig.preset.label} · ${diaryAiConfig.normalizedModel}',
                   expanded: _isDiaryAiSectionExpanded,
-                  onExpandedChanged: (expanded) {
-                    setState(() => _isDiaryAiSectionExpanded = expanded);
-                  },
+                  onExpandedChanged: _handleDiaryAiSectionExpandedChanged,
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
@@ -1764,8 +1764,53 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
 
     setState(() {
       _diaryAiModelCatalogStale = false;
-      _lastFetchedDiaryAiModelSignature = _currentDiaryAiModelSignature();
+      _lastFetchedDiaryAiModelSignature =
+          result.configSignature ?? _currentDiaryAiModelSignature();
     });
+  }
+
+  Future<void> _restorePersistedDiaryAiModels(
+    DiaryAiProviderConfig config,
+  ) async {
+    final result = await ref
+        .read(diaryAiModelCatalogControllerProvider.notifier)
+        .restorePersistedModels(config);
+    if (!mounted || !result.hasModels) {
+      return;
+    }
+
+    setState(() {
+      _diaryAiModelCatalogStale = false;
+      _lastFetchedDiaryAiModelSignature =
+          result.configSignature ?? _currentDiaryAiModelSignature();
+    });
+  }
+
+  void _handleDiaryAiSectionExpandedChanged(bool expanded) {
+    setState(() => _isDiaryAiSectionExpanded = expanded);
+    if (!expanded) {
+      return;
+    }
+
+    _refetchDiaryAiModelsOnExpand();
+  }
+
+  Future<void> _refetchDiaryAiModelsOnExpand() async {
+    if (!_diaryAiConfigInitialized) {
+      return;
+    }
+
+    final config = _currentDiaryAiProviderConfig();
+    final hasApiKey = config.resolvedApiKey(
+          fallbackApiKey: ref.read(diaryAiEnvironmentApiKeyProvider),
+        ) !=
+        null;
+    if (!hasApiKey ||
+        ref.read(diaryAiModelCatalogControllerProvider).isLoading) {
+      return;
+    }
+
+    await _fetchDiaryAiModels();
   }
 
   Future<void> _openDiaryAiModelPicker() async {
@@ -1905,12 +1950,10 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
   }
 
   String _currentDiaryAiModelSignature() {
-    final config = _currentDiaryAiProviderConfig();
-    final resolvedApiKey = config.resolvedApiKey(
-          fallbackApiKey: ref.read(diaryAiEnvironmentApiKeyProvider),
-        ) ??
-        '';
-    return '${config.presetId}|${config.normalizedBaseUrl}|$resolvedApiKey';
+    return buildDiaryAiModelCatalogConfigSignature(
+      _currentDiaryAiProviderConfig(),
+      fallbackApiKey: ref.read(diaryAiEnvironmentApiKeyProvider),
+    );
   }
 
   void _handleDiaryAiConnectionFieldsChanged() {
@@ -1977,13 +2020,13 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
       strings.diaryAiModelLabel,
       style: theme.textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w700),
     );
-    final showCatalogSummary = !_diaryAiModelCatalogStale &&
-        result.status == DiaryAiModelCatalogStatus.success &&
-        result.models.isNotEmpty;
+    final showCatalogSummary =
+        !_diaryAiModelCatalogStale && result.models.isNotEmpty;
     if (!showCatalogSummary) {
       return title;
     }
 
+    final fetchedAt = result.fetchedAt;
     return Wrap(
       spacing: 10,
       runSpacing: 8,
@@ -2010,6 +2053,29 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
             ),
           ),
         ),
+        if (fetchedAt != null)
+          DecoratedBox(
+            decoration: BoxDecoration(
+              color: colorScheme.surfaceContainerHighest.withValues(
+                alpha: 0.72,
+              ),
+              borderRadius: BorderRadius.circular(999),
+              border: Border.all(
+                color: colorScheme.outlineVariant.withValues(alpha: 0.28),
+              ),
+            ),
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+              child: Text(
+                strings.diaryAiModelCatalogFetchedAt(fetchedAt),
+                style: theme.textTheme.bodySmall?.copyWith(
+                  color: colorScheme.onSurfaceVariant,
+                  fontWeight: FontWeight.w600,
+                  height: 1.2,
+                ),
+              ),
+            ),
+          ),
       ],
     );
   }
@@ -2371,6 +2437,10 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
       );
       if (!mounted) return;
       ref.read(diaryAiModelCatalogControllerProvider.notifier).reset();
+      await ref
+          .read(diaryAiModelCatalogControllerProvider.notifier)
+          .clearPersistedModels();
+      if (!mounted) return;
       setState(() {
         _isResettingDiaryAiConfig = false;
         _diaryAiModelCatalogStale = false;
@@ -2779,6 +2849,8 @@ class _DiaryAiModelPickerSheet extends StatefulWidget {
 
 class _DiaryAiModelPickerSheetState extends State<_DiaryAiModelPickerSheet> {
   DiaryAiModelDisplayGroup? _activeGroup;
+  final TextEditingController _searchController = TextEditingController();
+  String _searchQuery = '';
 
   @override
   void initState() {
@@ -2786,10 +2858,29 @@ class _DiaryAiModelPickerSheetState extends State<_DiaryAiModelPickerSheet> {
     _activeGroup = _resolveInitialGroup();
   }
 
-  List<DiaryAiModelDisplayGroup> _visibleGroups() {
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
+  }
+
+  List<DiaryAiModelCatalogEntry> _filteredModels() {
+    final normalizedQuery = _normalizeSearchText(_searchQuery);
+    if (normalizedQuery.isEmpty) {
+      return widget.models;
+    }
+
+    return widget.models
+        .where((model) => _matchesSearch(model, normalizedQuery))
+        .toList(growable: false);
+  }
+
+  List<DiaryAiModelDisplayGroup> _visibleGroups(
+    List<DiaryAiModelCatalogEntry> models,
+  ) {
     return DiaryAiModelDisplayGroup.values
         .where(
-          (group) => widget.models.any(
+          (group) => models.any(
             (model) => model.displayGroups.contains(group),
           ),
         )
@@ -2797,15 +2888,16 @@ class _DiaryAiModelPickerSheetState extends State<_DiaryAiModelPickerSheet> {
   }
 
   List<DiaryAiModelCatalogEntry> _modelsForGroup(
+    List<DiaryAiModelCatalogEntry> models,
     DiaryAiModelDisplayGroup group,
   ) {
-    return widget.models
+    return models
         .where((model) => model.displayGroups.contains(group))
         .toList(growable: false);
   }
 
   DiaryAiModelDisplayGroup? _resolveInitialGroup() {
-    final visibleGroups = _visibleGroups();
+    final visibleGroups = _visibleGroups(widget.models);
     if (visibleGroups.isEmpty) {
       return null;
     }
@@ -2827,6 +2919,30 @@ class _DiaryAiModelPickerSheetState extends State<_DiaryAiModelPickerSheet> {
     return visibleGroups.first;
   }
 
+  bool _matchesSearch(
+    DiaryAiModelCatalogEntry model,
+    String normalizedQuery,
+  ) {
+    final searchCandidates = <String>[
+      model.id,
+      if (model.name != null) model.name!,
+      if (model.description != null) model.description!,
+      ...model.displayGroups.map(widget.groupTitleBuilder),
+    ];
+
+    return searchCandidates.any(
+      (candidate) => _normalizeSearchText(candidate).contains(normalizedQuery),
+    );
+  }
+
+  String _normalizeSearchText(String value) {
+    return value
+        .trim()
+        .toLowerCase()
+        .replaceAll('／', '/')
+        .replaceAll(RegExp(r'[\s\-_./]+'), '');
+  }
+
   void _activateGroup(DiaryAiModelDisplayGroup group) {
     if (_activeGroup == group) {
       return;
@@ -2836,15 +2952,20 @@ class _DiaryAiModelPickerSheetState extends State<_DiaryAiModelPickerSheet> {
 
   @override
   Widget build(BuildContext context) {
+    final strings = context.strings;
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
     final maxContentHeight = MediaQuery.sizeOf(context).height * 0.58;
-    final visibleGroups = _visibleGroups();
+    final filteredModels = _filteredModels();
+    final visibleGroups = _visibleGroups(filteredModels);
     final activeGroup = visibleGroups.contains(_activeGroup)
-        ? _activeGroup!
-        : visibleGroups.first;
-    final activeModels = _modelsForGroup(activeGroup);
+        ? _activeGroup
+        : (visibleGroups.isNotEmpty ? visibleGroups.first : null);
+    final activeModels = activeGroup == null
+        ? const <DiaryAiModelCatalogEntry>[]
+        : _modelsForGroup(filteredModels, activeGroup);
     final contentHeight = maxContentHeight > 360 ? 360.0 : maxContentHeight;
+    final hasSearchResults = filteredModels.isNotEmpty && activeGroup != null;
 
     return SafeArea(
       top: false,
@@ -2887,141 +3008,284 @@ class _DiaryAiModelPickerSheetState extends State<_DiaryAiModelPickerSheet> {
                       ],
                     ),
                     const SizedBox(height: 8),
+                    CupertinoSearchTextField(
+                      key: const ValueKey('settings-diary-ai-model-search'),
+                      controller: _searchController,
+                      autocorrect: false,
+                      smartDashesType: SmartDashesType.disabled,
+                      smartQuotesType: SmartQuotesType.disabled,
+                      enableIMEPersonalizedLearning: false,
+                      placeholder: strings.searchDiaryAiModelsPlaceholder,
+                      style: theme.textTheme.bodyMedium?.copyWith(
+                        color: colorScheme.onSurface,
+                        decoration: TextDecoration.none,
+                      ),
+                      placeholderStyle: theme.textTheme.bodyMedium?.copyWith(
+                        color: colorScheme.onSurfaceVariant,
+                        decoration: TextDecoration.none,
+                      ),
+                      onChanged: (value) {
+                        setState(() => _searchQuery = value);
+                      },
+                    ),
+                    const SizedBox(height: 12),
                     SizedBox(
                       key: const ValueKey('settings-diary-ai-model-tags'),
                       height: contentHeight,
-                      child: Row(
-                        crossAxisAlignment: CrossAxisAlignment.stretch,
-                        children: [
-                          SizedBox(
-                            width: 132,
-                            child: DecoratedBox(
-                              decoration: BoxDecoration(
-                                color: colorScheme.surface.withValues(
-                                  alpha: 0.82,
-                                ),
-                                borderRadius: BorderRadius.circular(20),
-                                border: Border.all(
-                                  color: colorScheme.outlineVariant.withValues(
-                                    alpha: 0.24,
-                                  ),
-                                ),
-                              ),
-                              child: SingleChildScrollView(
-                                padding: const EdgeInsets.all(8),
-                                child: Column(
-                                  crossAxisAlignment:
-                                      CrossAxisAlignment.stretch,
-                                  children: visibleGroups.map((group) {
-                                    final groupModels = _modelsForGroup(group);
-                                    final isActive = group == activeGroup;
-                                    return Padding(
-                                      key: ValueKey(
-                                        'settings-diary-ai-model-group-${group.name}',
+                      child: hasSearchResults
+                          ? Row(
+                              crossAxisAlignment: CrossAxisAlignment.stretch,
+                              children: [
+                                SizedBox(
+                                  width: 132,
+                                  child: DecoratedBox(
+                                    decoration: BoxDecoration(
+                                      color: colorScheme.surface.withValues(
+                                        alpha: 0.82,
                                       ),
-                                      padding: const EdgeInsets.only(
-                                        bottom: 8,
+                                      borderRadius: BorderRadius.circular(20),
+                                      border: Border.all(
+                                        color: colorScheme.outlineVariant
+                                            .withValues(alpha: 0.24),
                                       ),
-                                      child: CupertinoButton(
-                                        key: ValueKey(
-                                          'settings-diary-ai-model-toggle-${group.name}',
-                                        ),
-                                        padding: EdgeInsets.zero,
-                                        minimumSize: Size.zero,
-                                        onPressed: () => _activateGroup(group),
-                                        child: DecoratedBox(
-                                          decoration: BoxDecoration(
-                                            color: isActive
-                                                ? colorScheme.primary
-                                                    .withValues(alpha: 0.12)
-                                                : colorScheme
-                                                    .surfaceContainerHighest
-                                                    .withValues(
-                                                    alpha: 0.45,
-                                                  ),
-                                            borderRadius:
-                                                BorderRadius.circular(16),
-                                            border: Border.all(
-                                              color: isActive
-                                                  ? colorScheme.primary
-                                                  : colorScheme.outlineVariant
-                                                      .withValues(
-                                                      alpha: 0.2,
-                                                    ),
-                                              width: isActive ? 1.2 : 1,
+                                    ),
+                                    child: SingleChildScrollView(
+                                      padding: const EdgeInsets.all(8),
+                                      child: Column(
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.stretch,
+                                        children: visibleGroups.map((group) {
+                                          final groupModels = _modelsForGroup(
+                                            filteredModels,
+                                            group,
+                                          );
+                                          final isActive = group == activeGroup;
+                                          return Padding(
+                                            key: ValueKey(
+                                              'settings-diary-ai-model-group-${group.name}',
                                             ),
-                                          ),
-                                          child: Padding(
-                                            padding: const EdgeInsets.symmetric(
-                                              horizontal: 10,
-                                              vertical: 10,
+                                            padding: const EdgeInsets.only(
+                                              bottom: 8,
                                             ),
-                                            child: Row(
-                                              children: [
-                                                Expanded(
-                                                  child: Text(
-                                                    widget.groupTitleBuilder(
-                                                      group,
-                                                    ),
-                                                    style: theme
-                                                        .textTheme.labelMedium
-                                                        ?.copyWith(
-                                                      color: isActive
-                                                          ? colorScheme.primary
-                                                          : colorScheme
-                                                              .onSurfaceVariant,
-                                                      fontWeight: isActive
-                                                          ? FontWeight.w700
-                                                          : FontWeight.w600,
-                                                    ),
-                                                  ),
-                                                ),
-                                                const SizedBox(width: 8),
-                                                Container(
-                                                  padding: const EdgeInsets
-                                                      .symmetric(
-                                                    horizontal: 6,
-                                                    vertical: 2,
-                                                  ),
-                                                  decoration: BoxDecoration(
+                                            child: CupertinoButton(
+                                              key: ValueKey(
+                                                'settings-diary-ai-model-toggle-${group.name}',
+                                              ),
+                                              padding: EdgeInsets.zero,
+                                              minimumSize: Size.zero,
+                                              onPressed: () =>
+                                                  _activateGroup(group),
+                                              child: DecoratedBox(
+                                                decoration: BoxDecoration(
+                                                  color: isActive
+                                                      ? colorScheme.primary
+                                                          .withValues(
+                                                          alpha: 0.12,
+                                                        )
+                                                      : colorScheme
+                                                          .surfaceContainerHighest
+                                                          .withValues(
+                                                          alpha: 0.45,
+                                                        ),
+                                                  borderRadius:
+                                                      BorderRadius.circular(16),
+                                                  border: Border.all(
                                                     color: isActive
                                                         ? colorScheme.primary
+                                                        : colorScheme
+                                                            .outlineVariant
                                                             .withValues(
-                                                            alpha: 0.14,
-                                                          )
-                                                        : colorScheme.surface,
-                                                    borderRadius:
-                                                        BorderRadius.circular(
-                                                            999),
-                                                  ),
-                                                  child: Text(
-                                                    '${groupModels.length}',
-                                                    style: theme
-                                                        .textTheme.labelSmall
-                                                        ?.copyWith(
-                                                      color: isActive
-                                                          ? colorScheme.primary
-                                                          : colorScheme
-                                                              .onSurfaceVariant,
-                                                      fontWeight:
-                                                          FontWeight.w700,
-                                                    ),
+                                                            alpha: 0.2,
+                                                          ),
+                                                    width: isActive ? 1.2 : 1,
                                                   ),
                                                 ),
-                                              ],
+                                                child: Padding(
+                                                  padding: const EdgeInsets
+                                                      .symmetric(
+                                                    horizontal: 10,
+                                                    vertical: 10,
+                                                  ),
+                                                  child: Row(
+                                                    children: [
+                                                      Expanded(
+                                                        child: Text(
+                                                          widget
+                                                              .groupTitleBuilder(
+                                                            group,
+                                                          ),
+                                                          style: theme.textTheme
+                                                              .labelMedium
+                                                              ?.copyWith(
+                                                            color: isActive
+                                                                ? colorScheme
+                                                                    .primary
+                                                                : colorScheme
+                                                                    .onSurfaceVariant,
+                                                            fontWeight: isActive
+                                                                ? FontWeight
+                                                                    .w700
+                                                                : FontWeight
+                                                                    .w600,
+                                                          ),
+                                                        ),
+                                                      ),
+                                                      const SizedBox(width: 8),
+                                                      Container(
+                                                        padding:
+                                                            const EdgeInsets
+                                                                .symmetric(
+                                                          horizontal: 6,
+                                                          vertical: 2,
+                                                        ),
+                                                        decoration:
+                                                            BoxDecoration(
+                                                          color: isActive
+                                                              ? colorScheme
+                                                                  .primary
+                                                                  .withValues(
+                                                                  alpha: 0.14,
+                                                                )
+                                                              : colorScheme
+                                                                  .surface,
+                                                          borderRadius:
+                                                              BorderRadius
+                                                                  .circular(
+                                                            999,
+                                                          ),
+                                                        ),
+                                                        child: Text(
+                                                          '${groupModels.length}',
+                                                          style: theme.textTheme
+                                                              .labelSmall
+                                                              ?.copyWith(
+                                                            color: isActive
+                                                                ? colorScheme
+                                                                    .primary
+                                                                : colorScheme
+                                                                    .onSurfaceVariant,
+                                                            fontWeight:
+                                                                FontWeight.w700,
+                                                          ),
+                                                        ),
+                                                      ),
+                                                    ],
+                                                  ),
+                                                ),
+                                              ),
                                             ),
-                                          ),
-                                        ),
+                                          );
+                                        }).toList(growable: false),
                                       ),
-                                    );
-                                  }).toList(growable: false),
+                                    ),
+                                  ),
                                 ),
-                              ),
-                            ),
-                          ),
-                          const SizedBox(width: 12),
-                          Expanded(
-                            child: DecoratedBox(
+                                const SizedBox(width: 12),
+                                Expanded(
+                                  child: DecoratedBox(
+                                    decoration: BoxDecoration(
+                                      color: colorScheme.surface.withValues(
+                                        alpha: 0.82,
+                                      ),
+                                      borderRadius: BorderRadius.circular(20),
+                                      border: Border.all(
+                                        color: colorScheme.outlineVariant
+                                            .withValues(alpha: 0.24),
+                                      ),
+                                    ),
+                                    child: SingleChildScrollView(
+                                      padding: const EdgeInsets.all(12),
+                                      child: LayoutBuilder(
+                                        builder: (context, constraints) {
+                                          return Column(
+                                            crossAxisAlignment:
+                                                CrossAxisAlignment.start,
+                                            children: [
+                                              Row(
+                                                children: [
+                                                  Expanded(
+                                                    child: Text(
+                                                      widget.groupTitleBuilder(
+                                                        activeGroup,
+                                                      ),
+                                                      style: theme
+                                                          .textTheme.titleSmall
+                                                          ?.copyWith(
+                                                        fontWeight:
+                                                            FontWeight.w700,
+                                                      ),
+                                                    ),
+                                                  ),
+                                                  Container(
+                                                    padding: const EdgeInsets
+                                                        .symmetric(
+                                                      horizontal: 8,
+                                                      vertical: 3,
+                                                    ),
+                                                    decoration: BoxDecoration(
+                                                      color: colorScheme
+                                                          .surfaceContainerHighest
+                                                          .withValues(
+                                                        alpha: 0.7,
+                                                      ),
+                                                      borderRadius:
+                                                          BorderRadius.circular(
+                                                        999,
+                                                      ),
+                                                    ),
+                                                    child: Text(
+                                                      '${activeModels.length}',
+                                                      style: theme
+                                                          .textTheme.labelSmall
+                                                          ?.copyWith(
+                                                        color: colorScheme
+                                                            .onSurfaceVariant,
+                                                        fontWeight:
+                                                            FontWeight.w700,
+                                                      ),
+                                                    ),
+                                                  ),
+                                                ],
+                                              ),
+                                              const SizedBox(height: 12),
+                                              Wrap(
+                                                key: ValueKey(
+                                                  'settings-diary-ai-model-group-content-${activeGroup.name}',
+                                                ),
+                                                spacing: 8,
+                                                runSpacing: 8,
+                                                children: activeModels
+                                                    .map(
+                                                      (model) =>
+                                                          _DiaryAiModelPickerTag(
+                                                        label: model.name ??
+                                                            model.id,
+                                                        selected: model.id ==
+                                                            widget
+                                                                .selectedModelId,
+                                                        maxWidth: constraints
+                                                            .maxWidth,
+                                                        valueKey: ValueKey(
+                                                          'settings-diary-ai-model-option-${activeGroup.name}-${model.id}',
+                                                        ),
+                                                        onPressed: () =>
+                                                            Navigator.of(
+                                                          context,
+                                                        ).pop(model.id),
+                                                      ),
+                                                    )
+                                                    .toList(growable: false),
+                                              ),
+                                            ],
+                                          );
+                                        },
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            )
+                          : DecoratedBox(
                               decoration: BoxDecoration(
                                 color: colorScheme.surface.withValues(
                                   alpha: 0.82,
@@ -3033,89 +3297,25 @@ class _DiaryAiModelPickerSheetState extends State<_DiaryAiModelPickerSheet> {
                                   ),
                                 ),
                               ),
-                              child: SingleChildScrollView(
-                                padding: const EdgeInsets.all(12),
-                                child: LayoutBuilder(
-                                  builder: (context, constraints) {
-                                    return Column(
-                                      crossAxisAlignment:
-                                          CrossAxisAlignment.start,
-                                      children: [
-                                        Row(
-                                          children: [
-                                            Expanded(
-                                              child: Text(
-                                                widget.groupTitleBuilder(
-                                                  activeGroup,
-                                                ),
-                                                style: theme
-                                                    .textTheme.titleSmall
-                                                    ?.copyWith(
-                                                  fontWeight: FontWeight.w700,
-                                                ),
-                                              ),
-                                            ),
-                                            Container(
-                                              padding:
-                                                  const EdgeInsets.symmetric(
-                                                horizontal: 8,
-                                                vertical: 3,
-                                              ),
-                                              decoration: BoxDecoration(
-                                                color: colorScheme
-                                                    .surfaceContainerHighest
-                                                    .withValues(alpha: 0.7),
-                                                borderRadius:
-                                                    BorderRadius.circular(999),
-                                              ),
-                                              child: Text(
-                                                '${activeModels.length}',
-                                                style: theme
-                                                    .textTheme.labelSmall
-                                                    ?.copyWith(
-                                                  color: colorScheme
-                                                      .onSurfaceVariant,
-                                                  fontWeight: FontWeight.w700,
-                                                ),
-                                              ),
-                                            ),
-                                          ],
-                                        ),
-                                        const SizedBox(height: 12),
-                                        Wrap(
-                                          key: ValueKey(
-                                            'settings-diary-ai-model-group-content-${activeGroup.name}',
-                                          ),
-                                          spacing: 8,
-                                          runSpacing: 8,
-                                          children: activeModels
-                                              .map(
-                                                (model) =>
-                                                    _DiaryAiModelPickerTag(
-                                                  label: model.name ?? model.id,
-                                                  selected: model.id ==
-                                                      widget.selectedModelId,
-                                                  maxWidth:
-                                                      constraints.maxWidth,
-                                                  valueKey: ValueKey(
-                                                    'settings-diary-ai-model-option-${activeGroup.name}-${model.id}',
-                                                  ),
-                                                  onPressed: () =>
-                                                      Navigator.of(context)
-                                                          .pop(model.id),
-                                                ),
-                                              )
-                                              .toList(growable: false),
-                                        ),
-                                      ],
-                                    );
-                                  },
+                              child: Center(
+                                child: Padding(
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 24,
+                                  ),
+                                  child: Text(
+                                    strings.diaryAiModelSearchEmpty,
+                                    key: const ValueKey(
+                                      'settings-diary-ai-model-search-empty',
+                                    ),
+                                    textAlign: TextAlign.center,
+                                    style: theme.textTheme.bodyMedium?.copyWith(
+                                      color: colorScheme.onSurfaceVariant,
+                                      height: 1.4,
+                                    ),
+                                  ),
                                 ),
                               ),
                             ),
-                          ),
-                        ],
-                      ),
                     ),
                   ],
                 ),

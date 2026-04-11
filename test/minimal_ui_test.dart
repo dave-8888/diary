@@ -1735,6 +1735,268 @@ void main() {
     );
   });
 
+  testWidgets('settings page restores saved diary AI models and fetched time',
+      (tester) async {
+    final repository = FakeDiaryRepository(
+      moods: DiaryMood.values,
+    );
+    const savedConfig = DiaryAiProviderConfig(
+      presetId: 'gemini',
+      baseUrl: 'https://generativelanguage.googleapis.com/v1beta/openai/',
+      model: 'gemini-1.5-pro',
+      modelType: 'multimodal',
+      modelSource: DiaryAiModelSelectionSource.catalog,
+    );
+    final savedFetchedAt = DateTime(2026, 4, 10, 8, 30);
+    final diaryAiSettingsStorage = FakeDiaryAiSettingsStorage(
+      savedConfig,
+      DiaryAiStoredModelCatalog(
+        configSignature: buildDiaryAiModelCatalogConfigSignature(savedConfig),
+        fetchedAt: savedFetchedAt,
+        models: const [
+          DiaryAiModelCatalogEntry(
+            id: 'gemini-1.5-pro',
+            description: 'Saved from an earlier fetch.',
+            traits: [
+              DiaryAiModelTrait.multimodal,
+              DiaryAiModelTrait.text,
+              DiaryAiModelTrait.imageInput,
+            ],
+          ),
+        ],
+      ).toJson(),
+    );
+
+    await pumpPage(
+      tester,
+      const SettingsPage(),
+      path: '/settings',
+      overrides: buildOverrides(
+        repository: repository,
+        diaryAiSettingsStorage: diaryAiSettingsStorage,
+      ),
+    );
+
+    await tester.scrollUntilVisible(
+      find.text(strings.diaryAiSettingsTitle),
+      300,
+      scrollable: find.byType(Scrollable).first,
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(find.text(strings.diaryAiSettingsTitle));
+    await tester.pumpAndSettle();
+
+    expect(
+      find.text(strings.diaryAiModelCatalogInlineSummary(1)),
+      findsOneWidget,
+    );
+    expect(
+      find.text(strings.diaryAiModelCatalogFetchedAt(savedFetchedAt)),
+      findsOneWidget,
+    );
+    expect(
+      tester
+          .widget<CupertinoActionButton>(
+            find.byKey(const ValueKey('settings-diary-ai-select-model')),
+          )
+          .onPressed,
+      isNotNull,
+    );
+  });
+
+  testWidgets('settings page auto-fetches diary AI models when expanded',
+      (tester) async {
+    final repository = FakeDiaryRepository(
+      moods: DiaryMood.values,
+    );
+    final diaryAiSettingsStorage = FakeDiaryAiSettingsStorage(
+      const DiaryAiProviderConfig(
+        presetId: 'gemini',
+        baseUrl: 'https://generativelanguage.googleapis.com/v1beta/openai/',
+        model: 'gemini-2.0-flash',
+        apiKey: 'gem-key',
+      ),
+    );
+    var requestCount = 0;
+    final mockClient = MockClient((request) async {
+      requestCount++;
+      expect(
+        request.url.toString(),
+        'https://generativelanguage.googleapis.com/v1beta/openai/models',
+      );
+      expect(request.headers['authorization'], 'Bearer gem-key');
+      await Future<void>.delayed(const Duration(milliseconds: 50));
+      return http.Response(
+        '''
+        {
+          "data": [
+            {"id": "gemini-2.0-flash"}
+          ]
+        }
+        ''',
+        200,
+      );
+    });
+
+    await pumpPage(
+      tester,
+      const SettingsPage(),
+      path: '/settings',
+      overrides: buildOverrides(
+        repository: repository,
+        diaryAiSettingsStorage: diaryAiSettingsStorage,
+        diaryAiModelCatalogHttpClient: mockClient,
+      ),
+    );
+
+    await tester.scrollUntilVisible(
+      find.text(strings.diaryAiSettingsTitle),
+      300,
+      scrollable: find.byType(Scrollable).first,
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(find.text(strings.diaryAiSettingsTitle));
+    await tester.pump();
+
+    expect(requestCount, 1);
+    expect(find.text(strings.diaryAiModelCatalogLoading), findsOneWidget);
+
+    await tester.pumpAndSettle();
+
+    expect(
+      find.text(strings.diaryAiModelCatalogInlineSummary(1)),
+      findsOneWidget,
+    );
+    expect(
+      find.byKey(const ValueKey('settings-diary-ai-model-catalog-status')),
+      findsNothing,
+    );
+  });
+
+  testWidgets('settings page can search fetched diary AI models',
+      (tester) async {
+    final repository = FakeDiaryRepository(
+      moods: DiaryMood.values,
+    );
+    final mockClient = MockClient((request) async {
+      expect(
+        request.url.toString(),
+        'https://generativelanguage.googleapis.com/v1beta/openai/models',
+      );
+      expect(request.headers['authorization'], 'Bearer gem-key');
+      return http.Response(
+        '''
+        {
+          "data": [
+            {
+              "id": "alpha-text-1",
+              "description": "Pure text model.",
+              "architecture": {
+                "input_modalities": ["text"],
+                "output_modalities": ["text"]
+              }
+            },
+            {
+              "id": "vision-pro-2",
+              "description": "Multimodal vision model.",
+              "architecture": {
+                "input_modalities": ["text", "image"],
+                "output_modalities": ["text"]
+              }
+            }
+          ]
+        }
+        ''',
+        200,
+      );
+    });
+
+    await pumpPage(
+      tester,
+      const SettingsPage(),
+      path: '/settings',
+      overrides: buildOverrides(
+        repository: repository,
+        diaryAiModelCatalogHttpClient: mockClient,
+      ),
+    );
+
+    await tester.scrollUntilVisible(
+      find.text(strings.diaryAiSettingsTitle),
+      300,
+      scrollable: find.byType(Scrollable).first,
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(find.text(strings.diaryAiSettingsTitle));
+    await tester.pumpAndSettle();
+
+    await tester.scrollUntilVisible(
+      find.text(DiaryAiProviderPreset.gemini.label),
+      200,
+      scrollable: find.byType(Scrollable).first,
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(find.text(DiaryAiProviderPreset.gemini.label));
+    await tester.pumpAndSettle();
+
+    await tester.enterText(
+      find.byKey(const ValueKey('settings-diary-ai-api-key')),
+      'gem-key',
+    );
+    await tester.scrollUntilVisible(
+      find.byKey(const ValueKey('settings-diary-ai-fetch-models')),
+      200,
+      scrollable: find.byType(Scrollable).first,
+    );
+    await tester.pumpAndSettle();
+    await tester
+        .tap(find.byKey(const ValueKey('settings-diary-ai-fetch-models')));
+    await tester.pumpAndSettle();
+
+    await tester.ensureVisible(
+      find.byKey(const ValueKey('settings-diary-ai-select-model')),
+    );
+    await tester.pumpAndSettle();
+    await tester
+        .tap(find.byKey(const ValueKey('settings-diary-ai-select-model')));
+    await tester.pumpAndSettle();
+
+    final modelTags =
+        find.byKey(const ValueKey('settings-diary-ai-model-tags'));
+
+    expect(
+      find.byKey(const ValueKey('settings-diary-ai-model-search')),
+      findsOneWidget,
+    );
+
+    await tester.enterText(
+      find.byKey(const ValueKey('settings-diary-ai-model-search')),
+      'vision',
+    );
+    await tester.pumpAndSettle();
+
+    expect(
+      find.descendant(of: modelTags, matching: find.text('vision-pro-2')),
+      findsOneWidget,
+    );
+    expect(
+      find.descendant(of: modelTags, matching: find.text('alpha-text-1')),
+      findsNothing,
+    );
+
+    await tester.enterText(
+      find.byKey(const ValueKey('settings-diary-ai-model-search')),
+      'missing-model',
+    );
+    await tester.pumpAndSettle();
+
+    expect(
+      find.byKey(const ValueKey('settings-diary-ai-model-search-empty')),
+      findsOneWidget,
+    );
+    expect(find.text(strings.diaryAiModelSearchEmpty), findsOneWidget);
+  });
+
   testWidgets(
       'settings page saves diary AI provider config after fetch failure',
       (tester) async {
@@ -3640,10 +3902,15 @@ class FakeAppLanguageStorage extends AppLanguageStorage {
 class FakeDiaryAiSettingsStorage extends DiaryAiSettingsStorage {
   FakeDiaryAiSettingsStorage([
     DiaryAiProviderConfig? config,
-  ]) : _config = config ??
-            DiaryAiProviderConfig.forPreset(DiaryAiProviderPreset.dashScope);
+    Map<String, dynamic>? modelCatalogSnapshot,
+  ])  : _config = config ??
+            DiaryAiProviderConfig.forPreset(DiaryAiProviderPreset.dashScope),
+        _modelCatalogSnapshot = modelCatalogSnapshot == null
+            ? null
+            : Map<String, dynamic>.from(modelCatalogSnapshot);
 
   DiaryAiProviderConfig _config;
+  Map<String, dynamic>? _modelCatalogSnapshot;
   bool _visibility = true;
   bool _emotionalCompanionVisibility = true;
   bool _problemSuggestionVisibility = true;
@@ -3653,6 +3920,15 @@ class FakeDiaryAiSettingsStorage extends DiaryAiSettingsStorage {
 
   @override
   Future<String?> read() async => _config.normalizedApiKey;
+
+  @override
+  Future<Map<String, dynamic>?> readModelCatalogSnapshot() async {
+    final snapshot = _modelCatalogSnapshot;
+    if (snapshot == null) {
+      return null;
+    }
+    return Map<String, dynamic>.from(snapshot);
+  }
 
   @override
   Future<bool> readEmotionalCompanionVisibility() async =>
@@ -3679,6 +3955,12 @@ class FakeDiaryAiSettingsStorage extends DiaryAiSettingsStorage {
       modelSource: config.normalizedModelSource,
       apiKey: config.normalizedApiKey,
     );
+  }
+
+  @override
+  Future<void> writeModelCatalogSnapshot(Map<String, dynamic>? snapshot) async {
+    _modelCatalogSnapshot =
+        snapshot == null ? null : Map<String, dynamic>.from(snapshot);
   }
 
   @override

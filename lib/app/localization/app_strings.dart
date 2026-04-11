@@ -349,6 +349,12 @@ class AppStrings {
       isChinese ? '\u91cd\u65b0\u83b7\u53d6\u6a21\u578b' : 'Refetch models';
   String get diaryAiModelPickerTitle =>
       isChinese ? '\u9009\u62e9\u6a21\u578b' : 'Select model';
+  String get searchDiaryAiModelsPlaceholder => isChinese
+      ? '\u68c0\u7d22\u6a21\u578b\u540d\u79f0 / ID / \u7c7b\u578b'
+      : 'Search model name, ID, or type';
+  String get diaryAiModelSearchEmpty => isChinese
+      ? '\u6ca1\u6709\u627e\u5230\u5339\u914d\u7684\u6a21\u578b\u3002'
+      : 'No matching models found.';
   String get diaryAiModelGroupMultimodal =>
       isChinese ? '\u591a\u6a21\u6001' : 'Multimodal';
   String get diaryAiModelGroupText => isChinese ? '\u6587\u672c' : 'Text';
@@ -371,6 +377,9 @@ class AppStrings {
   String diaryAiModelCatalogInlineSummary(int count) => isChinese
       ? '\u5df2\u83b7\u53d6 $count \u4e2a\u53ef\u7528\u6a21\u578b'
       : 'Fetched $count models';
+  String diaryAiModelCatalogFetchedAt(DateTime date) => isChinese
+      ? '\u83b7\u53d6\u65f6\u95f4 ${formatDateTime(date)}'
+      : 'Fetched at ${formatDateTime(date)}';
   String diaryAiModelCatalogLoaded(int count) => isChinese
       ? '\u5df2\u83b7\u53d6 $count \u4e2a\u53ef\u7528\u6a21\u578b\u3002'
       : 'Fetched $count available models.';

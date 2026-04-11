@@ -232,6 +232,58 @@ void main() {
       );
     });
 
+    test('serializes and restores stored model catalog snapshots', () {
+      final fetchedAt = DateTime(2026, 4, 10, 9, 45);
+      final snapshot = DiaryAiStoredModelCatalog(
+        configSignature: 'gemini|https://example.com/v1/|secret',
+        fetchedAt: fetchedAt,
+        models: const [
+          DiaryAiModelCatalogEntry(
+            id: 'gemini-2.5-flash',
+            name: 'Gemini Flash',
+            description: 'Fast multimodal model.',
+            traits: [
+              DiaryAiModelTrait.multimodal,
+              DiaryAiModelTrait.text,
+              DiaryAiModelTrait.imageInput,
+            ],
+          ),
+        ],
+      );
+
+      final restored = DiaryAiStoredModelCatalog.fromJson(snapshot.toJson());
+
+      expect(restored, isNotNull);
+      expect(restored!.configSignature, snapshot.configSignature);
+      expect(restored.fetchedAt, fetchedAt);
+      expect(restored.models.single.id, 'gemini-2.5-flash');
+      expect(restored.models.single.name, 'Gemini Flash');
+      expect(
+        restored.models.single.traits,
+        [
+          DiaryAiModelTrait.multimodal,
+          DiaryAiModelTrait.text,
+          DiaryAiModelTrait.imageInput,
+        ],
+      );
+    });
+
+    test('builds model catalog signature with fallback API key', () {
+      const config = DiaryAiProviderConfig(
+        presetId: 'gemini',
+        baseUrl: 'https://example.com/v1/',
+        model: 'gemini-2.5-flash',
+      );
+
+      expect(
+        buildDiaryAiModelCatalogConfigSignature(
+          config,
+          fallbackApiKey: 'env-key',
+        ),
+        'gemini|https://example.com/v1/|env-key',
+      );
+    });
+
     test('groups embedding and reranking together', () {
       expect(
         resolveDiaryAiModelDisplayGroups(

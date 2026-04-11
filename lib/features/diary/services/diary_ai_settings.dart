@@ -302,6 +302,8 @@ class DiaryAiProviderConfig {
 }
 
 class DiaryAiSettingsStorage {
+  static const _modelCatalogSnapshotKey = 'ai_model_catalog_snapshot';
+
   Future<DiaryAiProviderConfig> readConfig() async {
     final raw = await _readRaw();
     return DiaryAiProviderConfig.fromJson(raw);
@@ -328,6 +330,25 @@ class DiaryAiSettingsStorage {
   Future<void> write(String? apiKey) async {
     final current = await readConfig();
     await writeConfig(current.copyWith(apiKey: apiKey));
+  }
+
+  Future<Map<String, dynamic>?> readModelCatalogSnapshot() async {
+    final raw = await _readRaw();
+    final snapshot = raw[_modelCatalogSnapshotKey];
+    if (snapshot is! Map) {
+      return null;
+    }
+    return Map<String, dynamic>.from(snapshot);
+  }
+
+  Future<void> writeModelCatalogSnapshot(Map<String, dynamic>? snapshot) async {
+    final raw = await _readRaw();
+    if (snapshot == null) {
+      raw.remove(_modelCatalogSnapshotKey);
+    } else {
+      raw[_modelCatalogSnapshotKey] = snapshot;
+    }
+    await _writeRaw(raw);
   }
 
   Future<bool> readVisibility() async {

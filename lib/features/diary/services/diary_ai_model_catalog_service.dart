@@ -26,6 +26,15 @@ final diaryAiModelCatalogControllerProvider =
   DiaryAiModelCatalogController.new,
 );
 
+String buildDiaryAiModelCatalogConfigSignature(
+  DiaryAiProviderConfig config, {
+  String? fallbackApiKey,
+}) {
+  final resolvedApiKey =
+      config.resolvedApiKey(fallbackApiKey: fallbackApiKey) ?? '';
+  return '${config.presetId}|${config.normalizedBaseUrl}|$resolvedApiKey';
+}
+
 enum DiaryAiModelCatalogStatus {
   idle,
   loading,
@@ -82,6 +91,16 @@ class DiaryAiModelCatalogEntry {
     return resolveDiaryAiModelDisplayGroups(traits);
   }
 
+  Map<String, dynamic> toJson() {
+    return <String, dynamic>{
+      'id': id,
+      if (name != null) 'name': name,
+      if (description != null) 'description': description,
+      if (traits.isNotEmpty)
+        'traits': traits.map((trait) => trait.name).toList(growable: false),
+    };
+  }
+
   DiaryAiModelCatalogEntry merge(DiaryAiModelCatalogEntry other) {
     final mergedTraits = <DiaryAiModelTrait>{...traits, ...other.traits}.toList(
       growable: false,
@@ -93,6 +112,73 @@ class DiaryAiModelCatalogEntry {
       traits: mergedTraits,
     );
   }
+
+  static DiaryAiModelCatalogEntry? fromJson(Map<String, dynamic> raw) {
+    final id = _readJsonString(raw['id']);
+    if (id == null) {
+      return null;
+    }
+
+    return DiaryAiModelCatalogEntry(
+      id: id,
+      name: _readJsonString(raw['name']),
+      description: _readJsonString(raw['description']),
+      traits: _readDiaryAiModelTraits(raw['traits']),
+    );
+  }
+}
+
+class DiaryAiStoredModelCatalog {
+  const DiaryAiStoredModelCatalog({
+    required this.configSignature,
+    required this.fetchedAt,
+    required this.models,
+  });
+
+  final String configSignature;
+  final DateTime fetchedAt;
+  final List<DiaryAiModelCatalogEntry> models;
+
+  Map<String, dynamic> toJson() {
+    return <String, dynamic>{
+      'config_signature': configSignature,
+      'fetched_at': fetchedAt.toIso8601String(),
+      'models': models.map((model) => model.toJson()).toList(growable: false),
+    };
+  }
+
+  static DiaryAiStoredModelCatalog? fromJson(Map<String, dynamic>? raw) {
+    if (raw == null) {
+      return null;
+    }
+
+    final configSignature = _readJsonString(raw['config_signature']);
+    final fetchedAtRaw = _readJsonString(raw['fetched_at']);
+    final fetchedAt =
+        fetchedAtRaw == null ? null : DateTime.tryParse(fetchedAtRaw);
+    final modelsRaw = raw['models'];
+    if (configSignature == null || fetchedAt == null || modelsRaw is! List) {
+      return null;
+    }
+
+    final models = modelsRaw
+        .whereType<Map>()
+        .map(
+          (item) => DiaryAiModelCatalogEntry.fromJson(
+              Map<String, dynamic>.from(item)),
+        )
+        .whereType<DiaryAiModelCatalogEntry>()
+        .toList(growable: false);
+    if (models.isEmpty) {
+      return null;
+    }
+
+    return DiaryAiStoredModelCatalog(
+      configSignature: configSignature,
+      fetchedAt: fetchedAt,
+      models: models,
+    );
+  }
 }
 
 class DiaryAiModelCatalogResult {
@@ -101,34 +187,46 @@ class DiaryAiModelCatalogResult {
     this.models = const <DiaryAiModelCatalogEntry>[],
     this.statusCode,
     this.error,
+    this.fetchedAt,
+    this.configSignature,
   });
 
   const DiaryAiModelCatalogResult.idle()
       : status = DiaryAiModelCatalogStatus.idle,
         models = const <DiaryAiModelCatalogEntry>[],
         statusCode = null,
-        error = null;
+        error = null,
+        fetchedAt = null,
+        configSignature = null;
 
-  const DiaryAiModelCatalogResult.loading()
-      : status = DiaryAiModelCatalogStatus.loading,
-        models = const <DiaryAiModelCatalogEntry>[],
+  const DiaryAiModelCatalogResult.loading({
+    this.models = const <DiaryAiModelCatalogEntry>[],
+    this.fetchedAt,
+    this.configSignature,
+  })  : status = DiaryAiModelCatalogStatus.loading,
         statusCode = null,
         error = null;
 
-  const DiaryAiModelCatalogResult.apiKeyMissing()
-      : status = DiaryAiModelCatalogStatus.apiKeyMissing,
-        models = const <DiaryAiModelCatalogEntry>[],
+  const DiaryAiModelCatalogResult.apiKeyMissing({
+    this.models = const <DiaryAiModelCatalogEntry>[],
+    this.fetchedAt,
+    this.configSignature,
+  })  : status = DiaryAiModelCatalogStatus.apiKeyMissing,
         statusCode = null,
         error = null;
 
   const DiaryAiModelCatalogResult.invalidConfig({
     this.error,
+    this.models = const <DiaryAiModelCatalogEntry>[],
+    this.fetchedAt,
+    this.configSignature,
   })  : status = DiaryAiModelCatalogStatus.invalidConfig,
-        models = const <DiaryAiModelCatalogEntry>[],
         statusCode = null;
 
   const DiaryAiModelCatalogResult.empty({
     this.statusCode,
+    this.fetchedAt,
+    this.configSignature,
   })  : status = DiaryAiModelCatalogStatus.empty,
         models = const <DiaryAiModelCatalogEntry>[],
         error = null;
@@ -136,12 +234,16 @@ class DiaryAiModelCatalogResult {
   const DiaryAiModelCatalogResult.requestFailed({
     this.statusCode,
     this.error,
-  })  : status = DiaryAiModelCatalogStatus.requestFailed,
-        models = const <DiaryAiModelCatalogEntry>[];
+    this.models = const <DiaryAiModelCatalogEntry>[],
+    this.fetchedAt,
+    this.configSignature,
+  }) : status = DiaryAiModelCatalogStatus.requestFailed;
 
   const DiaryAiModelCatalogResult.success(
     this.models, {
     this.statusCode,
+    this.fetchedAt,
+    this.configSignature,
   })  : status = DiaryAiModelCatalogStatus.success,
         error = null;
 
@@ -149,6 +251,8 @@ class DiaryAiModelCatalogResult {
   final List<DiaryAiModelCatalogEntry> models;
   final int? statusCode;
   final Object? error;
+  final DateTime? fetchedAt;
+  final String? configSignature;
 
   bool get isLoading => status == DiaryAiModelCatalogStatus.loading;
   bool get hasModels => models.isNotEmpty;
@@ -250,30 +354,126 @@ class DiaryAiModelCatalogController
 
   DiaryAiModelCatalogService get _service =>
       ref.read(diaryAiModelCatalogServiceProvider);
+  DiaryAiSettingsStorage get _storage =>
+      ref.read(diaryAiSettingsStorageProvider);
+  String get _environmentApiKey => ref.read(diaryAiEnvironmentApiKeyProvider);
 
   @override
   DiaryAiModelCatalogResult build() {
     return const DiaryAiModelCatalogResult.idle();
   }
 
+  Future<DiaryAiModelCatalogResult> restorePersistedModels(
+    DiaryAiProviderConfig config,
+  ) async {
+    final requestId = ++_requestId;
+    final snapshot = DiaryAiStoredModelCatalog.fromJson(
+      await _storage.readModelCatalogSnapshot(),
+    );
+    if (requestId != _requestId) {
+      return state;
+    }
+
+    final signature = buildDiaryAiModelCatalogConfigSignature(
+      config,
+      fallbackApiKey: _environmentApiKey,
+    );
+    if (snapshot == null || snapshot.configSignature != signature) {
+      return state;
+    }
+
+    final restored = DiaryAiModelCatalogResult.success(
+      snapshot.models,
+      fetchedAt: snapshot.fetchedAt,
+      configSignature: snapshot.configSignature,
+    );
+    state = restored;
+    return restored;
+  }
+
   Future<DiaryAiModelCatalogResult> fetchModels(
     DiaryAiProviderConfig config,
   ) async {
     final requestId = ++_requestId;
-    state = const DiaryAiModelCatalogResult.loading();
+    final signature = buildDiaryAiModelCatalogConfigSignature(
+      config,
+      fallbackApiKey: _environmentApiKey,
+    );
+    final previous = state.configSignature == signature ? state : null;
+    state = DiaryAiModelCatalogResult.loading(
+      models: previous?.models ?? const <DiaryAiModelCatalogEntry>[],
+      fetchedAt: previous?.fetchedAt,
+      configSignature: signature,
+    );
 
     final result = await _service.fetchModels(config);
     if (requestId != _requestId) {
       return state;
     }
 
-    state = result;
-    return result;
+    switch (result.status) {
+      case DiaryAiModelCatalogStatus.success:
+        final resolved = DiaryAiModelCatalogResult.success(
+          result.models,
+          statusCode: result.statusCode,
+          fetchedAt: DateTime.now(),
+          configSignature: signature,
+        );
+        state = resolved;
+        try {
+          await _storage.writeModelCatalogSnapshot(
+            DiaryAiStoredModelCatalog(
+              configSignature: signature,
+              fetchedAt: resolved.fetchedAt!,
+              models: resolved.models,
+            ).toJson(),
+          );
+        } catch (_) {}
+        return resolved;
+      case DiaryAiModelCatalogStatus.requestFailed:
+        final failed = DiaryAiModelCatalogResult.requestFailed(
+          statusCode: result.statusCode,
+          error: result.error,
+          models: previous?.models ?? const <DiaryAiModelCatalogEntry>[],
+          fetchedAt: previous?.fetchedAt,
+          configSignature: previous?.configSignature ?? signature,
+        );
+        state = failed;
+        return failed;
+      case DiaryAiModelCatalogStatus.empty:
+        state = DiaryAiModelCatalogResult.empty(
+          statusCode: result.statusCode,
+          configSignature: signature,
+        );
+        try {
+          await _storage.writeModelCatalogSnapshot(null);
+        } catch (_) {}
+        return state;
+      case DiaryAiModelCatalogStatus.invalidConfig:
+        state = DiaryAiModelCatalogResult.invalidConfig(
+          error: result.error,
+          configSignature: signature,
+        );
+        return state;
+      case DiaryAiModelCatalogStatus.apiKeyMissing:
+        state = DiaryAiModelCatalogResult.apiKeyMissing(
+          configSignature: signature,
+        );
+        return state;
+      case DiaryAiModelCatalogStatus.idle:
+      case DiaryAiModelCatalogStatus.loading:
+        state = result;
+        return result;
+    }
   }
 
   void reset() {
     _requestId++;
     state = const DiaryAiModelCatalogResult.idle();
+  }
+
+  Future<void> clearPersistedModels() {
+    return _storage.writeModelCatalogSnapshot(null);
   }
 }
 
@@ -643,4 +843,35 @@ class DiaryAiModelCatalogService {
     }
     return values;
   }
+}
+
+String? _readJsonString(Object? raw) {
+  if (raw is! String) {
+    return null;
+  }
+  final normalized = raw.trim();
+  return normalized.isEmpty ? null : normalized;
+}
+
+List<DiaryAiModelTrait> _readDiaryAiModelTraits(Object? raw) {
+  if (raw is! List) {
+    return const <DiaryAiModelTrait>[];
+  }
+
+  return raw
+      .whereType<String>()
+      .map((item) => item.trim())
+      .where((item) => item.isNotEmpty)
+      .map(_parseDiaryAiModelTrait)
+      .whereType<DiaryAiModelTrait>()
+      .toList(growable: false);
+}
+
+DiaryAiModelTrait? _parseDiaryAiModelTrait(String raw) {
+  for (final trait in DiaryAiModelTrait.values) {
+    if (trait.name == raw) {
+      return trait;
+    }
+  }
+  return null;
 }
