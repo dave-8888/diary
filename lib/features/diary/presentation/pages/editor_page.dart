@@ -83,6 +83,7 @@ class _EditorPageState extends ConsumerState<EditorPage>
   bool _isApplyingTextUndo = false;
   bool _isCheckingHiddenAccess = false;
   bool _isChangingHiddenState = false;
+  Future<bool>? _pendingLeaveConfirmation;
   DateTime? _recordingStartedAt;
   DiaryEntryAiAnalysis? _aiSuggestion;
   late DateTime _draftCreatedAt;
@@ -611,8 +612,13 @@ class _EditorPageState extends ConsumerState<EditorPage>
       return true;
     }
 
+    final pendingConfirmation = _pendingLeaveConfirmation;
+    if (pendingConfirmation != null) {
+      return pendingConfirmation;
+    }
+
     final strings = context.strings;
-    final shouldLeave = await showCupertinoConfirmationDialog(
+    final confirmation = showCupertinoConfirmationDialog(
       context,
       title: strings.unsavedChangesTitle,
       message: strings.unsavedChangesMessage,
@@ -620,8 +626,14 @@ class _EditorPageState extends ConsumerState<EditorPage>
       confirmLabel: strings.leaveWithoutSaving,
       isDestructive: true,
     );
-
-    return shouldLeave;
+    _pendingLeaveConfirmation = confirmation;
+    try {
+      return await confirmation;
+    } finally {
+      if (identical(_pendingLeaveConfirmation, confirmation)) {
+        _pendingLeaveConfirmation = null;
+      }
+    }
   }
 
   void _handleSaveShortcut() {

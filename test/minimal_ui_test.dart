@@ -855,6 +855,49 @@ void main() {
     expect(find.text(strings.firstEntryPrompt), findsOneWidget);
   });
 
+  testWidgets(
+      'editor page coalesces repeated navigation exit requests behind one confirmation',
+      (tester) async {
+    final repository = FakeDiaryRepository(
+      moods: DiaryMood.values,
+    );
+
+    await pumpEditorNavigationApp(
+      tester,
+      initialLocation: '/editor',
+      overrides: buildOverrides(repository: repository),
+    );
+
+    await tester.enterText(
+      cupertinoEditableTextFinder(const ValueKey('editor-title-field')),
+      'Unsaved draft',
+    );
+
+    final tabBarRect = tester.getRect(find.byType(CupertinoTabBar));
+    final homeNavTapTarget = Offset(
+      tabBarRect.left + (tabBarRect.width / 6),
+      tabBarRect.center.dy,
+    );
+    await tester.tapAt(homeNavTapTarget);
+    await tester.tapAt(homeNavTapTarget);
+    await tester.pump();
+
+    expect(find.text(strings.unsavedChangesTitle), findsOneWidget);
+    expect(find.text(strings.unsavedChangesMessage), findsOneWidget);
+
+    await tester.tap(find.text(strings.stayOnPage));
+    await tester.pumpAndSettle();
+    expect(find.text(strings.whatHappenedToday), findsOneWidget);
+
+    await tester.tapAt(homeNavTapTarget);
+    await tester.pumpAndSettle();
+    await tester.tap(find.text(strings.leaveWithoutSaving));
+    await tester.pumpAndSettle();
+
+    expect(find.text(strings.unsavedChangesTitle), findsNothing);
+    expect(find.text(strings.firstEntryPrompt), findsOneWidget);
+  });
+
   testWidgets('home page keeps only the first image and video on one media row',
       (tester) async {
     final content = List.filled(
